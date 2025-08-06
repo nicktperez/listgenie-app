@@ -3,30 +3,26 @@
 import Head from "next/head";
 import React from "react";
 
-// ✅ This gets called *before* rendering the page
 export async function getServerSideProps() {
   try {
     const res = await fetch("https://openrouter.ai/api/v1/models");
 
-    if (!res.ok) {
+    const isOkay = res.ok || (typeof res.status === "number" && res.status < 400);
+
+    if (!isOkay) {
       return {
         props: {
           models: [],
-          error: `OpenRouter API error: ${res.status} ${res.statusText}`,
+          error: `OpenRouter API error: ${res.status} ${res.statusText || ""}`,
         },
       };
     }
 
-    const data = await res.json();
-
-    // Defensive check
-    const models = Array.isArray(data.data) ? data.data : [];
+    const json = await res.json();
+    const models = Array.isArray(json.data) ? json.data : [];
 
     return {
-      props: {
-        models,
-        error: null,
-      },
+      props: { models, error: null },
     };
   } catch (err) {
     return {
@@ -48,14 +44,10 @@ export default function OpenRouterPage({ models, error }) {
         <h1 className="text-3xl font-bold mb-6">Available OpenRouter Models</h1>
 
         {error && (
-          <div className="bg-red-100 text-red-800 p-4 mb-4 rounded">
-            {error}
-          </div>
+          <div className="bg-red-100 text-red-800 p-4 mb-4 rounded">{error}</div>
         )}
 
-        {!error && models.length === 0 && (
-          <p>No models available at the moment.</p>
-        )}
+        {!error && models.length === 0 && <p>No models available.</p>}
 
         <ul className="space-y-4">
           {models.map((model) => (
