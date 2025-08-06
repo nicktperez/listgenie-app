@@ -1,7 +1,11 @@
 // pages/openrouter.js
+"use client"; // Only needed in app directory, but safe here
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import Head from "next/head";
+
+export const dynamic = "force-dynamic"; // 💥 Tell Vercel NOT to prerender this page
 
 export default function OpenRouterPage() {
   const [models, setModels] = useState([]);
