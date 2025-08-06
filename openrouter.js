@@ -1,46 +1,68 @@
-// pages/openrouter.js
-import { useState, useEffect } from 'react';
 
-export default function OpenRouterPage() {
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(true);
+import { getAuth } from "@clerk/nextjs/server";
+import { useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
+
+export async function getServerSideProps(context) {
+  const { userId } = getAuth(context.req);
+
+  if (!userId) {
+    return {
+      redirect: {
+        destination: "/sign-in",
+        permanent: false,
+      },
+    };
+  }
+
+  try {
+    const res = await fetch("https://openrouter.ai/api/v1/models", {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to fetch OpenRouter models");
+    }
+
+    const models = await res.json();
+
+    return {
+      props: { models },
+    };
+  } catch (error) {
+    console.error("Error fetching models:", error);
+    return {
+      props: { models: [] },
+    };
+  }
+}
+
+export default function OpenRouter({ models }) {
+  const { user } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchAI = async () => {
-      try {
-        const res = await fetch('/api/openrouter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            messages: [
-              {
-                role: 'user',
-                content: 'Write a real estate listing for a 3-bedroom house with ocean views.',
-              },
-            ],
-          }),
-        });
-
-        const data = await res.json();
-        setResult(data);
-      } catch (error) {
-        setResult({ error: error.message });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAI();
-  }, []);
+    if (!user) {
+      router.push("/sign-in");
+    }
+  }, [user, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center">
-      <h1 className="text-3xl font-bold mb-4">OpenRouter Test</h1>
-      {loading && <p>Loading...</p>}
-      {result && (
-        <pre className="bg-gray-100 p-4 rounded max-w-2xl text-left overflow-auto">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Available OpenRouter Models</h1>
+      {models.length === 0 ? (
+        <p>No models available or failed to load.</p>
+      ) : (
+        <ul className="space-y-2">
+          {models.map((model) => (
+            <li key={model.id} className="border p-2 rounded">
+              <strong>{model.id}</strong> - {model.description}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
