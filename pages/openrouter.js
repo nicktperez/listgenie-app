@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Head from "next/head";
 
-const OpenRouterModels = dynamic(() => import("../../components/OpenRouterModels"), {
+const OpenRouterModels = dynamic(() => import("../components/OpenRouterModels"), {
   ssr: false,
 });
 
