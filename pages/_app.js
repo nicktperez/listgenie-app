@@ -1,1 +1,13 @@
-{"\ufeff// pages/_app.js\nimport { ClerkProvider } from \"@clerk/nextjs\"": null, "\nimport \"../styles/globals.css\"": null, " // optional, ignore if not using\n\nfunction MyApp({ Component, pageProps }) {\n\u2006 \u2006 return (\n\u2006 \u2006 \u2006 \u2006 <ClerkProvider>\n\u2006 \u2006 \u2006 \u2006 \u2006 \u2006 <Component {...pageProps} />\n\u2006 \u2006 \u2006 \u2006 </ClerkProvider>\n\u2006 \u2006 )": null, "\n}\n\nexport default MyApp": null}
+// pages/_app.js
+import { ClerkProvider } from "@clerk/nextjs";
+import "../styles/globals.css"; // Optional if you have custom styles
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <ClerkProvider>
+      <Component {...pageProps} />
+    </ClerkProvider>
+  );
+}
+
+export default MyApp;
