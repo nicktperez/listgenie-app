@@ -1,51 +1,52 @@
 // /pages/openrouter.js
 
-import { useEffect, useState } from "react";
 import Head from "next/head";
 
-export default function OpenRouterPage() {
-  const [models, setModels] = useState([]);
-  const [error, setError] = useState(null);
+export async function getServerSideProps() {
+  try {
+    const response = await fetch("https://openrouter.ai/api/v1/models");
+    const data = await response.json();
 
-  useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const response = await fetch("https://openrouter.ai/api/v1/models");
-        if (!response.ok) {
-          throw new Error(`Error fetching models: ${response.statusText}`);
-        }
+    if (!Array.isArray(data.data)) {
+      throw new Error("Invalid data format from OpenRouter");
+    }
 
-        const data = await response.json();
-
-        if (!Array.isArray(data.data)) {
-          throw new Error("Invalid response format from OpenRouter");
-        }
-
-        setModels(data.data);
-      } catch (err) {
-        setError(err.message || "Unexpected error");
-        console.error("Fetch error:", err);
-      }
+    return {
+      props: {
+        models: data.data,
+        error: null,
+      },
     };
+  } catch (err) {
+    console.error("Error fetching models:", err);
+    return {
+      props: {
+        models: [],
+        error: err.message || "Unknown error",
+      },
+    };
+  }
+}
 
-    fetchModels();
-  }, []);
-
+export default function OpenRouterPage({ models, error }) {
   return (
     <>
       <Head>
-        <title>OpenRouter Models</title>
+        <title>OpenRouter AI Models</title>
       </Head>
       <main className="max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-6">OpenRouter AI Models</h1>
+
         {error && (
           <div className="text-red-500 font-medium mb-4">
             Failed to load models: {error}
           </div>
         )}
+
         {!error && models.length === 0 && (
-          <div className="text-gray-500">Loading models...</div>
+          <div className="text-gray-500">No models available.</div>
         )}
+
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {models.map((model) => (
             <li
