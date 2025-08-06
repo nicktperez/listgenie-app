@@ -1,34 +1,57 @@
-const openRouterModels = [
-  {
-    id: "openai/gpt-3.5-turbo",
-    name: "GPT-3.5 Turbo",
-    description: "Fast, affordable OpenAI model great for most tasks",
-  },
-  {
-    id: "openai/gpt-4-turbo",
-    name: "GPT-4 Turbo",
-    description: "OpenAI’s top model with long context and strong reasoning",
-  },
-  {
-    id: "anthropic/claude-3-sonnet",
-    name: "Claude 3 Sonnet",
-    description: "Anthropic’s balanced model with creativity and safety",
-  },
-  {
-    id: "google/gemini-pro",
-    name: "Gemini Pro",
-    description: "Google’s latest AI with impressive versatility",
-  },
-  {
-    id: "mistral/mistral-7b-instruct",
-    name: "Mistral 7B",
-    description: "Open-weight fast model with decent performance",
-  },
-  {
-    id: "meta-llama/llama-3-70b-instruct",
-    name: "LLaMA 3 70B",
-    description: "Meta’s powerful open model, great for long-form tasks",
-  },
-];
+"use client";
 
-export default openRouterModels;
+import React, { useEffect, useState } from "react";
+
+export default function OpenRouterModels() {
+  const [models, setModels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const res = await fetch("/api/openrouter");
+        const data = await res.json();
+
+        if (!data || !Array.isArray(data.models)) {
+          throw new Error("Unexpected API response format");
+        }
+
+        setModels(data.models);
+      } catch (err) {
+        console.error("Failed to fetch OpenRouter models:", err);
+        setError("Failed to load models.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
+
+  if (loading) {
+    return <p className="text-gray-500">Loading models...</p>;
+  }
+
+  if (error) {
+    return <p className="text-red-600">{error}</p>;
+  }
+
+  if (!models.length) {
+    return <p className="text-gray-600">No models found.</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {models.map((model) => (
+        <div
+          key={model.id}
+          className="border border-gray-300 rounded-md p-4 hover:shadow-md transition-shadow"
+        >
+          <h2 className="text-lg font-semibold">{model.id}</h2>
+          <p className="text-sm text-gray-600">{model.description || "No description available."}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
