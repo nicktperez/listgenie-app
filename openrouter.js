@@ -2,11 +2,11 @@
 import { useState, useEffect } from 'react';
 
 export default function OpenRouterPage() {
-  const [response, setResponse] = useState(null);
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchResponse = async () => {
+    const fetchAI = async () => {
       try {
         const res = await fetch('/api/openrouter', {
           method: 'POST',
@@ -22,24 +22,24 @@ export default function OpenRouterPage() {
         });
 
         const data = await res.json();
-        setResponse(data);
-      } catch (err) {
-        setResponse({ error: 'Something went wrong: ' + err.message });
+        setResult(data);
+      } catch (error) {
+        setResult({ error: error.message });
       } finally {
         setLoading(false);
       }
     };
 
-    fetchResponse();
+    fetchAI();
   }, []);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>OpenRouter API Test</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center">
+      <h1 className="text-3xl font-bold mb-4">OpenRouter Test</h1>
       {loading && <p>Loading...</p>}
-      {response && (
-        <pre style={{ whiteSpace: 'pre-wrap' }}>
-          {JSON.stringify(response, null, 2)}
+      {result && (
+        <pre className="bg-gray-100 p-4 rounded max-w-2xl text-left overflow-auto">
+          {JSON.stringify(result, null, 2)}
         </pre>
       )}
     </div>
