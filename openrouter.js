@@ -1,27 +1,27 @@
-// /pages/openrouter.js
 import Head from "next/head";
 
+// SERVER-SIDE: fetch model data from OpenRouter
 export async function getServerSideProps() {
   try {
-    const response = await fetch("https://openrouter.ai/api/v1/models");
+    const res = await fetch("https://openrouter.ai/api/v1/models");
 
-    // Check if it's a successful fetch
-    if (!response.ok) {
+    if (!res.ok) {
       return {
         props: {
           models: [],
-          error: `OpenRouter API error: ${response.status} ${response.statusText}`,
+          error: `Failed to fetch OpenRouter models: ${res.status} ${res.statusText}`,
         },
       };
     }
 
-    const data = await response.json();
+    const data = await res.json();
 
+    // Sanity check
     if (!Array.isArray(data.data)) {
       return {
         props: {
           models: [],
-          error: "Invalid data format returned from OpenRouter",
+          error: "OpenRouter returned invalid model data.",
         },
       };
     }
@@ -32,38 +32,47 @@ export async function getServerSideProps() {
         error: null,
       },
     };
-  } catch (err) {
+  } catch (error) {
     return {
       props: {
         models: [],
-        error: err.message || "Unknown error occurred",
+        error: error.message || "Unexpected error occurred",
       },
     };
   }
 }
 
+// CLIENT-SIDE: render passed model data
 export default function OpenRouterPage({ models, error }) {
   return (
     <>
       <Head>
         <title>OpenRouter Models | ListGenie.ai</title>
       </Head>
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold mb-6">Available Models via OpenRouter</h1>
+
+      <main className="max-w-4xl mx-auto px-4 py-10">
+        <h1 className="text-3xl font-bold mb-6">OpenRouter Models</h1>
 
         {error && (
-          <p className="text-red-600 mb-4">Error: {error}</p>
+          <div className="text-red-600 mb-4">
+            <strong>Error:</strong> {error}
+          </div>
         )}
 
-        {models.length === 0 && !error && (
-          <p className="text-gray-600">No models available at the moment.</p>
+        {!error && models.length === 0 && (
+          <p>No models found.</p>
         )}
 
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <ul className="space-y-4">
           {models.map((model) => (
-            <li key={model.id} className="border rounded-lg p-4 shadow-sm">
+            <li
+              key={model.id}
+              className="p-4 border border-gray-200 rounded shadow-sm"
+            >
               <h2 className="text-lg font-semibold">{model.id}</h2>
-              <p className="text-sm text-gray-600">{model.description}</p>
+              {model.description && (
+                <p className="text-sm text-gray-600">{model.description}</p>
+              )}
             </li>
           ))}
         </ul>
