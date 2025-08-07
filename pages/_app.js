@@ -1,31 +1,25 @@
 // pages/_app.js
-import '../styles/globals.css';
-import { ClerkProvider, useUser } from '@clerk/nextjs';
-import { useEffect, useRef } from 'react';
+import "@/styles/globals.css";
+import { ClerkProvider } from "@clerk/nextjs";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "react-hot-toast";
+import NavBar from "@/components/NavBar";
 
-function InitUser() {
-  const { isSignedIn, user } = useUser();
-  const ranOnceRef = useRef(false);
+const queryClient = new QueryClient();
 
-  useEffect(() => {
-    if (!isSignedIn || !user) return;
-    if (ranOnceRef.current) return;       // avoid duplicate calls
-    ranOnceRef.current = true;
-
-    // Fire-and-forget: server will create/ensure row in `public.users`
-    fetch('/api/user/init', { method: 'POST' }).catch(() => {
-      // non-blocking
-    });
-  }, [isSignedIn, user]);
-
-  return null;
-}
-
-export default function MyApp({ Component, pageProps }) {
+export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider {...pageProps}>
-      <InitUser />
-      <Component {...pageProps} />
+    <ClerkProvider>
+      <QueryClientProvider client={queryClient}>
+        {/* Global Nav */}
+        <NavBar />
+
+        {/* Page Content */}
+        <Component {...pageProps} />
+
+        {/* Toast Notifications */}
+        <Toaster position="top-right" />
+      </QueryClientProvider>
     </ClerkProvider>
   );
 }
