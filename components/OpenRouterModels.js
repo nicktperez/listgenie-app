@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function OpenRouterModels() {
   const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -13,45 +12,33 @@ export default function OpenRouterModels() {
         const res = await fetch("/api/openrouter");
         const data = await res.json();
 
-        if (!data || !Array.isArray(data.models)) {
-          throw new Error("Unexpected API response format");
-        }
-
-        setModels(data.models);
+        // ✅ FIX: use `data.data`, not `data.models`
+        setModels(data.models || data.data || []);
       } catch (err) {
-        console.error("Failed to fetch OpenRouter models:", err);
         setError("Failed to load models.");
-      } finally {
-        setLoading(false);
+        console.error("Error fetching models:", err);
       }
     };
 
     fetchModels();
   }, []);
 
-  if (loading) {
-    return <p className="text-gray-500">Loading models...</p>;
-  }
-
   if (error) {
-    return <p className="text-red-600">{error}</p>;
+    return <p className="text-red-500">{error}</p>;
   }
 
   if (!models.length) {
-    return <p className="text-gray-600">No models found.</p>;
+    return <p className="text-gray-500">No models found.</p>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <ul className="space-y-2">
       {models.map((model) => (
-        <div
-          key={model.id}
-          className="border border-gray-300 rounded-md p-4 hover:shadow-md transition-shadow"
-        >
-          <h2 className="text-lg font-semibold">{model.id}</h2>
-          <p className="text-sm text-gray-600">{model.description || "No description available."}</p>
-        </div>
+        <li key={model.id} className="border p-3 rounded shadow-sm">
+          <strong>{model.name || model.id}</strong>
+          <p className="text-sm text-gray-600">{model.description}</p>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
