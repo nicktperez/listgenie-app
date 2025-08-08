@@ -226,3 +226,37 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
   border-color: var(--primary);
   box-shadow: var(--ring);
 }
+
+/* === Dark theme & input consistency fixes === */
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+input, textarea, select, button {
+  font-size: 16px; /* avoids mobile zoom */
+}
+
+/* Force dark inputs */
+input,
+textarea {
+  background: rgba(255,255,255,0.05) !important;
+  color: #fff !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(255,255,255,0.45);
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: #fff !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px rgba(255,255,255,0.05) inset !important;
+}
