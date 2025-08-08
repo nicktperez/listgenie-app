@@ -1,32 +1,44 @@
 // pages/api/admin/grant-pro.js
-import supabaseAdmin from '@/lib/supabaseAdmin';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
-  // Simple gate: use an admin token from env
-  const auth = req.headers.authorization || '';
-  const token = auth.replace('Bearer ', '');
-  if (token !== process.env.ADMIN_TOKEN) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { clerkId, email } = req.body || {};
-  if (!clerkId && !email) {
-    return res.status(400).json({ error: 'Provide clerkId or email' });
+  const token = req.headers['authorization'];
+  if (!token || token !== `Bearer ${process.env.ADMIN_TOKEN}`) {
+    return res.status(403).json({ error: 'Unauthorized' });
   }
 
-  const match = clerkId ? { clerk_id: clerkId } : { email };
+  const { clerk_id, email } = req.body;
+  if (!clerk_id && !email) {
+    return res.status(400).json({ error: 'Provide either clerk_id or email' });
+  }
 
-  const { data, error } = await supabaseAdmin
+  // If email provided, look up Clerk ID
+  let finalClerkId = clerk_id;
+  if (email) {
+    const { data, error: lookupError } = await supabaseAdmin
+      .from('users')
+      .select('clerk_id')
+      .eq('email', email)
+      .single();
+
+    if (lookupError || !data) {
+      return res.status(404).json({ error: 'User not found for that email' });
+    }
+    finalClerkId = data.clerk_id;
+  }
+
+  const { error } = await supabaseAdmin
     .from('users')
     .update({ role: 'pro' })
-    .match(match)
-    .select()
-    .maybeSingle();
+    .eq('clerk_id', finalClerkId);
 
-  if (error) return res.status(500).json({ error: error.message });
-  if (!data) return res.status(404).json({ error: 'User not found' });
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
 
-  return res.status(200).json({ ok: true, user: data });
+  res.status(200).json({ message: `User ${finalClerkId} upgraded to Pro.` });
 }
