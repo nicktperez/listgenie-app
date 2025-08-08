@@ -4,7 +4,6 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
   
-    // Basic body guard
     let body;
     try {
       body = req.body ?? JSON.parse(req.body);
@@ -12,19 +11,26 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Invalid JSON body" });
     }
   
-    const {
-      messages = [],
-      model = "openrouter/anthropic/claude-3.5-sonnet",
-      max_tokens = 800,
-      temperature = 0.7,
-    } = body || {};
+    // 1) Choose a valid default, and allow env override
+    const DEFAULT_MODEL =
+      process.env.NEXT_PUBLIC_DEFAULT_MODEL || "anthropic/claude-3.5-sonnet";
   
-    // Env checks (these are the most common causes)
+    // 2) Accept client model, but sanitize "openrouter/" prefix if someone sends it
+    let requestedModel = (body?.model || DEFAULT_MODEL).trim();
+    if (requestedModel.startsWith("openrouter/")) {
+      requestedModel = requestedModel.replace(/^openrouter\//, "");
+    }
+  
+    const messages = Array.isArray(body?.messages) ? body.messages : [];
+    const max_tokens = Number(body?.max_tokens) || 800;
+    const temperature = Number(body?.temperature) || 0.7;
+  
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return res.status(500).json({
         error: "Missing OPENROUTER_API_KEY env on server.",
-        hint: "Add OPENROUTER_API_KEY in Vercel > Project > Settings > Environment Variables and redeploy.",
+        hint:
+          "Add OPENROUTER_API_KEY in Vercel > Project > Settings > Environment Variables and redeploy.",
       });
     }
   
@@ -39,16 +45,14 @@ export default async function handler(req, res) {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${apiKey}`,
-          // App attribution headers: not access control, but good hygiene
-          "HTTP-Referer": site, // full URL
+          "HTTP-Referer": site,
           "X-Title": "ListGenie.ai",
         },
         body: JSON.stringify({
-          model,
-          messages,        // [{ role: "user"|"assistant"|"system", content: "..." }, ...]
+          model: requestedModel,
+          messages,
           max_tokens,
           temperature,
-          // stream: false (default) - keep it simple for now
         }),
       });
   
@@ -57,7 +61,6 @@ export default async function handler(req, res) {
       try {
         data = JSON.parse(text);
       } catch {
-        // Sometimes upstream returns HTML or plaintext on errors
         return res.status(r.status || 502).json({
           error: "Upstream returned non-JSON.",
           status: r.status,
@@ -65,12 +68,12 @@ export default async function handler(req, res) {
         });
       }
   
-      // OpenRouter error shape
       if (!r.ok || data.error) {
         return res.status(r.status || 400).json({
           error: data?.error?.message || "OpenRouter error",
           status: r.status,
           details: data,
+          model_used: requestedModel,
         });
       }
   
@@ -86,9 +89,8 @@ export default async function handler(req, res) {
         });
       }
   
-      return res.status(200).json({ message: content });
+      return res.status(200).json({ message: content, model: requestedModel });
     } catch (err) {
-      // Network/unknown
       return res.status(500).json({
         error: "Server error calling OpenRouter.",
         details: String(err?.message || err),
