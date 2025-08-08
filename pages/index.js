@@ -1,57 +1,62 @@
 // pages/index.js
+import { SignedIn, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
+import { FiMessageSquare, FiDatabase, FiBarChart2 } from "react-icons/fi";
 
 export default function Home() {
   const { user } = useUser();
 
+  const tools = [
+    {
+      title: "Chat",
+      description: "Ask ListGenie questions and draft listing content.",
+      icon: <FiMessageSquare className="w-6 h-6 text-indigo-500" />,
+      href: "/chat",
+    },
+    {
+      title: "Models",
+      description: "Browse available OpenRouter models.",
+      icon: <FiDatabase className="w-6 h-6 text-green-500" />,
+      href: "/models",
+    },
+    {
+      title: "Usage",
+      description: "See your request/token usage (admins can see all).",
+      icon: <FiBarChart2 className="w-6 h-6 text-pink-500" />,
+      href: "/usage",
+    },
+  ];
+
   return (
-    <main className="max-w-4xl mx-auto px-4 py-10">
-      <header className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold">ListGenie</h1>
-        <div>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
-        </div>
-      </header>
-
-      <SignedOut>
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Welcome!</h2>
-          <p>Please sign in to access your tools.</p>
-          <Link
-            href="/sign-in"
-            className="inline-block bg-black text-white px-4 py-2 rounded"
-          >
-            Sign In
-          </Link>
-        </div>
-      </SignedOut>
-
-      <SignedIn>
-        <div className="space-y-3 mb-8">
-          <h2 className="text-xl font-semibold">Hey {user?.firstName || user?.username || "there"} 👋</h2>
-          <p className="text-gray-600">Pick a tool to get started:</p>
+    <SignedIn>
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        {/* Welcome Section */}
+        <div className="mb-10">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            Welcome back, {user?.firstName || "there"} 👋
+          </h1>
+          <p className="mt-2 text-gray-600">
+            Ready to boost your productivity? Pick a tool below to get started.
+          </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link href="/chat" className="block border rounded-lg p-5 hover:bg-gray-50">
-            <h3 className="font-semibold mb-1">Chat</h3>
-            <p className="text-sm text-gray-600">Ask ListGenie questions and draft listing content.</p>
-          </Link>
-
-          <Link href="/openrouter" className="block border rounded-lg p-5 hover:bg-gray-50">
-            <h3 className="font-semibold mb-1">Models</h3>
-            <p className="text-sm text-gray-600">Browse available OpenRouter models.</p>
-          </Link>
-
-          <Link href="/usage" className="block border rounded-lg p-5 hover:bg-gray-50">
-            <h3 className="font-semibold mb-1">Usage</h3>
-            <p className="text-sm text-gray-600">See your request/token usage (admins can see all).</p>
-          </Link>
+        {/* Tools Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {tools.map((tool) => (
+            <Link key={tool.title} href={tool.href}>
+              <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    {tool.icon}
+                  </div>
+                  <h2 className="text-lg font-semibold">{tool.title}</h2>
+                </div>
+                <p className="text-sm text-gray-500">{tool.description}</p>
+              </div>
+            </Link>
+          ))}
         </div>
-      </SignedIn>
-    </main>
+      </div>
+    </SignedIn>
   );
 }
