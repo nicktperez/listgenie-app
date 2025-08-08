@@ -1,7 +1,173 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ======================================================================
+   ListGenie App – Global Styles (dark/gradient)
+   Paste this entire file as styles/globals.css
+   ====================================================================== */
 
-body {
-  font-family: system-ui, sans-serif;
+/* ---- CSS Reset (lightweight) --------------------------------------- */
+*,*::before,*::after{box-sizing:border-box}
+*{margin:0}
+html,body{height:100%}
+img,svg,video,canvas{display:block;max-width:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+a{text-decoration:none;color:inherit}
+
+/* ---- Theme Tokens --------------------------------------------------- */
+:root{
+  --bg: #0b0e16;        /* page top */
+  --bg-2:#0f1422;       /* page bottom */
+  --text:#dfe6ff;       /* main text */
+  --muted:#9aa3c7;      /* secondary text */
+  --card:#131a29;       /* card base */
+  --border:rgba(255,255,255,.08);
+
+  --grad-1:#6aa3ff;     /* primary gradient start */
+  --grad-2:#61e8ff;     /* primary gradient end */
+  --accent:#9cc4ff;     /* tiny accents */
 }
+
+/* ---- Base ----------------------------------------------------------- */
+body{
+  background:
+    radial-gradient(1200px 600px at 75% -10%, rgba(97,232,255,.15), transparent 60%),
+    radial-gradient(900px 500px at -10% 20%, rgba(106,163,255,.18), transparent 55%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji", "Segoe UI Symbol";
+  line-height:1.6;
+}
+
+/* Optional: nicer scrollbars on desktop */
+@media (hover:hover){
+  *::-webkit-scrollbar{width:10px;height:10px}
+  *::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:10px}
+  *::-webkit-scrollbar-track{background:transparent}
+}
+
+/* ---- Layout Utilities ---------------------------------------------- */
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+.section{padding:40px 0}
+.stack{display:flex;flex-direction:column;gap:12px}
+.grid{display:grid;gap:16px}
+.card{
+  background:rgba(15,20,34,.7);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  box-shadow:0 16px 40px rgba(0,0,0,.35);
+}
+
+/* ---- Typography ----------------------------------------------------- */
+h1{font-size:clamp(28px,4vw,38px);line-height:1.18;margin:6px 0 12px}
+h2{font-size:clamp(22px,3vw,28px);line-height:1.2;margin:6px 0 10px}
+h3{font-size:20px;margin:6px 0 8px}
+p.small, .muted{color:var(--muted)}
+a.link{color:var(--accent)}
+a.link:hover{opacity:.9}
+
+/* ---- Buttons -------------------------------------------------------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  gap:.4rem;padding:10px 14px;border-radius:12px;font-weight:700;
+  border:1px solid var(--border); background:rgba(19,26,41,.6); color:var(--text);
+  transition:transform .06s ease, filter .2s ease, opacity .2s ease, background .2s ease;
+}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{
+  border:none;color:#0a0c12;
+  background:linear-gradient(90deg,var(--grad-1),var(--grad-2));
+  box-shadow:0 8px 24px rgba(97,232,255,.25);
+}
+.btn.ghost{background:transparent}
+.btn.full{width:100%}
+
+/* ---- Forms ---------------------------------------------------------- */
+.input, .textarea, .select{
+  width:100%;min-height:44px;padding:12px 14px;
+  background:#0e1524;border:1px solid var(--border);border-radius:12px;
+  color:var(--text);outline:none;
+}
+.textarea{min-height:120px;resize:vertical}
+
+/* =====================================================================
+   NAVBAR (matches landing look + hamburger on mobile)
+   ===================================================================== */
+.app-header{
+  position:sticky;top:0;z-index:50;
+  background:rgba(8,10,18,.5);
+  backdrop-filter:saturate(140%) blur(8px);
+  border-bottom:1px solid var(--border);
+}
+.app-nav{
+  height:64px;display:flex;align-items:center;justify-content:space-between;
+}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800}
+.brand .dot{color:var(--accent)}
+
+.nav-links{display:none;gap:22px;align-items:center;font-weight:500}
+.nav-links a{opacity:.85}
+.nav-links a:hover{opacity:1}
+
+/* Hamburger */
+.nav-toggle{
+  display:inline-flex;flex-direction:column;gap:4px;width:44px;height:38px;border-radius:10px;
+  border:1px solid var(--border);background:rgba(19,26,41,.6);cursor:pointer;
+}
+.nav-toggle .bar{
+  width:20px;height:2px;background:#e7ecff;margin:0 auto;
+  transition:transform .25s,opacity .25s;
+}
+.nav-toggle[aria-expanded="true"] .bar:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.nav-toggle[aria-expanded="true"] .bar:nth-child(2){opacity:0}
+.nav-toggle[aria-expanded="true"] .bar:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+/* Mobile sheet menu */
+.mobile-sheet{
+  display:none;position:absolute;inset:64px 12px auto 12px;background:rgba(12,16,28,.92);
+  border:1px solid var(--border);border-radius:14px;padding:10px;backdrop-filter:blur(10px);
+  box-shadow:0 16px 48px rgba(0,0,0,.45)
+}
+.mobile-sheet.open{display:grid}
+.sheet-link{padding:12px 10px;border-radius:10px}
+.sheet-link:hover{background:rgba(255,255,255,.06)}
+
+@media (min-width:900px){
+  .nav-links{display:flex}
+  .nav-toggle,.mobile-sheet{display:none!important}
+}
+
+/* =====================================================================
+   CHAT PAGE POLISH
+   ===================================================================== */
+.chat-shell{padding:28px 0}
+.chat-layout{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:980px){.chat-layout{grid-template-columns:1fr}}
+.chat-log{display:flex;flex-direction:column;gap:12px}
+.msg{
+  border:1px solid var(--border);border-radius:12px;padding:12px 14px;
+  background:rgba(255,255,255,.03)
+}
+.msg.user{background:rgba(106,163,255,.1);border-color:rgba(106,163,255,.25)}
+.msg.assistant{background:rgba(255,255,255,.03)}
+.input-row{display:flex;gap:10px;margin-top:10px}
+.input-row input, .input-row textarea{
+  flex:1;border:1px solid var(--border);border-radius:12px;background:#0e1524;color:var(--text);
+  padding:12px 14px;min-height:44px
+}
+
+/* =====================================================================
+   TABLES (for usage/admin if you keep those pages later)
+   ===================================================================== */
+.table{
+  width:100%;border-collapse:separate;border-spacing:0 10px;
+}
+.tr{background:rgba(15,20,34,.7);border:1px solid var(--border);border-radius:10px}
+.th,.td{padding:12px 14px;color:var(--text)}
+.th{color:var(--muted);font-weight:600}
+
+/* =====================================================================
+   FOOTER / MISC
+   ===================================================================== */
+.footer{padding:40px 0;color:var(--muted);border-top:1px solid var(--border)}
