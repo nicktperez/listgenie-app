@@ -1,61 +1,75 @@
-// pages/chat.js
-import { useState } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { SignedIn } from "@clerk/nextjs";
 
-export default function Chat() {
-  const { user } = useUser();
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function sendMessage(e) {
-    e.preventDefault();
-    if (!input.trim()) return;
-    const newMessages = [...messages, { role: 'user', content: input }];
-    setMessages(newMessages);
-    setInput('');
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/openrouter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages })
-      });
-      const data = await response.json();
-      setMessages([...newMessages, { role: 'assistant', content: data.message }]);
-    } catch (err) {
-      console.error('OpenRouter error:', err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+export default function ChatPage() {
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Chat with ListGenie</h1>
-      <div className="space-y-2 mb-4">
-        {messages.map((m, i) => (
-          <div key={i} className={`p-2 rounded-md ${m.role === 'user' ? 'bg-blue-100' : 'bg-gray-100'}`}>
-            <strong>{m.role === 'user' ? 'You' : 'Genie'}:</strong> {m.content}
+    <SignedIn>
+      <div className="relative min-h-screen overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-white to-blue-100 animate-gradient"></div>
+
+        {/* Sparkles */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-yellow-300 rounded-full opacity-75 animate-twinkle"
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+              }}
+            ></div>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
+          <h1 className="text-4xl font-extrabold text-gray-900 drop-shadow-sm mb-6">
+            Chat with ListGenie ✨
+          </h1>
+          <p className="text-lg text-gray-700 mb-10">
+            Ask questions, draft listings, or brainstorm — your AI assistant is ready.
+          </p>
+
+          <div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
+            {/* Placeholder for your chat UI */}
+            <p className="text-gray-500">
+              Chat interface goes here. (Your existing chat UI will render here.)
+            </p>
           </div>
-        ))}
+        </div>
       </div>
-      <form onSubmit={sendMessage} className="flex space-x-2">
-        <input
-          className="flex-1 border border-gray-300 p-2 rounded-md"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask Genie about your listing..."
-        />
-        <button
-          type="submit"
-          className="bg-black text-white px-4 py-2 rounded-md disabled:opacity-50"
-          disabled={loading}
-        >
-          {loading ? 'Thinking...' : 'Send'}
-        </button>
-      </form>
-    </div>
+
+      <style jsx global>{`
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 10s ease infinite;
+        }
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+        }
+        .animate-twinkle {
+          animation: twinkle 3s infinite ease-in-out;
+        }
+      `}</style>
+    </SignedIn>
   );
 }

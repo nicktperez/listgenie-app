@@ -1,62 +1,79 @@
-// pages/index.js
-import { SignedIn, useUser } from "@clerk/nextjs";
-import Link from "next/link";
-import { FiMessageSquare, FiDatabase, FiBarChart2 } from "react-icons/fi";
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 export default function Home() {
-  const { user } = useUser();
-
-  const tools = [
-    {
-      title: "Chat",
-      description: "Ask ListGenie questions and draft listing content.",
-      icon: <FiMessageSquare className="w-6 h-6 text-indigo-500" />,
-      href: "/chat",
-    },
-    {
-      title: "Models",
-      description: "Browse available OpenRouter models.",
-      icon: <FiDatabase className="w-6 h-6 text-green-500" />,
-      href: "/models",
-    },
-    {
-      title: "Usage",
-      description: "See your request/token usage (admins can see all).",
-      icon: <FiBarChart2 className="w-6 h-6 text-pink-500" />,
-      href: "/usage",
-    },
-  ];
-
   return (
-    <SignedIn>
-      <div className="max-w-6xl mx-auto px-6 py-12">
-        {/* Welcome Section */}
-        <div className="mb-10">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            Welcome back, {user?.firstName || "there"} 👋
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Ready to boost your productivity? Pick a tool below to get started.
-          </p>
+    <div className="bg-gray-50 min-h-screen">
+      <main className="max-w-7xl mx-auto py-12 px-6 lg:px-8">
+        {/* Hero Section */}
+        <div className="text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-4xl font-extrabold text-gray-900 sm:text-5xl"
+          >
+            Welcome to <span className="text-purple-600">ListGenie</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto"
+          >
+            Your AI-powered assistant for creating real estate listings in seconds.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+            className="mt-6"
+          >
+            <Link
+              href="/chat"
+              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow hover:bg-purple-700 transition"
+            >
+              Start Chatting
+            </Link>
+          </motion.div>
         </div>
 
-        {/* Tools Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {tools.map((tool) => (
-            <Link key={tool.title} href={tool.href}>
-              <div className="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="p-3 bg-gray-50 rounded-lg">
-                    {tool.icon}
-                  </div>
-                  <h2 className="text-lg font-semibold">{tool.title}</h2>
-                </div>
-                <p className="text-sm text-gray-500">{tool.description}</p>
-              </div>
-            </Link>
+        {/* Features Section */}
+        <div className="mt-16 grid gap-8 md:grid-cols-3">
+          {[
+            {
+              title: 'Instant Listings',
+              description:
+                'Generate professional real estate listings instantly, ready to post.',
+              icon: '⚡'
+            },
+            {
+              title: 'AI-Powered',
+              description:
+                'Leverage cutting-edge AI models for high-quality, unique property descriptions.',
+              icon: '🤖'
+            },
+            {
+              title: 'Save Time',
+              description:
+                'Focus on closing deals while ListGenie handles the writing.',
+              icon: '⏱️'
+            }
+          ].map((feature, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 * idx }}
+              className="bg-white rounded-lg shadow p-6 text-center"
+            >
+              <div className="text-4xl">{feature.icon}</div>
+              <h3 className="mt-4 text-xl font-semibold text-gray-900">{feature.title}</h3>
+              <p className="mt-2 text-gray-600">{feature.description}</p>
+            </motion.div>
           ))}
         </div>
-      </div>
-    </SignedIn>
+      </main>
+    </div>
   );
 }
