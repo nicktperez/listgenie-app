@@ -1,75 +1,152 @@
-import { SignedIn } from "@clerk/nextjs";
+// pages/chat.js
+import { useEffect, useRef, useState } from "react";
+import { useUser, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import Head from "next/head";
 
 export default function ChatPage() {
   return (
-    <SignedIn>
-      <div className="relative min-h-screen overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-100 via-white to-blue-100 animate-gradient"></div>
+    <>
+      <Head>
+        <title>Chat • ListGenie.ai</title>
+      </Head>
 
-        {/* Sparkles */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-yellow-300 rounded-full opacity-75 animate-twinkle"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-              }}
-            ></div>
-          ))}
+      <section className="container chat-shell">
+        <SignedOut>
+          <div className="card stack" style={{ alignItems: "center", textAlign: "center" }}>
+            <h2>Sign in to start chatting</h2>
+            <p className="muted">You’ll be back here in a second.</p>
+            <SignInButton mode="redirect">
+              <button className="btn primary">Sign in</button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        <SignedIn>
+          <ChatInner />
+        </SignedIn>
+      </section>
+    </>
+  );
+}
+
+function ChatInner() {
+  const { user } = useUser();
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hey! I’m ListGenie. Paste a property link or tell me a few details (beds, baths, upgrades, neighborhood) and I’ll draft your listing + email + posts.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [model, setModel] = useState("openrouter/anthropic/claude-3.5");
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function sendMessage(e) {
+    e?.preventDefault?.();
+    const content = input.trim();
+    if (!content || loading) return;
+
+    const next = [...messages, { role: "user", content }];
+    setMessages(next);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/openrouter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: next, model }),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`HTTP ${res.status} – ${txt}`);
+      }
+      const data = await res.json();
+      const reply = data?.message ?? data?.choices?.[0]?.message?.content ?? "(No reply)";
+      setMessages((m) => [...m, { role: "assistant", content: reply }]);
+    } catch (err) {
+      console.error("OpenRouter error:", err);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          content:
+            "Sorry, I couldn’t reach the AI service. Double‑check your API key and try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="chat-layout">
+      {/* Chat window */}
+      <div className="card">
+        <div className="stack" style={{ marginBottom: 10 }}>
+          <h1>Chat with ListGenie</h1>
+          <p className="muted" style={{ marginTop: -6 }}>
+            Signed in as <strong>{user?.primaryEmailAddress?.emailAddress ?? user?.fullName}</strong>
+          </p>
         </div>
 
-        {/* Content */}
-        <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
-          <h1 className="text-4xl font-extrabold text-gray-900 drop-shadow-sm mb-6">
-            Chat with ListGenie ✨
-          </h1>
-          <p className="text-lg text-gray-700 mb-10">
-            Ask questions, draft listings, or brainstorm — your AI assistant is ready.
-          </p>
+        <div className="chat-log" style={{ minHeight: 300 }}>
+          {messages.map((m, i) => (
+            <Message key={i} role={m.role} content={m.content} />
+          ))}
+          {loading && <Message role="assistant" content="Thinking…" dim />}
+          <div ref={bottomRef} />
+        </div>
 
-          <div className="p-6 bg-white rounded-2xl shadow-lg border border-gray-200">
-            {/* Placeholder for your chat UI */}
-            <p className="text-gray-500">
-              Chat interface goes here. (Your existing chat UI will render here.)
-            </p>
-          </div>
+        {/* Input row */}
+        <form onSubmit={sendMessage} className="input-row">
+          <textarea
+            className="textarea"
+            placeholder="Paste a listing link or describe the property…"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+          />
+          <button className="btn primary" type="submit" disabled={loading}>
+            {loading ? "Sending…" : "Send"}
+          </button>
+        </form>
+
+        {/* Tiny options row */}
+        <div className="stack" style={{ marginTop: 10 }}>
+          <label className="muted" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={{ fontSize: 12 }}>Model:</span>
+            <select
+              className="select"
+              value={model}
+              onChange={(e) => setModel(e.target.value)}
+              style={{ maxWidth: 360 }}
+            >
+              <option value="openrouter/anthropic/claude-3.5">Claude 3.5 (OpenRouter)</option>
+              <option value="openrouter/google/gemini-1.5-pro">Gemini 1.5 Pro (OpenRouter)</option>
+              <option value="openrouter/meta/llama-3.1-70b">Llama 3.1 70B (OpenRouter)</option>
+            </select>
+          </label>
         </div>
       </div>
+    </div>
+  );
+}
 
-      <style jsx global>{`
-        @keyframes gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-        .animate-gradient {
-          background-size: 200% 200%;
-          animation: gradient 10s ease infinite;
-        }
-        @keyframes twinkle {
-          0%, 100% {
-            opacity: 0.3;
-            transform: scale(0.8);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.2);
-          }
-        }
-        .animate-twinkle {
-          animation: twinkle 3s infinite ease-in-out;
-        }
-      `}</style>
-    </SignedIn>
+function Message({ role, content, dim = false }) {
+  const isUser = role === "user";
+  return (
+    <div className={`msg ${isUser ? "user" : "assistant"}`} style={dim ? { opacity: 0.7 } : undefined}>
+      <strong style={{ display: "block", marginBottom: 4 }}>
+        {isUser ? "You" : "Genie"}
+      </strong>
+      <div style={{ whiteSpace: "pre-wrap" }}>{content}</div>
+    </div>
   );
 }
