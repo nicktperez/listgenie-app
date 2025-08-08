@@ -23,100 +23,43 @@ export default function Chat() {
     });
   }
 
-  async function sendMessage() {
-    if (!input.trim() || loading) return;
+  // inside pages/chat.js (or wherever your sendMessage lives)
+async function sendMessage(e) {
+  e.preventDefault();
+  if (!input.trim()) return;
 
-    const history = [...messages, { role: "user", content: input.trim() }];
-    setMessages(history);
-    setInput("");
-    setLoading(true);
+  const newMessages = [...messages, { role: 'user', content: input }];
+  setMessages(newMessages);
+  setInput('');
+  setLoading(true);
 
-    try {
-      const res = await fetch("/api/chat-stream", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history }),
-      });
+  try {
+    const r = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: newMessages /*, model: 'anthropic/claude-3.5-sonnet'*/ }),
+    });
 
-      if (!res.ok || !res.body) {
-        const text = await res.text();
-        throw new Error(text || `Request failed: ${res.status}`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Server sends SSE "data: ..." lines, separated by \n\n
-        let idx;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const chunk = buffer.slice(0, idx).trim();
-          buffer = buffer.slice(idx + 2);
-
-          // Grab each line starting with "data:"
-          const dataLines = chunk
-            .split("\n")
-            .filter((l) => l.startsWith("data:"))
-            .map((l) => l.replace(/^data:\s?/, ""));
-
-          for (const line of dataLines) {
-            if (line === "[DONE]") {
-              inputRef.current?.focus();
-              setLoading(false);
-              return;
-            }
-
-            // Some events might be keepalives
-            if (!line || line === "{}") continue;
-
-            try {
-              const json = JSON.parse(line);
-
-              // OpenAI-style delta
-              const delta = json?.choices?.[0]?.delta?.content;
-              if (typeof delta === "string") {
-                appendToAssistant(delta);
-              }
-
-              // Some providers send full message segments
-              const full = json?.choices?.[0]?.message?.content;
-              if (typeof full === "string") {
-                appendToAssistant(full);
-              }
-
-              // In case the server forwarded an error as JSON
-              if (json?.error && typeof json.error === "string") {
-                appendToAssistant(`\n[Error] ${json.error}`);
-              }
-            } catch {
-              // Non-JSON payloads (ignore)
-            }
-          }
-        }
-      }
-
-      // If we exit without [DONE], settle the UI
-      setLoading(false);
-      inputRef.current?.focus();
-    } catch (err) {
-      console.error("Streaming chat error:", err);
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content:
-            "Sorry — I hit an error talking to the model. Please try again.",
-        },
+    const data = await r.json();
+    if (!r.ok) {
+      console.error('Chat API error:', data);
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'Sorry — I had trouble talking to the model. Please try again.' },
       ]);
-      setLoading(false);
+    } else {
+      setMessages([...newMessages, { role: 'assistant', content: data.message }]);
     }
+  } catch (err) {
+    console.error('Network error:', err);
+    setMessages([
+      ...newMessages,
+      { role: 'assistant', content: 'Network error. Please try again.' },
+    ]);
+  } finally {
+    setLoading(false);
   }
+}
 
   return (
     <main className="container chat-page">
