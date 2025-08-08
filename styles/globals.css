@@ -170,3 +170,59 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 
 /* Helpers */
 .w-full{ width: 100%; }
+
+/* Chat Page */
+.chat-page {
+  padding-top: 2rem;
+}
+
+.chat-box {
+  min-height: 300px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+.chat-msg {
+  padding: .65rem .85rem;
+  border-radius: 10px;
+  max-width: 80%;
+  line-height: 1.4;
+}
+.chat-msg.user {
+  background: var(--primary);
+  color: #0a0f1d;
+  align-self: flex-end;
+}
+.chat-msg.ai {
+  background: var(--bg-elev-2);
+  color: #e6e9ef;
+  align-self: flex-start;
+}
+
+.empty-chat {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-dim);
+}
+
+.chat-input-row {
+  display: flex;
+  gap: .5rem;
+  margin-top: 1rem;
+}
+
+.chat-input {
+  flex: 1;
+  padding: .65rem .85rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.04);
+  color: #e6e9ef;
+}
+.chat-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
