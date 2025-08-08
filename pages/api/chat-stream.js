@@ -1,99 +1,77 @@
 // pages/api/chat-stream.js
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
 export default async function handler(req, res) {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-  
-    let body;
-    try {
-      body = req.body ?? JSON.parse(req.body);
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON body" });
-    }
-  
-    // 1) Choose a valid default, and allow env override
-    const DEFAULT_MODEL =
-      process.env.NEXT_PUBLIC_DEFAULT_MODEL || "anthropic/claude-3.5-sonnet";
-  
-    // 2) Accept client model, but sanitize "openrouter/" prefix if someone sends it
-    let requestedModel = (body?.model || DEFAULT_MODEL).trim();
-    if (requestedModel.startsWith("openrouter/")) {
-      requestedModel = requestedModel.replace(/^openrouter\//, "");
-    }
-  
-    const messages = Array.isArray(body?.messages) ? body.messages : [];
-    const max_tokens = Number(body?.max_tokens) || 800;
-    const temperature = Number(body?.temperature) || 0.7;
-  
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({
-        error: "Missing OPENROUTER_API_KEY env on server.",
-        hint:
-          "Add OPENROUTER_API_KEY in Vercel > Project > Settings > Environment Variables and redeploy.",
-      });
-    }
-  
-    const site =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      req.headers.origin ||
-      "https://app.listgenie.ai";
-  
-    try {
-      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "HTTP-Referer": site,
-          "X-Title": "ListGenie.ai",
-        },
-        body: JSON.stringify({
-          model: requestedModel,
-          messages,
-          max_tokens,
-          temperature,
-        }),
-      });
-  
-      const text = await r.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        return res.status(r.status || 502).json({
-          error: "Upstream returned non-JSON.",
-          status: r.status,
-          body: text?.slice(0, 1500),
-        });
-      }
-  
-      if (!r.ok || data.error) {
-        return res.status(r.status || 400).json({
-          error: data?.error?.message || "OpenRouter error",
-          status: r.status,
-          details: data,
-          model_used: requestedModel,
-        });
-      }
-  
-      const content =
-        data?.choices?.[0]?.message?.content ??
-        data?.choices?.[0]?.delta?.content ??
-        "";
-  
-      if (!content) {
-        return res.status(502).json({
-          error: "No content returned from model.",
-          details: data,
-        });
-      }
-  
-      return res.status(200).json({ message: content, model: requestedModel });
-    } catch (err) {
-      return res.status(500).json({
-        error: "Server error calling OpenRouter.",
-        details: String(err?.message || err),
-      });
-    }
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
   }
+
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY_PUBLIC;
+  if (!apiKey) {
+    return res.status(500).json({ error: "Missing OPENROUTER_API_KEY" });
+  }
+
+  try {
+    const { messages = [], model = "anthropic/claude-3.5-sonnet" } = req.body || {};
+
+    // Start a streaming request to OpenRouter (OpenAI-compatible endpoint)
+    const upstream = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+        // These two headers help OpenRouter attribute requests to your app
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://listgenie.ai",
+        "X-Title": "ListGenie",
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        // Temperature etc: keep simple/cheap
+        temperature: 0.7,
+        messages,
+      }),
+    });
+
+    if (!upstream.ok || !upstream.body) {
+      const text = await upstream.text().catch(() => "");
+      return res
+        .status(upstream.status || 500)
+        .json({ error: "Upstream error", status: upstream.status, details: text });
+    }
+
+    // Prepare to forward SSE back to the browser
+    res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+
+    const reader = upstream.body.getReader();
+    const encoder = new TextEncoder();
+
+    // Forward chunks 1:1 (don’t parse here — let the client handle SSE parsing)
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      if (value) {
+        res.write(value);
+      }
+    }
+
+    // Important: send final SSE terminator just in case
+    res.write(encoder.encode("data: [DONE]\n\n"));
+    res.end();
+  } catch (err) {
+    console.error("chat-stream error:", err);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: "Server error", details: String(err?.message || err) });
+    }
+    res.end();
+  }
+}
