@@ -215,9 +215,7 @@ function ChatInner() {
                     ? `${remaining} characters left on Free`
                     : `${Math.abs(remaining)} over the Free limit`)}
               </div>
-              <a href={`${SITE_URL}/upgrade`} className="link">
-                Unlock Pro
-              </a>
+              <a href="/upgrade" className="link">Unlock Pro</a>
             </div>
           )}
         </div>

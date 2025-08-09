@@ -19,9 +19,9 @@ function DefaultUpsell() {
   return (
     <div className="rounded-xl border border-white/10 p-4 bg-white/5">
       <div className="text-sm opacity-80">This feature requires Pro.</div>
-      <button className="mt-3 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/20 text-sm">
+      <a href="/upgrade" className="link" style={{ display: "inline-block", marginTop: 10 }}>
         Upgrade to Pro
-      </button>
+      </a>
     </div>
   );
 }

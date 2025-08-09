@@ -4,6 +4,10 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+// Server-side limits
+const FREE_CHAR_LIMIT = 1400;
+const FREE_DAILY_LIMIT = 20; // requests per rolling 24h for Free
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -12,43 +16,75 @@ export default async function handler(req, res) {
 
   try {
     const { userId } = getAuth(req);
-    if (!userId) {
-      // You’re already gating the page with <SignedIn />, but keep this for API safety.
-      return res.status(401).json({ ok: false, error: "Unauthenticated" });
-    }
+    if (!userId) return res.status(401).json({ ok: false, error: "Unauthenticated" });
 
     const {
       messages = [],
       model: clientModel,
       temperature = 0.7,
-      top_p = 1,
+      top_p = 1
     } = req.body || {};
-
-    const model =
-      clientModel ||
-      process.env.NEXT_PUBLIC_DEFAULT_MODEL ||
-      "openrouter/anthropic/claude-3.5";
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ ok: false, error: "No messages provided" });
     }
 
-    // Call OpenRouter (non-stream)
+    // --- Fetch plan from Supabase ---
+    const { data: userRow, error: uErr } = await supabaseAdmin
+      .from("users")
+      .select("plan")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+
+    if (uErr) return res.status(500).json({ ok: false, error: uErr.message });
+
+    const plan = userRow?.plan || "free";
+    const isPro = plan === "pro";
+
+    // --- Server-side Free limits ---
+    const userText = lastUserText(messages) || "";
+    if (!isPro && userText.length > FREE_CHAR_LIMIT) {
+      return res.status(400).json({
+        ok: false,
+        error: `Free plan limit is ${FREE_CHAR_LIMIT} characters. Please shorten your prompt or upgrade to Pro.`
+      });
+    }
+
+    // Count user requests in the last 24 hours
+    if (!isPro) {
+      const sinceIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const { count, error: cErr } = await supabaseAdmin
+        .from("chat_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .gte("created_at", sinceIso);
+
+      if (cErr) return res.status(500).json({ ok: false, error: cErr.message });
+
+      if ((count || 0) >= FREE_DAILY_LIMIT) {
+        return res.status(429).json({
+          ok: false,
+          error: `Daily limit reached on Free. Come back later or upgrade to Pro for higher limits.`
+        });
+      }
+    }
+
+    // Choose model (you removed selector from UI; keep a sane default)
+    const model =
+      clientModel ||
+      process.env.NEXT_PUBLIC_DEFAULT_MODEL ||
+      "openrouter/anthropic/claude-3.5";
+
+    // --- Call OpenRouter (non-stream) ---
     const orRes = await fetch(OPENROUTER_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        // These two headers are recommended by OpenRouter for safety/analytics
         "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
         "X-Title": "ListGenie.ai",
       },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        top_p,
-      }),
+      body: JSON.stringify({ model, messages, temperature, top_p })
     });
 
     if (!orRes.ok) {
@@ -57,32 +93,23 @@ export default async function handler(req, res) {
         err?.error?.message ||
         err?.message ||
         `OpenRouter request failed (${orRes.status})`;
-      // Log failure with minimal info
-      await safeInsertLog({
-        user_id: userId,
-        model,
-        input: lastUserText(messages),
-        output: `ERROR: ${msg}`,
-      });
+      await safeInsertLog({ user_id: userId, model, input: userText, output: `ERROR: ${msg}` });
       return res.status(orRes.status).json({ ok: false, error: msg });
     }
 
     const data = await orRes.json();
-
-    // Try to normalize the reply + usage
     const reply =
       data?.choices?.[0]?.message?.content ||
       data?.message?.content ||
       data?.output ||
       "";
 
-    const usage = data?.usage || null; // { prompt_tokens, completion_tokens, total_tokens } if provider returns it
+    const usage = data?.usage || null;
 
-    // Insert chat log
     await safeInsertLog({
       user_id: userId,
       model,
-      input: lastUserText(messages),
+      input: userText,
       output: reply,
       prompt_tokens: usage?.prompt_tokens ?? null,
       completion_tokens: usage?.completion_tokens ?? null,
@@ -92,6 +119,7 @@ export default async function handler(req, res) {
       ok: true,
       message: { role: "assistant", content: reply },
       usage: usage || undefined,
+      plan
     });
   } catch (e) {
     console.error("api/chat error:", e);
@@ -99,17 +127,15 @@ export default async function handler(req, res) {
   }
 }
 
-/** Helpers **/
-
+/** helpers **/
 function lastUserText(messages) {
-  // Grab the most recent user message text (for logging convenience)
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (m?.role === "user" && typeof m?.content === "string") return m.content;
   }
   return typeof messages?.[messages.length - 1]?.content === "string"
     ? messages[messages.length - 1].content
-    : null;
+    : "";
 }
 
 async function safeJson(res) {
@@ -131,7 +157,7 @@ async function safeInsertLog({
   try {
     await supabaseAdmin.from("chat_logs").insert([
       {
-        user_id, // clerk_id (nullable allowed in your schema)
+        user_id, // clerk_id
         model,
         prompt_tokens,
         completion_tokens,
@@ -140,7 +166,6 @@ async function safeInsertLog({
       },
     ]);
   } catch (e) {
-    // Do not throw; logging failures shouldn't break chat
     console.error("chat_logs insert failed:", e?.message || e);
   }
 }
