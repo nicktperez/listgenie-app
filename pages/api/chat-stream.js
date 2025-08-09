@@ -1,134 +1,161 @@
 // pages/api/chat-stream.js
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getAuth } from "@clerk/nextjs/server";
 
-export const config = {
-  api: {
-    bodyParser: true,
-  },
+const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
+// Free plan limits (change anytime)
+const FREE_LIMITS = {
+  maxInputChars: 1400,         // ~350 tokens input
+  maxOutputTokens: 350,        // assistant cap
+  allowedModels: [DEFAULT_MODEL], // keep simple now
 };
 
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_BASE_URL =
-  process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1";
-const SITE_URL = process.env.SITE_URL || "https://listgenie.ai";
-const APP_URL = process.env.APP_URL || "https://app.listgenie.ai";
+function getTextFromMessages(messages = []) {
+  // Naive join for input-length estimation
+  return messages.map(m => `${m.role}: ${typeof m.content === "string" ? m.content : ""}`).join("\n");
+}
+
+function estimateTokensFromChars(charCount) {
+  // very rough: 4 chars ≈ 1 token
+  return Math.ceil(charCount / 4);
+}
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: "Missing OPENROUTER_API_KEY" });
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   try {
-    const { messages = [], model: clientModel, userId: bodyUserId } = req.body || {};
-    const model = clientModel || "anthropic/claude-3.5-sonnet";
+    const { userId } = getAuth(req);
+    const { messages = [], model = DEFAULT_MODEL } = req.body || {};
+    if (!messages.length) return res.status(400).json({ error: "No messages" });
 
-    const payload = {
-      model,
-      stream: true,
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    };
+    // Fetch plan/role
+    let plan = "free";
+    let role = "free";
+    if (userId) {
+      const { data: userRow, error: userErr } = await supabaseAdmin
+        .from("users")
+        .select("plan, role")
+        .eq("clerk_id", userId)
+        .single();
+      if (!userErr && userRow) {
+        plan = userRow.plan || "free";
+        role = userRow.role || "free";
+      }
+    }
 
-    const upstream = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+    // Apply plan limits
+    let maxOutputTokens = 800; // pro default
+    let currentModel = model || DEFAULT_MODEL;
+
+    if (plan === "free" && role !== "admin") {
+      // gate model
+      if (!FREE_LIMITS.allowedModels.includes(currentModel)) {
+        currentModel = DEFAULT_MODEL;
+      }
+
+      const inputText = getTextFromMessages(messages);
+      const chars = inputText.length;
+
+      if (chars > FREE_LIMITS.maxInputChars) {
+        return res.status(400).json({
+          error: `Free plan limit: ${FREE_LIMITS.maxInputChars} chars input. You used ${chars}. Please shorten your prompt or upgrade.`,
+          code: "INPUT_LIMIT",
+        });
+      }
+      maxOutputTokens = FREE_LIMITS.maxOutputTokens;
+    }
+
+    // Call OpenRouter (streaming)
+    const key = process.env.OPENROUTER_API_KEY;
+    if (!key) return res.status(500).json({ error: "Missing OPENROUTER_API_KEY" });
+
+    const controller = new AbortController();
+
+    // Stream headers
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+
+    // Kick the request
+    const orRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": SITE_URL,
+        Authorization: `Bearer ${key}`,
+        "HTTP-Referer": process.env.NEXT_PUBLIC_APP_URL || "https://app.listgenie.ai",
         "X-Title": "ListGenie",
-        "X-App-Name": "ListGenie",
-        "X-User-Id": "public",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        model: currentModel,
+        stream: true,
+        messages,
+        max_tokens: maxOutputTokens,
+      }),
+      signal: controller.signal,
     });
 
-    if (!upstream.ok || !upstream.body) {
-      const text = await upstream.text().catch(() => "");
-      return res
-        .status(upstream.status || 500)
-        .json({ error: text || "OpenRouter upstream error" });
+    if (!orRes.ok) {
+      const errTxt = await orRes.text().catch(() => "");
+      res.write(`event: error\ndata: ${JSON.stringify({ error: errTxt || orRes.statusText })}\n\n`);
+      return res.end();
     }
 
-    // Prepare to stream back to client
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.setHeader("Transfer-Encoding", "chunked");
-    res.setHeader("Cache-Control", "no-cache, no-transform");
-    res.setHeader("X-Accel-Buffering", "no");
-
-    let fullText = "";
+    // Pipe stream to client
+    const reader = orRes.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = "";
 
-    for await (const chunk of upstream.body) {
-      const text = decoder.decode(chunk, { stream: true });
-      const lines = text.split("\n");
+    // Simple usage counters (approx)
+    let promptTokens = estimateTokensFromChars(getTextFromMessages(messages).length);
+    let completionTokens = 0;
 
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // SSE format from OpenRouter is already `data: ...` lines, pass-through is fine.
+      // For safety, split on newlines and forward.
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
       for (const line of lines) {
-        if (!line.startsWith("data:")) continue;
-        const data = line.slice(5).trim();
-
-        if (!data || data === "[DONE]") continue;
-
-        try {
-          const json = JSON.parse(data);
-
-          const deltaContent =
-            (json && json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) ||
-            (json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) ||
-            json?.message?.content ||
-            json?.delta ||
-            json?.content ||
-            "";
-
-          if (deltaContent) {
-            fullText += deltaContent;
-            res.write(deltaContent);
-          }
-        } catch {
-          // ignore keepalives or non-JSON lines
+        // Count rough tokens for completion (very rough; could parse chunks for accuracy)
+        if (line.startsWith("data: ")) {
+          const payload = line.slice(6);
+          try {
+            const json = JSON.parse(payload);
+            const delta = json?.choices?.[0]?.delta?.content || "";
+            if (typeof delta === "string") {
+              completionTokens += estimateTokensFromChars(delta.length);
+            }
+          } catch {}
         }
+        res.write(line + "\n");
       }
     }
 
-    // Optional Supabase logging (no-op if not configured)
-    try {
-      if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supabase = createClient(
-          process.env.SUPABASE_URL,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-
-        const headerUserIdRaw = req.headers["x-user-id"];
-        const headerUserId =
-          Array.isArray(headerUserIdRaw) ? headerUserIdRaw[0] : headerUserIdRaw || null;
-        const userId = bodyUserId || headerUserId || null;
-
-        await supabase.from("chat_logs").insert({
-          user_id: userId,
-          model,
-          prompt_tokens: null,
-          completion_tokens: null,
-          input: messages[messages.length - 1]?.content || "",
-          output: fullText,
-        });
-      }
-    } catch (e) {
-      console.warn("Supabase log failed:", e && e.message ? e.message : e);
-    }
-
+    // Final newline to end SSE
+    res.write("\n");
     res.end();
+
+    // Fire and forget: log usage
+    try {
+      await supabaseAdmin.from("chat_logs").insert([{
+        user_id: userId || null,
+        model: currentModel,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        input: messages?.[messages.length - 2]?.content || null,
+        output: null, // we didn't buffer full output; can capture separately if you want
+      }]);
+    } catch (e) {
+      console.warn("usage log insert failed:", e?.message);
+    }
   } catch (err) {
     console.error("chat-stream error:", err);
-    if (res.headersSent) {
-      try { res.end(); } catch {}
-      return;
-    }
-    return res.status(500).json({ error: "Unexpected error in chat-stream endpoint" });
+    if (!res.headersSent) res.status(500).json({ error: "Server error" });
   }
 }

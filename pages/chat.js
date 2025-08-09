@@ -1,98 +1,149 @@
+// pages/chat.js
 import { useEffect, useRef, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
-export default function ChatPage() {
-  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content:string}
+const FREE_MAX_INPUT_CHARS = 1400;
+
+export default function Chat() {
+  const { isSignedIn } = useUser();
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const scrollerRef = useRef(null);
+  const [sending, setSending] = useState(false);
+  const [plan, setPlan] = useState("free"); // 'free' | 'pro'
+  const [err, setErr] = useState("");
 
   useEffect(() => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
-    }
-  }, [messages, loading]);
+    (async () => {
+      try {
+        const r = await fetch("/api/user/init");
+        const j = await r.json();
+        if (j?.user?.plan) setPlan(j.user.plan);
+      } catch (_) {}
+    })();
+  }, []);
 
   async function sendMessage(e) {
-    e?.preventDefault();
-    if (!input.trim() || loading) return;
+    e?.preventDefault?.();
+    setErr("");
 
-    const next = [...messages, { role: "user", content: input }];
-    setMessages(next);
+    if (!input.trim()) return;
+
+    if (plan === "free" && input.length > FREE_MAX_INPUT_CHARS) {
+      setErr(`Free plan limit: ${FREE_MAX_INPUT_CHARS} characters. Please shorten your prompt or upgrade.`);
+      return;
+    }
+
+    const newMsgs = [
+      ...messages,
+      { role: "user", content: input.trim() },
+    ];
+    setMessages(newMsgs);
     setInput("");
+    setSending(true);
 
-    setLoading(true);
     try {
       const res = await fetch("/api/chat-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: next,             // minimal schema for our API
-          model: "anthropic/claude-3.5-sonnet",
+          messages: newMsgs,
+          model: undefined, // stick with server default; or pass a selected one
         }),
       });
 
       if (!res.ok || !res.body) {
-        throw new Error(`HTTP ${res.status}`);
+        const msg = await res.text();
+        setErr(msg || "Model error");
+        setSending(false);
+        return;
       }
 
-      // stream the response
+      // Stream in
       const reader = res.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let assistant = "";
+      const decoder = new TextDecoder();
+
+      // Append assistant message
+      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+      let acc = "";
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        assistant += decoder.decode(value, { stream: true });
-        setMessages([...next, { role: "assistant", content: assistant }]);
+        const chunk = decoder.decode(value, { stream: true });
+        // The server forwards SSE lines; we only need the text deltas
+        // If you're forwarding raw "data: {json}" lines, parse them;
+        // here we simply collect any non-event text (depends on your server format).
+        acc += chunk;
+        // naive parse: pull out "delta.content" text
+        // If your server is pass-through SSE, consider a proper SSE parser later.
+        setMessages(prev => {
+          const copy = [...prev];
+          const last = copy[copy.length - 1];
+          if (last?.role === "assistant") {
+            last.content = (last.content || "") + chunk.replace(/^data:\s*/gm, "");
+          }
+          return copy;
+        });
       }
-    } catch (err) {
-      console.error("Stream error:", err);
-      setMessages([
-        ...next,
-        { role: "assistant", content: "Sorry — I hit an error talking to the model. Please try again." },
-      ]);
+    } catch (e) {
+      setErr("Connection error.");
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   }
 
   return (
     <main className="container chat-page">
-      <h1 className="headline">AI Chat Assistant</h1>
+      <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:12}}>
+        <h1 className="headline" style={{marginBottom:0}}>AI Chat Assistant</h1>
+        <span
+          title={plan === "free" ? "Free plan limits apply" : "Pro plan"}
+          style={{
+            padding: "4px 8px", borderRadius: 8, fontSize: 12, fontWeight: 700,
+            background: plan === "free" ? "rgba(255,255,255,.08)" : "linear-gradient(90deg,#4f9dfc,#66e0ff)",
+            color: plan === "free" ? "#cfe0ff" : "#0b1020",
+            border: "1px solid rgba(255,255,255,.14)"
+          }}
+        >
+          {plan.toUpperCase()}
+        </span>
+      </div>
+
       <p className="subhead">Ask questions or generate listings instantly.</p>
 
-      <section ref={scrollerRef} className="chat-box" aria-live="polite">
-        {messages.length === 0 && (
-          <div className="empty-chat">Start a conversation...</div>
+      <div className="card chat-box" style={{minHeight: 360}}>
+        {messages.length === 0 ? (
+          <div className="empty-chat">Start a conversation…</div>
+        ) : (
+          messages.map((m, i) => (
+            <div key={i} className={`chat-msg ${m.role === "user" ? "user" : "ai"}`}>
+              {m.content}
+            </div>
+          ))
         )}
+      </div>
 
-        {messages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`chat-msg ${m.role === "user" ? "user" : "ai"}`}
-          >
-            {m.content}
-          </div>
-        ))}
+      {err && (
+        <div style={{marginTop:10, color:"#ff9f9f"}}>{err}</div>
+      )}
 
-        {loading && (
-          <div className="chat-msg ai">Genie is thinking…</div>
-        )}
-      </section>
-
-      <form onSubmit={sendMessage} className="chat-input-row" aria-label="Send a message">
+      <form onSubmit={sendMessage} className="chat-input-row">
         <input
           className="chat-input"
-          type="text"
-          value={input}
           placeholder="Type your message and press Enter…"
-          onChange={(e) => setInput(e.target.value)}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          maxLength={plan === "free" ? FREE_MAX_INPUT_CHARS + 200 : undefined}
         />
-        <button type="submit" className="btn btn-primary" disabled={loading}>
-          {loading ? "Sending…" : "Send"}
+        <button className="btn btn-primary" disabled={sending}>
+          {sending ? "Sending…" : "Send"}
         </button>
       </form>
+      {plan === "free" && (
+        <div style={{marginTop:6, fontSize:12, color:"var(--text-dim)"}}>
+          Free plan: ~{FREE_MAX_INPUT_CHARS} characters per prompt & limited output length.
+        </div>
+      )}
     </main>
   );
 }
