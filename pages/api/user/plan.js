@@ -8,21 +8,29 @@ export default async function handler(req, res) {
       res.setHeader("Allow", "GET");
       return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
-
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ ok: false, error: "Unauthenticated" });
+    if (!userId) return res.status(200).json({ ok: true, plan: "expired" });
 
     const { data, error } = await supabaseAdmin
       .from("users")
-      .select("plan")
+      .select("plan, trial_end_date")
       .eq("clerk_id", userId)
       .maybeSingle();
 
-    if (error) return res.status(500).json({ ok: false, error: error.message });
+    if (error) return res.status(200).json({ ok: true, plan: "expired" });
 
-    return res.status(200).json({ ok: true, plan: data?.plan || "free" });
+    // Normalize: if trial passed, reflect expired
+    const now = new Date();
+    const trialEnd = data?.trial_end_date ? new Date(data.trial_end_date) : null;
+    let plan = data?.plan || "expired";
+    if (plan === "trial" && trialEnd && now > trialEnd) plan = "expired";
+
+    return res.status(200).json({
+      ok: true,
+      plan,
+      trial_end_date: data?.trial_end_date || null,
+    });
   } catch (e) {
-    console.error('[/api/user/plan] fatal:', e);
-    return res.status(500).json({ ok: false, error: String(e?.message || e) });
+    return res.status(200).json({ ok: true, plan: "expired" });
   }
 }
