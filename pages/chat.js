@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { ListingRender, QuestionsRender } from "@/components/ListingRender";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
 const FREE_CHAR_LIMIT = 1400;
@@ -36,23 +37,27 @@ function ChatInner() {
       role: "assistant",
       content:
         "Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.",
+      parsed: null,
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [savingId, setSavingId] = useState(null);
 
   const endRef = useRef(null);
   const textRef = useRef(null);
 
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs, loading]);
 
+  // Auto-resize textarea
   useEffect(() => {
     if (!textRef.current) return;
     textRef.current.style.height = "0px";
-    const h = Math.min(textRef.current.scrollHeight, 180);
+    const h = Math.min(textRef.current.scrollHeight, 200);
     textRef.current.style.height = h + "px";
   }, [input]);
 
@@ -85,7 +90,6 @@ function ChatInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(({ role, content }) => ({ role, content })),
-          clerkId: user?.id || null,
         }),
       });
 
@@ -95,13 +99,14 @@ function ChatInner() {
       }
 
       const data = await res.json();
-      const reply =
+      const replyText =
         data?.message?.content ||
         data?.choices?.[0]?.message?.content ||
         data?.output ||
         "Sorry — I could not generate a reply.";
+      const parsed = data?.parsed || null;
 
-      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
+      setMsgs((m) => [...m, { role: "assistant", content: replyText, parsed }]);
     } catch (e) {
       console.error(e);
       setErrorMsg(e?.message || "Something went wrong.");
@@ -117,15 +122,34 @@ function ChatInner() {
     }
   }
 
+  async function saveListing(payload, idx) {
+    try {
+      setSavingId(idx);
+      const r = await fetch("/api/listings/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j?.ok) throw new Error(j?.error || "Save failed");
+      // Optional: toast success
+    } catch (e) {
+      console.error(e);
+      setErrorMsg(e?.message || "Failed to save");
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   const startExamples = [
     "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.",
-    "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.",
-    "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, and fenced garden.",
+    "Downtown condo: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.",
+    "Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, fenced garden.",
   ];
 
   return (
     <>
-      {/* Chat header */}
+      {/* Chat header with plan badge */}
       <header className="chat-header" style={{ marginBottom: 18 }}>
         <div className="chat-logo">🏠</div>
         <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
@@ -143,21 +167,49 @@ function ChatInner() {
             </span>
           </div>
           <div className="chat-sub">
-            Generate polished real estate listings with AI.
+            Generate polished, MLS-ready listings plus social variants.
           </div>
         </div>
       </header>
 
       {/* Messages */}
       <div className="msg-list">
-        {msgs.map((m, i) => (
-          <div
-            key={i}
-            className={`bubble ${m.role === "user" ? "user" : "assistant"}`}
-          >
-            {m.content}
-          </div>
-        ))}
+        {msgs.map((m, i) => {
+          const isUser = m.role === "user";
+
+          // Render structured cards when available
+          if (!isUser && m.parsed) {
+            return (
+              <div
+                key={i}
+                className="bubble assistant"
+                style={{
+                  padding: 0,
+                  border: "none",
+                  background: "transparent",
+                  boxShadow: "none",
+                }}
+              >
+                {m.parsed.type === "listing" ? (
+                  <ListingRender
+                    data={m.parsed}
+                    saving={savingId === i}
+                    onSave={() => saveListing(m.parsed, i)}
+                  />
+                ) : (
+                  <QuestionsRender data={m.parsed} />
+                )}
+              </div>
+            );
+          }
+
+          // Default text bubble
+          return (
+            <div key={i} className={`bubble ${isUser ? "user" : "assistant"}`}>
+              {m.content}
+            </div>
+          );
+        })}
 
         {msgs.length <= 1 && (
           <div className="card">
@@ -215,7 +267,9 @@ function ChatInner() {
                     ? `${remaining} characters left on Free`
                     : `${Math.abs(remaining)} over the Free limit`)}
               </div>
-              <a href="/upgrade" className="link">Unlock Pro</a>
+              <a href={`${SITE_URL}/upgrade`} className="link">
+                Unlock Pro
+              </a>
             </div>
           )}
         </div>

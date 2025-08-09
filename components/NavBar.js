@@ -1,37 +1,82 @@
-import Link from "next/link";
-import { UserButton, SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+// components/NavBar.js
+import React from "react";
+import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
+import { useUserPlan } from "@/hooks/useUserPlan";
 
 export default function NavBar() {
+  const { isSignedIn } = useUser();
+  const { isPro } = useUserPlan();
+
   return (
-    <header className="lg-nav">
-      <div className="lg-nav__inner">
+    <nav
+      className="nav-wrap"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+        background: "rgba(14,17,22,.85)",
+        backdropFilter: "blur(8px)",
+        borderBottom: "1px solid rgba(255,255,255,.08)",
+      }}
+    >
+      <div
+        className="nav-inner"
+        style={{
+          maxWidth: 940,
+          margin: "0 auto",
+          padding: "10px 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        {/* Left: brand */}
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}>
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              display: "grid",
+              placeItems: "center",
+              background: "rgba(255,255,255,.08)",
+              border: "1px solid rgba(255,255,255,.12)",
+            }}
+          >
+            🏠
+          </div>
+          <strong>ListGenie.ai</strong>
+        </a>
 
-        {/* LEFT CLUSTER: brand + links */}
-        <div className="lg-nav__left">
-          <Link href="/" className="lg-nav__brand" aria-label="ListGenie Home">
-            <span className="lg-nav__brand-text">ListGenie</span>
-            <span className="lg-nav__brand-ai">.ai</span>
-          </Link>
-
-          {/* Desktop links */}
-          <nav className="lg-nav__links" aria-label="Primary">
-            <Link href="/chat" className="lg-nav__link is-active">Chat</Link>
-          </nav>
+        {/* Left: primary nav */}
+        <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
+          <a href="/chat" className="link">Chat</a>
+          <SignedIn>
+            <a href="/listings" className="link">Listings</a>
+          </SignedIn>
         </div>
 
-        {/* RIGHT: auth */}
-        <div className="lg-nav__right">
-          <SignedIn>
-            <UserButton appearance={{ elements: { userButtonBox: { outline: "none" } } }} />
-          </SignedIn>
+        {/* Right: actions */}
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 10 }}>
           <SignedOut>
-            <SignInButton>
-              <button className="lg-btn lg-btn--primary">Sign in</button>
+            <SignInButton mode="modal">
+              <button className="link">Sign in</button>
             </SignInButton>
           </SignedOut>
-        </div>
 
+          <SignedIn>
+            {!isPro && <a href="/upgrade" className="link">Upgrade</a>}
+
+            {isPro && (
+              <form action="/api/stripe/create-portal-session" method="post" style={{ display: "inline" }}>
+                <button className="link" type="submit">Billing</button>
+              </form>
+            )}
+
+            <UserButton afterSignOutUrl="/" />
+          </SignedIn>
+        </div>
       </div>
-    </header>
+    </nav>
   );
 }
