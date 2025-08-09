@@ -1,12 +1,37 @@
 // pages/_app.js
 import "@/styles/globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
+import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
+import { useEffect } from "react";
 import NavBar from "@/components/NavBar";
+
+function InitUserOnce() {
+  const { isSignedIn } = useAuth();
+  const { user, isLoaded } = useUser();
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user?.id) return;
+
+    const key = `lg_user_inited_${user.id}`;
+    if (typeof window !== "undefined" && localStorage.getItem(key)) return;
+
+    (async () => {
+      try {
+        await fetch("/api/user/init", { method: "POST" });
+        localStorage.setItem(key, "1");
+      } catch (err) {
+        console.error("Init user failed", err);
+      }
+    })();
+  }, [isLoaded, isSignedIn, user?.id]);
+
+  return null;
+}
 
 export default function App({ Component, pageProps }) {
   return (
     <ClerkProvider>
-      <div className="min-h-screen text-white bg-[#0e1116] bg-[radial-gradient(1000px_500px_at_50%_-100px,rgba(56,189,248,0.18),transparent),radial-gradient(800px_400px_at_10%_10%,rgba(59,130,246,0.12),transparent),radial-gradient(800px_400px_at_90%_10%,rgba(16,185,129,0.10),transparent)]">
+      <InitUserOnce />
+      <div className="min-h-screen text-white bg-[#0e1116]">
         <NavBar />
         <main className="pb-16">
           <Component {...pageProps} />
