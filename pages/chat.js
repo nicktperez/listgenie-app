@@ -4,7 +4,10 @@ import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { ProWall } from "@/components/ProGate";
 
-// …keep the rest of the logic exactly as you have it…
+const DEFAULT_MODEL =
+  process.env.NEXT_PUBLIC_DEFAULT_MODEL || "openrouter/anthropic/claude-3.5";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
+const FREE_CHAR_LIMIT = 1400;
 
 export default function ChatPage() {
   return (
@@ -38,26 +41,129 @@ export default function ChatPage() {
 }
 
 function ChatInner() {
-  // …state + effects unchanged…
+  const { user } = useUser();
+  const { plan, isPro } = useUserPlan();
+
+  // ✅ messages only exists inside this component
+  const [msgs, setMsgs] = useState([
+    {
+      role: "assistant",
+      content:
+        "Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.",
+    },
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [model, setModel] = useState(DEFAULT_MODEL);
+
+  const endRef = useRef(null);
+  const textRef = useRef(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [msgs, loading]);
+
+  useEffect(() => {
+    if (!textRef.current) return;
+    textRef.current.style.height = "0px";
+    const h = Math.min(textRef.current.scrollHeight, 180);
+    textRef.current.style.height = h + "px";
+  }, [input]);
+
+  const remaining = useMemo(() => {
+    if (isPro) return null;
+    return FREE_CHAR_LIMIT - input.length;
+  }, [input.length, isPro]);
+
+  async function onSend() {
+    setErrorMsg(null);
+    if (!input.trim()) return;
+
+    if (!isPro && input.length > FREE_CHAR_LIMIT) {
+      setErrorMsg(
+        `Free plan limit is ${FREE_CHAR_LIMIT} characters. Please shorten your prompt or upgrade to Pro.`
+      );
+      return;
+    }
+
+    const newUserMsg = { role: "user", content: input.trim() };
+    const next = [...msgs, newUserMsg];
+
+    setMsgs(next);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: next.map(({ role, content }) => ({ role, content })),
+          model,
+          clerkId: user?.id || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || "Request failed");
+      }
+
+      const data = await res.json();
+      const reply =
+        data?.message?.content ||
+        data?.choices?.[0]?.message?.content ||
+        data?.output ||
+        "Sorry — I could not generate a reply.";
+
+      setMsgs((m) => [...m, { role: "assistant", content: reply }]);
+    } catch (e) {
+      console.error(e);
+      setErrorMsg(e?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function onKeyDown(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!loading) onSend();
+    }
+  }
+
+  const startExamples = [
+    "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.",
+    "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.",
+    "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, and fenced garden.",
+  ];
 
   return (
     <>
       {/* Messages */}
       <div className="msg-list">
-        {messages.map((m, i) => (
-          <div key={i} className={`bubble ${m.role === "user" ? "user" : "assistant"}`}>
+        {msgs.map((m, i) => (
+          <div
+            key={i}
+            className={`bubble ${m.role === "user" ? "user" : "assistant"}`}
+          >
             {m.content}
           </div>
         ))}
 
-        {messages.length <= 1 && (
+        {msgs.length <= 1 && (
           <div className="card">
             <div className="chat-sub" style={{ marginBottom: 6 }}>
               Try one of these:
             </div>
             <div className="examples">
               {startExamples.map((ex, i) => (
-                <button key={i} className="example-btn" onClick={() => setInput(ex)}>
+                <button
+                  key={i}
+                  className="example-btn"
+                  onClick={() => setInput(ex)}
+                >
                   {ex}
                 </button>
               ))}
@@ -75,13 +181,21 @@ function ChatInner() {
       {/* Model + plan row */}
       <div className="model-row">
         <span>Model:</span>
-        <select className="select" value={model} onChange={(e) => setModel(e.target.value)}>
+        <select
+          className="select"
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
+        >
           <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
           <ProWall fallback={<option disabled>gpt-4.1 (Pro)</option>}>
-            <option value="openrouter/openai/gpt-4.1">openrouter/openai/gpt-4.1</option>
+            <option value="openrouter/openai/gpt-4.1">
+              openrouter/openai/gpt-4.1
+            </option>
           </ProWall>
           <ProWall fallback={<option disabled>o4-mini (Pro)</option>}>
-            <option value="openrouter/openai/o4-mini">openrouter/openai/o4-mini</option>
+            <option value="openrouter/openai/o4-mini">
+              openrouter/openai/o4-mini
+            </option>
           </ProWall>
         </select>
 
