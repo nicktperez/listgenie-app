@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { ProWall } from "@/components/ProGate";
-import "@/styles/chat.css"; // ⬅️ add this line
 
 // …keep the rest of the logic exactly as you have it…
 

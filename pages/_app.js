@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import NavBar from "@/components/NavBar";
+import "@/styles/chat.css"; // load chat styles globally
 
 function InitUserOnce() {
   const { isSignedIn } = useAuth();
