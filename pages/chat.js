@@ -1,29 +1,34 @@
 // pages/chat.js
 import { useEffect, useRef, useState } from "react";
-import { useUser } from "@clerk/nextjs";
-
-const DEFAULT_MODEL = "anthropic/claude-3.5-sonnet";
+import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 
 export default function Chat() {
   const { user } = useUser();
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState([
+    // Seed with a friendly system message if you like:
+    // { role: "assistant", content: "Hi! I’m Genie. Ask me anything about your listing." }
+  ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [model] = useState(DEFAULT_MODEL);
-  const scrollerRef = useRef(null);
+  const [model, setModel] = useState("anthropic/claude-3.5-sonnet"); // backend can override
+  const messagesEndRef = useRef(null);
+  const listRef = useRef(null);
 
+  // Auto-scroll to the latest message
   useEffect(() => {
-    if (scrollerRef.current) {
-      scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
-    }
+    try {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
+    } catch {}
   }, [messages, loading]);
 
   async function sendMessage(e) {
     e?.preventDefault?.();
-    const text = input.trim();
-    if (!text || loading) return;
+    if (!input.trim() || loading) return;
 
-    const nextMessages = [...messages, { role: "user", content: text }];
+    const userMsg = { role: "user", content: input.trim() };
+    const nextMessages = [...messages, userMsg];
+
     setMessages(nextMessages);
     setInput("");
     setLoading(true);
@@ -32,77 +37,46 @@ export default function Chat() {
       const res = await fetch("/api/chat-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages, model }),
+        body: JSON.stringify({
+          model,
+          messages: nextMessages.map(m => ({ role: m.role, content: m.content })),
+        }),
       });
 
       if (!res.ok || !res.body) {
-        let err = "";
-        try { err = await res.text(); } catch {}
-        throw new Error(err || `HTTP ${res.status}`);
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Request failed with ${res.status}`);
       }
 
-      let assistantContent = "";
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      // Prepare a placeholder assistant message to stream into
+      let assistant = { role: "assistant", content: "" };
+      setMessages(prev => [...prev, assistant]);
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      let buffer = "";
 
       while (true) {
-        const { value, done } = await reader.read();
+        const { done, value } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
+        const chunk = decoder.decode(value, { stream: true });
+        assistant = { ...assistant, content: assistant.content + chunk };
 
-        const parts = buffer.split("\n\n");
-        buffer = parts.pop() ?? "";
-
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line.startsWith("data:")) continue;
-
-          const data = line.slice(5).trim();
-          if (data === "[DONE]") {
-            buffer = "";
-            break;
-          }
-
-          let json;
-          try { json = JSON.parse(data); } catch { continue; }
-
-          let deltaText = "";
-
-          if (json?.choices?.length) {
-            deltaText = json.choices[0]?.delta?.content ?? "";
-          }
-
-          if (json?.delta?.content?.length) {
-            for (const c of json.delta.content) {
-              if (c?.type?.includes("text") && c?.text) deltaText += c.text;
-            }
-          }
-
-          if (json?.message?.content?.length) {
-            for (const c of json.message.content) {
-              if (c?.type?.includes("text") && c?.text) deltaText += c.text;
-            }
-          }
-
-          if (!deltaText) continue;
-
-          assistantContent += deltaText;
-          setMessages((prev) => {
-            const copy = [...prev];
-            const last = copy[copy.length - 1];
-            if (last && last.role === "assistant") last.content = assistantContent;
-            return copy;
-          });
-        }
+        // Replace the last message (assistant) with the growing content
+        setMessages(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = assistant;
+          return copy;
+        });
       }
     } catch (err) {
       console.error("Streaming chat error:", err);
-      setMessages((prev) => [
+      setMessages(prev => [
         ...prev,
-        { role: "assistant", content: "Sorry — I hit an error talking to the model. Please try again." },
+        {
+          role: "assistant",
+          content:
+            "Sorry — I hit an error talking to the model. Please try again.",
+        },
       ]);
     } finally {
       setLoading(false);
@@ -110,57 +84,106 @@ export default function Chat() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-      <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white/95">
+    <div className="chat-container">
+      <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginBottom: "0.25rem" }}>
         AI Chat Assistant
       </h1>
-      <p className="text-white/70 mt-2 text-base sm:text-lg">
+      <p style={{ opacity: 0.85, marginBottom: "1rem" }}>
         Ask questions or generate listings instantly.
       </p>
 
-      <div
-        ref={scrollerRef}
-        className="mt-5 sm:mt-6 h-[48vh] md:h-[56vh] lg:h-[62vh] rounded-2xl bg-white/5 backdrop-blur ring-1 ring-white/10 overflow-y-auto p-4 sm:p-6"
-      >
-        {messages.length === 0 && (
-          <div className="text-white/40 text-sm sm:text-base">Start a conversation…</div>
-        )}
+      <SignedOut>
+        <div
+          style={{
+            background: "rgba(255,255,255,0.06)",
+            borderRadius: 12,
+            padding: "1.25rem",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ marginBottom: "0.75rem" }}>
+            Please sign in to start chatting.
+          </p>
+          <SignInButton mode="modal">
+            <button
+              className="btn"
+              style={{
+                background:
+                  "linear-gradient(135deg, #00b4d8 0%, #0096c7 100%)",
+                color: "#000",
+                fontWeight: 700,
+                padding: "0.6rem 1rem",
+                borderRadius: 8,
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Sign in
+            </button>
+          </SignInButton>
+        </div>
+      </SignedOut>
 
-        <div className="space-y-3">
+      <SignedIn>
+        <div
+          className="messages"
+          ref={listRef}
+          style={{
+            background: "rgba(255,255,255,0.05)",
+            borderRadius: 12,
+            border: "1px solid rgba(255,255,255,0.08)",
+            maxHeight: "58vh",
+            overflowY: "auto",
+          }}
+        >
+          {messages.length === 0 && (
+            <div
+              className="message bot"
+              style={{
+                background: "transparent",
+                opacity: 0.85,
+                fontStyle: "italic",
+              }}
+            >
+              Start a conversation…
+            </div>
+          )}
+
           {messages.map((m, i) => (
-            <div key={i} className={`flex ${m.role === "assistant" ? "justify-start" : "justify-end"}`}>
-              <div
-                className={`max-w-[88%] sm:max-w-[82%] rounded-xl px-3.5 py-2.5 text-[15px] leading-relaxed shadow-sm ${
-                  m.role === "assistant"
-                    ? "bg-white/5 text-white"
-                    : "bg-sky-400/90 text-sky-950"
-                }`}
-              >
-                <strong className="mr-1.5">{m.role === "assistant" ? "Genie:" : "You:"}</strong>
-                <span>{m.content}</span>
-              </div>
+            <div
+              key={i}
+              className={`message ${m.role === "user" ? "user" : "bot"}`}
+            >
+              {m.role === "user" ? (
+                <strong style={{ marginRight: 6 }}>You:</strong>
+              ) : (
+                <strong style={{ marginRight: 6 }}>Genie:</strong>
+              )}
+              <span>{m.content}</span>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
-      </div>
 
-      <form onSubmit={sendMessage} className="mt-4 sm:mt-5 flex flex-col sm:flex-row gap-3">
-        <input
-          className="flex-1 rounded-xl bg-white/5 text-white placeholder-white/40 border border-white/10 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-sky-400/50"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message and press Enter…"
-          disabled={loading}
-          inputMode="text"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full sm:w-auto rounded-xl bg-sky-400 text-sky-950 font-semibold px-4 py-3 text-base shadow-[0_8px_30px_rgba(56,189,248,0.35)] hover:shadow-[0_10px_40px_rgba(56,189,248,0.45)] disabled:opacity-50"
-        >
-          {loading ? "Sending…" : "Send"}
-        </button>
-      </form>
+        <form onSubmit={sendMessage} className="input-row">
+          <input
+            type="text"
+            value={input}
+            placeholder="Type your message and press Enter…"
+            onChange={(e) => setInput(e.target.value)}
+            disabled={loading}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(e);
+              }
+            }}
+          />
+          <button type="submit" disabled={loading}>
+            {loading ? "Sending…" : "Send"}
+          </button>
+        </form>
+      </SignedIn>
     </div>
   );
 }
