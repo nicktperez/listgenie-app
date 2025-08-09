@@ -2,26 +2,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 import { useUserPlan } from "@/hooks/useUserPlan";
-import { ProWall } from "@/components/ProGate";
 
-const DEFAULT_MODEL =
-  process.env.NEXT_PUBLIC_DEFAULT_MODEL || "openrouter/anthropic/claude-3.5";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
 const FREE_CHAR_LIMIT = 1400;
 
 export default function ChatPage() {
   return (
     <div className="chat-wrap">
-      <header className="chat-header">
-        <div className="chat-logo">🏠</div>
-        <div>
-          <div className="chat-title">ListGenie.ai Chat</div>
-          <div className="chat-sub">
-            Generate polished real estate listings with AI.
-          </div>
-        </div>
-      </header>
-
       <SignedOut>
         <div className="card" style={{ padding: 16 }}>
           <p className="chat-sub" style={{ marginBottom: 8 }}>
@@ -44,7 +31,6 @@ function ChatInner() {
   const { user } = useUser();
   const { plan, isPro } = useUserPlan();
 
-  // ✅ messages only exists inside this component
   const [msgs, setMsgs] = useState([
     {
       role: "assistant",
@@ -55,7 +41,6 @@ function ChatInner() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [model, setModel] = useState(DEFAULT_MODEL);
 
   const endRef = useRef(null);
   const textRef = useRef(null);
@@ -100,7 +85,6 @@ function ChatInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: next.map(({ role, content }) => ({ role, content })),
-          model,
           clerkId: user?.id || null,
         }),
       });
@@ -141,6 +125,29 @@ function ChatInner() {
 
   return (
     <>
+      {/* Chat header */}
+      <header className="chat-header" style={{ marginBottom: 18 }}>
+        <div className="chat-logo">🏠</div>
+        <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "8px",
+            }}
+          >
+            <div className="chat-title">ListGenie.ai Chat</div>
+            <span className={`badge ${plan === "pro" ? "pro" : ""}`}>
+              {plan === "pro" ? "Pro" : "Free"}
+            </span>
+          </div>
+          <div className="chat-sub">
+            Generate polished real estate listings with AI.
+          </div>
+        </div>
+      </header>
+
       {/* Messages */}
       <div className="msg-list">
         {msgs.map((m, i) => (
@@ -176,32 +183,6 @@ function ChatInner() {
         {errorMsg && <div className="error">{errorMsg}</div>}
 
         <div ref={endRef} />
-      </div>
-
-      {/* Model + plan row */}
-      <div className="model-row">
-        <span>Model:</span>
-        <select
-          className="select"
-          value={model}
-          onChange={(e) => setModel(e.target.value)}
-        >
-          <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
-          <ProWall fallback={<option disabled>gpt-4.1 (Pro)</option>}>
-            <option value="openrouter/openai/gpt-4.1">
-              openrouter/openai/gpt-4.1
-            </option>
-          </ProWall>
-          <ProWall fallback={<option disabled>o4-mini (Pro)</option>}>
-            <option value="openrouter/openai/o4-mini">
-              openrouter/openai/o4-mini
-            </option>
-          </ProWall>
-        </select>
-
-        <span className={`badge ${plan === "pro" ? "pro" : ""}`}>
-          {plan === "pro" ? "Pro" : "Free"}
-        </span>
       </div>
 
       {/* Composer */}

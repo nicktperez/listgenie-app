@@ -221,3 +221,28 @@
     .bubble { max-width: 92%; }
     .composer-inner { padding-left: 14px; padding-right: 14px; }
   }
+
+  /* Badge styling */
+.badge {
+  background-color: #3a3f58;
+  color: #fff;
+  font-size: 0.85rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge.pro {
+  background-color: #ffb84d;
+  color: #000;
+}
+
+/* Mobile badge size tweak */
+@media (max-width: 640px) {
+  .badge {
+    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+}
