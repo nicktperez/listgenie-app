@@ -7,12 +7,13 @@ export default function NavBar() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  // Close mobile menu on route change
   useEffect(() => {
-    const handleRoute = () => setOpen(false);
-    router.events?.on("routeChangeComplete", handleRoute);
-    return () => router.events?.off("routeChangeComplete", handleRoute);
+    const close = () => setOpen(false);
+    router.events?.on("routeChangeComplete", close);
+    return () => router.events?.off("routeChangeComplete", close);
   }, [router]);
+
+  const isChat = router.pathname === "/chat";
 
   return (
     <header className="lg-nav">
@@ -25,25 +26,17 @@ export default function NavBar() {
           </span>
         </Link>
 
-        {/* Desktop links */}
+        {/* Desktop links — only Chat */}
         <nav className="lg-nav__links" aria-label="Primary">
-          <Link href="/chat" className="lg-nav__link">
+          <Link
+            href="/chat"
+            className={`lg-nav__link ${isChat ? "is-active" : ""}`}
+          >
             Chat
           </Link>
-          <Link href="/pricing" className="lg-nav__link">
-            Pricing
-          </Link>
-          <a
-            href="https://listgenie.ai"
-            className="lg-nav__link"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Website
-          </a>
         </nav>
 
-        {/* Right side: Auth / CTA */}
+        {/* Right side: auth + hamburger */}
         <div className="lg-nav__right">
           <SignedOut>
             <SignInButton mode="modal">
@@ -58,10 +51,9 @@ export default function NavBar() {
             />
           </SignedIn>
 
-          {/* Hamburger (mobile only) */}
           <button
             className={`lg-nav__hamburger ${open ? "is-open" : ""}`}
-            aria-label="Toggle navigation menu"
+            aria-label="Toggle menu"
             aria-expanded={open ? "true" : "false"}
             onClick={() => setOpen((s) => !s)}
           >
@@ -74,20 +66,19 @@ export default function NavBar() {
 
       {/* Mobile menu */}
       <div className={`lg-nav__mobile ${open ? "is-open" : ""}`}>
-        <Link href="/chat" className="lg-nav__mobile-link">
+        <Link
+          href="/"
+          className={`lg-nav__mobile-link ${router.pathname === "/" ? "is-active" : ""}`}
+        >
+          Home
+        </Link>
+
+        <Link
+          href="/chat"
+          className={`lg-nav__mobile-link ${isChat ? "is-active" : ""}`}
+        >
           Chat
         </Link>
-        <Link href="/pricing" className="lg-nav__mobile-link">
-          Pricing
-        </Link>
-        <a
-          href="https://listgenie.ai"
-          className="lg-nav__mobile-link"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Website
-        </a>
 
         <div className="lg-nav__mobile-auth">
           <SignedOut>

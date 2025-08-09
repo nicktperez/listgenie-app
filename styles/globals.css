@@ -531,3 +531,37 @@ main {
      bump this up to match your header height */
   scroll-margin-top: 72px;
 }
+
+/* Slimmer, cleaner single-link look */
+.lg-nav__links {
+  gap: 10px;
+}
+
+.lg-nav__link {
+  padding: 8px 12px;            /* slightly smaller */
+  border-radius: 10px;
+}
+
+.lg-nav__link.is-active,
+.lg-nav__mobile-link.is-active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08); /* subtle pill */
+}
+
+/* Ensure desktop links never get weird centered spacing */
+@media (min-width: 768px) {
+  .lg-nav__links {
+    align-items: center;
+    justify-content: flex-start; /* keep to the left */
+  }
+}
+
+/* Slim, single-link desktop menu */
+.lg-nav__links { gap: 10px; }
+.lg-nav__link { padding: 8px 12px; border-radius: 10px; }
+.lg-nav__link.is-active,
+.lg-nav__mobile-link.is-active { color: #fff; background: rgba(255,255,255,0.08); }
+
+@media (min-width: 768px) {
+  .lg-nav__links { align-items: center; justify-content: flex-start; }
+}
