@@ -318,3 +318,20 @@ main { scroll-margin-top: 72px; }
   .app-hero  { padding: 1.5rem 0 2.5rem; }
   .chat-box  { min-height: 220px; }
 }
+
+/* left cluster so links sit near brand */
+.lg-nav__left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+/* inner uses space-between (keep), but push right cluster */
+.lg-nav__right {
+  margin-left: auto;
+}
+
+/* remove the extra margin-left we had before */
+.lg-nav__links {
+  margin-left: 0;
+}

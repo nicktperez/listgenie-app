@@ -1,82 +1,56 @@
-// pages/chat.js
 import { useEffect, useRef, useState } from "react";
-import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
 
-export default function Chat() {
-  const { user } = useUser();
-  const [messages, setMessages] = useState([
-    // Seed with a friendly system message if you like:
-    // { role: "assistant", content: "Hi! I’m Genie. Ask me anything about your listing." }
-  ]);
+export default function ChatPage() {
+  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content:string}
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [model, setModel] = useState("anthropic/claude-3.5-sonnet"); // backend can override
-  const messagesEndRef = useRef(null);
-  const listRef = useRef(null);
+  const scrollerRef = useRef(null);
 
-  // Auto-scroll to the latest message
   useEffect(() => {
-    try {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
-    } catch {}
+    if (scrollerRef.current) {
+      scrollerRef.current.scrollTop = scrollerRef.current.scrollHeight;
+    }
   }, [messages, loading]);
 
   async function sendMessage(e) {
-    e?.preventDefault?.();
+    e?.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMsg = { role: "user", content: input.trim() };
-    const nextMessages = [...messages, userMsg];
-
-    setMessages(nextMessages);
+    const next = [...messages, { role: "user", content: input }];
+    setMessages(next);
     setInput("");
-    setLoading(true);
 
+    setLoading(true);
     try {
       const res = await fetch("/api/chat-stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model,
-          messages: nextMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: next,             // minimal schema for our API
+          model: "anthropic/claude-3.5-sonnet",
         }),
       });
 
       if (!res.ok || !res.body) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Request failed with ${res.status}`);
+        throw new Error(`HTTP ${res.status}`);
       }
 
-      // Prepare a placeholder assistant message to stream into
-      let assistant = { role: "assistant", content: "" };
-      setMessages(prev => [...prev, assistant]);
-
+      // stream the response
       const reader = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
+      let assistant = "";
 
       while (true) {
-        const { done, value } = await reader.read();
+        const { value, done } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        assistant = { ...assistant, content: assistant.content + chunk };
-
-        // Replace the last message (assistant) with the growing content
-        setMessages(prev => {
-          const copy = [...prev];
-          copy[copy.length - 1] = assistant;
-          return copy;
-        });
+        assistant += decoder.decode(value, { stream: true });
+        setMessages([...next, { role: "assistant", content: assistant }]);
       }
     } catch (err) {
-      console.error("Streaming chat error:", err);
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "Sorry — I hit an error talking to the model. Please try again.",
-        },
+      console.error("Stream error:", err);
+      setMessages([
+        ...next,
+        { role: "assistant", content: "Sorry — I hit an error talking to the model. Please try again." },
       ]);
     } finally {
       setLoading(false);
@@ -84,106 +58,41 @@ export default function Chat() {
   }
 
   return (
-    <div className="chat-container">
-      <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginBottom: "0.25rem" }}>
-        AI Chat Assistant
-      </h1>
-      <p style={{ opacity: 0.85, marginBottom: "1rem" }}>
-        Ask questions or generate listings instantly.
-      </p>
+    <main className="container chat-page">
+      <h1 className="headline">AI Chat Assistant</h1>
+      <p className="subhead">Ask questions or generate listings instantly.</p>
 
-      <SignedOut>
-        <div
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            borderRadius: 12,
-            padding: "1.25rem",
-            textAlign: "center",
-          }}
-        >
-          <p style={{ marginBottom: "0.75rem" }}>
-            Please sign in to start chatting.
-          </p>
-          <SignInButton mode="modal">
-            <button
-              className="btn"
-              style={{
-                background:
-                  "linear-gradient(135deg, #00b4d8 0%, #0096c7 100%)",
-                color: "#000",
-                fontWeight: 700,
-                padding: "0.6rem 1rem",
-                borderRadius: 8,
-                border: "none",
-                cursor: "pointer",
-              }}
-            >
-              Sign in
-            </button>
-          </SignInButton>
-        </div>
-      </SignedOut>
+      <section ref={scrollerRef} className="chat-box" aria-live="polite">
+        {messages.length === 0 && (
+          <div className="empty-chat">Start a conversation...</div>
+        )}
 
-      <SignedIn>
-        <div
-          className="messages"
-          ref={listRef}
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.08)",
-            maxHeight: "58vh",
-            overflowY: "auto",
-          }}
-        >
-          {messages.length === 0 && (
-            <div
-              className="message bot"
-              style={{
-                background: "transparent",
-                opacity: 0.85,
-                fontStyle: "italic",
-              }}
-            >
-              Start a conversation…
-            </div>
-          )}
+        {messages.map((m, idx) => (
+          <div
+            key={idx}
+            className={`chat-msg ${m.role === "user" ? "user" : "ai"}`}
+          >
+            {m.content}
+          </div>
+        ))}
 
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={`message ${m.role === "user" ? "user" : "bot"}`}
-            >
-              {m.role === "user" ? (
-                <strong style={{ marginRight: 6 }}>You:</strong>
-              ) : (
-                <strong style={{ marginRight: 6 }}>Genie:</strong>
-              )}
-              <span>{m.content}</span>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+        {loading && (
+          <div className="chat-msg ai">Genie is thinking…</div>
+        )}
+      </section>
 
-        <form onSubmit={sendMessage} className="input-row">
-          <input
-            type="text"
-            value={input}
-            placeholder="Type your message and press Enter…"
-            onChange={(e) => setInput(e.target.value)}
-            disabled={loading}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage(e);
-              }
-            }}
-          />
-          <button type="submit" disabled={loading}>
-            {loading ? "Sending…" : "Send"}
-          </button>
-        </form>
-      </SignedIn>
-    </div>
+      <form onSubmit={sendMessage} className="chat-input-row" aria-label="Send a message">
+        <input
+          className="chat-input"
+          type="text"
+          value={input}
+          placeholder="Type your message and press Enter…"
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? "Sending…" : "Send"}
+        </button>
+      </form>
+    </main>
   );
 }
