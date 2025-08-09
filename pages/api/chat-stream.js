@@ -23,13 +23,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { messages = [], model: clientModel } = req.body || {};
+    const { messages = [], model: clientModel, userId: bodyUserId } = req.body || {};
     const model = clientModel || "anthropic/claude-3.5-sonnet";
 
-    // Prepare upstream payload (OpenAI-compatible Chat Completions)
     const payload = {
       model,
-      stream: true, // request SSE stream
+      stream: true,
       messages: messages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -41,11 +40,10 @@ export default async function handler(req, res) {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        // Optional but recommended for OpenRouter routing/analytics:
         "HTTP-Referer": SITE_URL,
         "X-Title": "ListGenie",
         "X-App-Name": "ListGenie",
-        "X-User-Id": "public", // okay to keep generic unless you pass actual user id
+        "X-User-Id": "public",
       },
       body: JSON.stringify(payload),
     });
@@ -57,21 +55,19 @@ export default async function handler(req, res) {
         .json({ error: text || "OpenRouter upstream error" });
     }
 
-    // Set streaming headers for the client
+    // Prepare to stream back to client
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.setHeader("Transfer-Encoding", "chunked");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("X-Accel-Buffering", "no");
 
     let fullText = "";
-
-    // Read SSE from OpenRouter and flush plain text chunks
     const decoder = new TextDecoder();
+
     for await (const chunk of upstream.body) {
       const text = decoder.decode(chunk, { stream: true });
-
-      // SSE frames are "data: {...}\n\n"
       const lines = text.split("\n");
+
       for (const line of lines) {
         if (!line.startsWith("data:")) continue;
         const data = line.slice(5).trim();
@@ -81,13 +77,12 @@ export default async function handler(req, res) {
         try {
           const json = JSON.parse(data);
 
-          // OpenAI-compatible delta content
           const deltaContent =
-            json?.choices?.[0]?.delta?.content ??
-            json?.choices?.[0]?.message?.content ??
-            json?.message?.content ??
-            json?.delta ??
-            json?.content ??
+            (json && json.choices && json.choices[0] && json.choices[0].delta && json.choices[0].delta.content) ||
+            (json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) ||
+            json?.message?.content ||
+            json?.delta ||
+            json?.content ||
             "";
 
           if (deltaContent) {
@@ -95,13 +90,12 @@ export default async function handler(req, res) {
             res.write(deltaContent);
           }
         } catch {
-          // Non-JSON keepalive or stray line — ignore
+          // ignore keepalives or non-JSON lines
         }
       }
     }
 
-    // Optional: log to Supabase if service creds are present
-    // (safe no-op if not configured)
+    // Optional Supabase logging (no-op if not configured)
     try {
       if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const { createClient } = await import("@supabase/supabase-js");
@@ -110,38 +104,31 @@ export default async function handler(req, res) {
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
 
-        // Clerk ID is optional here; pass it from the client if you want
-        const userId =
-          (req.headers["x-user-id"] as string) ||
-          (req.body && req.body.userId) ||
-          null;
+        const headerUserIdRaw = req.headers["x-user-id"];
+        const headerUserId =
+          Array.isArray(headerUserIdRaw) ? headerUserIdRaw[0] : headerUserIdRaw || null;
+        const userId = bodyUserId || headerUserId || null;
 
         await supabase.from("chat_logs").insert({
           user_id: userId,
           model,
-          prompt_tokens: null, // you can fill from OpenRouter usage if you parse it later
+          prompt_tokens: null,
           completion_tokens: null,
           input: messages[messages.length - 1]?.content || "",
           output: fullText,
         });
       }
     } catch (e) {
-      // Don't explode the stream if logging fails
-      console.warn("Supabase log failed:", e?.message || e);
+      console.warn("Supabase log failed:", e && e.message ? e.message : e);
     }
 
     res.end();
   } catch (err) {
     console.error("chat-stream error:", err);
-    // If headers already sent during streaming, just end
     if (res.headersSent) {
-      try {
-        res.end();
-      } catch {}
+      try { res.end(); } catch {}
       return;
     }
-    return res
-      .status(500)
-      .json({ error: "Unexpected error in chat-stream endpoint" });
+    return res.status(500).json({ error: "Unexpected error in chat-stream endpoint" });
   }
 }
