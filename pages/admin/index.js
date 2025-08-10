@@ -44,11 +44,16 @@ function AdminInner() {
   async function fetchUsers() {
     setErr(null); setNote(""); setLoading(true);
     try {
-      const r = await fetch(`/api/admin/index?q=${encodeURIComponent(q)}`, {
-        headers: { "X-Admin-Token": token || "" },
-      });
-      const text = await r.text();
-      let j = null; try { j = JSON.parse(text); } catch {}
+      const url1 = `/api/admin/index?q=${encodeURIComponent(q)}`;          // new path
+      const url2 = `/api/admin/users/search?q=${encodeURIComponent(q)}`;   // legacy path
+  
+      // Try /api/admin/index first; if 404, fall back to /api/admin/users/search
+      let r = await fetch(url1, { headers: { "X-Admin-Token": token || "" }});
+      if (r.status === 404) {
+        r = await fetch(url2, { headers: { "X-Admin-Token": token || "" }});
+      }
+  
+      const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch {}
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       setList(j.users || []);
     } catch (e) {
