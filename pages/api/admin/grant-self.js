@@ -1,5 +1,4 @@
-// pages/api/admin/grant-self.js
-import { getAuth, clerkClient } from "@clerk/nextjs/server";
+import { getAuth } from "@clerk/nextjs/server";
 import { isAdminRequest } from "@/lib/adminGuard";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -15,16 +14,10 @@ export default async function handler(req, res) {
     const { userId } = getAuth(req);
     if (!userId) return res.status(401).json({ ok: false, error: "Unauthenticated" });
 
-    const me = await clerkClient.users.getUser(userId);
-    const email =
-      me?.primaryEmailAddress?.emailAddress ||
-      me?.emailAddresses?.[0]?.emailAddress ||
-      null;
-
-    // role admin + plan pro (adjust if you only want admin)
+    // Make current user admin; do not touch plan unless you want to:
     const { error: updErr } = await supabaseAdmin
       .from("users")
-      .update({ role: "admin", plan: "pro", trial_end_date: null })
+      .update({ role: "admin" })
       .eq("clerk_id", userId);
     if (updErr) throw updErr;
 
@@ -35,7 +28,7 @@ export default async function handler(req, res) {
       .maybeSingle();
     if (selErr) throw selErr;
 
-    return res.status(200).json({ ok: true, email, user });
+    return res.status(200).json({ ok: true, user });
   } catch (e) {
     console.error("/api/admin/grant-self", e);
     return res.status(500).json({ ok: false, error: e.message || "Server error" });

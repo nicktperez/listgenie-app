@@ -1,15 +1,13 @@
-// pages/api/admin/users/set-role.js
 import { isAdminRequest } from "@/lib/adminGuard";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const ROLES = new Set(["admin", "pro", "free"]);
+const ROLES = new Set(["admin", "user"]);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
-
   if (!isAdminRequest(req)) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
