@@ -1,4 +1,4 @@
-// pages/api/admin/index.js
+// pages/api/admin/set-role.js
 import { supabaseAdmin } from "@/utils/supabase-admin";
 
 export default async function handler(req, res) {
@@ -10,22 +10,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { q } = req.query;
-    let query = supabaseAdmin
-      .from("users")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (q && q.trim()) {
-      query = query.or(`email.ilike.%${q}%,name.ilike.%${q}%`);
+    const { userId, role } = req.body;
+    if (!userId || !["admin", "user"].includes(role)) {
+      return res.status(400).json({ ok: false, error: "Invalid role" });
     }
 
-    const { data: users, error } = await query;
+    const { error } = await supabaseAdmin
+      .from("users")
+      .update({ role })
+      .eq("id", userId);
+
     if (error) throw error;
 
-    return res.status(200).json({ ok: true, users });
+    return res.status(200).json({ ok: true });
   } catch (err) {
-    console.error("Admin index error:", err);
+    console.error("Set role error:", err);
     return res.status(500).json({ ok: false, error: err.message || "Server error" });
   }
 }

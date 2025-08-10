@@ -27,13 +27,12 @@ export default function AdminPage() {
 }
 
 function AdminInner() {
+  // Token handling (env first, fallback to localStorage if env missing)
   const [stored, setStored] = useState("");
   const token = useMemo(() => ENV_TOKEN || stored, [stored]);
 
   useEffect(() => {
-    if (!ENV_TOKEN) {
-      setStored(localStorage.getItem("admin_token") || "");
-    }
+    if (!ENV_TOKEN) setStored(localStorage.getItem("admin_token") || "");
   }, []);
 
   const [q, setQ] = useState("");
@@ -45,63 +44,59 @@ function AdminInner() {
   async function fetchUsers() {
     setErr(null); setNote(""); setLoading(true);
     try {
-      const r = await fetch(`/api/admin/users/search?q=${encodeURIComponent(q)}`, {
+      const r = await fetch(`/api/admin/index?q=${encodeURIComponent(q)}`, {
         headers: { "X-Admin-Token": token || "" },
       });
       const text = await r.text();
       let j = null; try { j = JSON.parse(text); } catch {}
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       setList(j.users || []);
-    } catch (e) { setErr(e.message || "Failed to load"); setList([]); }
-    finally { setLoading(false); }
-  }
-
-  async function setPlan(u, plan) {
-    setErr(null); setNote("");
-    try {
-      const body = { clerk_id: u.clerk_id, plan };
-      if (plan === "trial" && !u.trial_end_date) {
-        body.trial_end_date = new Date(Date.now() + 14*24*60*60*1000).toISOString();
-      }
-      const r = await fetch("/api/admin/users/set-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Token": token || "" },
-        body: JSON.stringify(body),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`Plan updated → ${j.user?.plan} for ${j.user?.email || u.email || u.clerk_id}`);
-      await fetchUsers();
-    } catch (e) { setErr(e.message || "Failed to set plan"); }
+    } catch (e) {
+      setErr(e.message || "Failed to load");
+      setList([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function setRole(u, role) {
     setErr(null); setNote("");
     try {
-      const r = await fetch("/api/admin/users/set-role", {
+      const r = await fetch("/api/admin/set-role", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Admin-Token": token || "" },
-        body: JSON.stringify({ clerk_id: u.clerk_id, role }),
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Token": token || "",
+        },
+        body: JSON.stringify({ userId: u.id, role }), // role: "admin" | "user"
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`Role updated → ${j.user?.role} for ${j.user?.email || u.email || u.clerk_id}`);
+      setNote(`Role updated → ${role} for ${u.email || u.id}`);
       await fetchUsers();
-    } catch (e) { setErr(e.message || "Failed to set role"); }
+    } catch (e) {
+      setErr(e.message || "Failed to set role");
+    }
   }
 
-  async function grantMeAdmin() {
+  async function setPlan(u, plan) {
     setErr(null); setNote("");
     try {
-      const r = await fetch("/api/admin/grant-self", {
+      const r = await fetch("/api/admin/set-plan", {
         method: "POST",
-        headers: { "X-Admin-Token": token || "" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Admin-Token": token || "",
+        },
+        body: JSON.stringify({ userId: u.id, plan }), // plan: "pro" | "trial" | "expired"
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`Updated: ${j.user?.email || "you"} — role: ${j.user?.role}, plan: ${j.user?.plan}`);
+      setNote(`Plan updated → ${plan} for ${u.email || u.id}`);
       await fetchUsers();
-    } catch (e) { setErr(e.message || "Failed to grant admin"); }
+    } catch (e) {
+      setErr(e.message || "Failed to set plan");
+    }
   }
 
   function saveTokenLocally() {
@@ -142,64 +137,69 @@ function AdminInner() {
         <button className="btn" onClick={fetchUsers} disabled={loading || !token}>
           {loading ? "Loading…" : "Refresh"}
         </button>
-        <button className="link" onClick={grantMeAdmin} disabled={!token}>Make me Admin</button>
       </div>
 
       {err && <div className="error" style={{ marginBottom: 12 }}>{err}</div>}
       {note && <div className="card" style={{ padding: 10, marginBottom: 12 }}>{note}</div>}
 
-      <UserTable list={list} setPlan={setPlan} setRole={setRole} />
-    </>
-  );
-}
+      <div className="card" style={{ padding: 12 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"2.2fr 1.2fr .9fr 1fr 1.2fr", gap:8, fontWeight:700, marginBottom:8 }}>
+          <div>Email</div>
+          <div>Name</div>
+          <div>Role</div>
+          <div>Plan</div>
+          <div>Created</div>
+        </div>
 
-function UserTable({ list, setPlan, setRole }) {
-  return (
-    <div className="card" style={{ padding: 12 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1.2fr 0.9fr 1fr 1.2fr", gap: 8, fontWeight: 700, marginBottom: 8 }}>
-        <div>Email</div>
-        <div>Name</div>
-        <div>Role</div>
-        <div>Plan</div>
-        <div>Created</div>
+        {!list.length && <div className="chat-sub">No users found.</div>}
+
+        {list.map((u) => {
+          const created = new Date(u.created_at).toLocaleString();
+          const trialInfo = u.trial_end_date
+            ? ` (until ${new Date(u.trial_end_date).toLocaleDateString()})`
+            : "";
+          return (
+            <div
+              key={u.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "2.2fr 1.2fr .9fr 1fr 1.2fr",
+                gap: 8,
+                alignItems: "center",
+                padding: "6px 0",
+                borderTop: "1px solid rgba(255,255,255,.08)",
+              }}
+            >
+              <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                {u.email || <span className="chat-sub">{u.clerk_id}</span>}
+              </div>
+              <div>{u.name || <span className="chat-sub">—</span>}</div>
+
+              {/* Role */}
+              <div>
+                <span className="badge" style={{ marginRight: 6 }}>{u.role}</span>
+                <div style={{ display:"inline-flex", gap:6, flexWrap:"wrap" }}>
+                  <button className="link" onClick={() => setRole(u, "admin")}>make admin</button>
+                  <button className="link" onClick={() => setRole(u, "user")}>make user</button>
+                </div>
+              </div>
+
+              {/* Plan */}
+              <div>
+                <span className="badge" style={{ marginRight: 6 }}>{u.plan}</span>
+                {u.plan === "trial" && trialInfo && <span className="chat-sub">{trialInfo}</span>}
+                <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  <button className="link" onClick={() => setPlan(u, "pro")}>set pro</button>
+                  <button className="link" onClick={() => setPlan(u, "trial")}>set trial</button>
+                  <button className="link" onClick={() => setPlan(u, "expired")}>expire</button>
+                </div>
+              </div>
+
+              <div className="chat-sub">{created}</div>
+            </div>
+          );
+        })}
       </div>
-
-      {!list.length && <div className="chat-sub">No users found.</div>}
-
-      {list.map((u) => {
-        const created = new Date(u.created_at).toLocaleString();
-        const trialInfo = u.trial_end_date ? ` (until ${new Date(u.trial_end_date).toLocaleDateString()})` : "";
-        return (
-          <div key={u.id} style={{ display: "grid", gridTemplateColumns: "2.2fr 1.2fr 0.9fr 1fr 1.2fr", gap: 8, alignItems: "center", padding: "6px 0", borderTop: "1px solid rgba(255,255,255,.08)" }}>
-            <div style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{u.email || <span className="chat-sub">{u.clerk_id}</span>}</div>
-            <div>{u.name || <span className="chat-sub">—</span>}</div>
-
-            <div>
-              <span className="badge" style={{ marginRight: 6 }}>{u.role}</span>
-              <div style={{ display:"inline-flex", gap:6, flexWrap:"wrap" }}>
-                <button className="link" onClick={() => setRole(u, "admin")}>make admin</button>
-                <button className="link" onClick={() => setRole(u, "pro")}>make pro</button>
-                <button className="link" onClick={() => setRole(u, "free")}>make free</button>
-              </div>
-            </div>
-
-            <div>
-              <span className="badge" style={{ marginRight: 6 }}>{u.plan}</span>
-              {u.plan === "trial" && trialInfo && <span className="chat-sub">{trialInfo}</span>}
-              <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                <button className="link" onClick={() => setPlan(u, "pro")}>set pro</button>
-                <button className="link" onClick={() => setPlan(u, "trial")}>set trial</button>
-                <button className="link" onClick={() => setPlan(u, "expired")}>expire</button>
-                <button className="link" onClick={() => setPlan(u, "free")}>set free</button>
-                {/* convenience: do both */}
-                <button className="link" onClick={() => (setRole(u, "pro"), setPlan(u, "pro"))}>make pro (role+plan)</button>
-              </div>
-            </div>
-
-            <div className="chat-sub">{created}</div>
-          </div>
-        );
-      })}
-    </div>
+    </>
   );
 }
