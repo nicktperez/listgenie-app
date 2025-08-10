@@ -156,37 +156,61 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
 
   const send = async () => {
     if (disabled) return;
+  
     const userMsg = { role: "user", content: input.trim(), ts: Date.now() };
     setMessages((m) => [...m, userMsg, { role: "assistant", content: "", streaming: true, ts: Date.now() }]);
     setInput("");
     setSending(true);
-
+  
     try {
+      // short history for continuity
+      const hist = messages
+        .slice(-6)
+        .filter((x) => x.role === "user" || x.role === "assistant")
+        .map((x) => ({ role: x.role, content: (x.content || "").slice(0, 2000) }));
+  
+      // unified payload: keep legacy fields + add messages[]
+      const sys = `${baseSystem}\n\nTone guidance: ${toneNote}`;
+      const assembledMessages = [
+        { role: "system", content: sys },
+        ...hist,
+        { role: "user", content: userMsg.content },
+      ];
+  
       const body = {
+        // legacy fields (some server versions use these)
         input: userMsg.content,
-        system: `${baseSystem}\n\nTone guidance: ${toneNote}`,
+        system: sys,
         tone,
-        // short history for continuity
-        history: messages
-          .slice(-6)
-          .filter((x) => x.role === "user" || x.role === "assistant")
-          .map((x) => ({ role: x.role, content: x.content?.slice?.(0, 2000) || "" })),
+        history: hist,
+        // new/compatible field for chat-style handlers
+        messages: assembledMessages,
       };
-
+  
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      if (!r.ok || !r.body) {
+  
+      // If server returns a non-stream error JSON, surface it nicely
+      if (!r.ok) {
         const txt = await r.text().catch(() => "");
-        throw new Error(txt || "Server error");
+        let msg = txt;
+        try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
+        throw new Error(msg || `HTTP ${r.status}`);
       }
-
+      if (!r.body || !r.body.getReader) {
+        // Not streaming; treat as an error message
+        const txt = await r.text().catch(() => "");
+        let msg = txt;
+        try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
+        throw new Error(msg || "Server did not return a stream");
+      }
+  
       const reader = r.body.getReader();
       streamRef.current = reader;
-
+  
       let acc = "";
       while (true) {
         const { value, done } = await reader.read();
@@ -201,7 +225,7 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
           return next;
         });
       }
-
+  
       // finalize message
       setMessages((m) => {
         const next = [...m];
