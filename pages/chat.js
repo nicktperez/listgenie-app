@@ -448,21 +448,66 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         </div>
       </div>
 
-      {/* suggestion chips */}
-      <div className="card" style={{ padding: 10, marginBottom: 10 }}>
-        <div className="chat-sub" style={{ marginBottom: 6 }}>Try one of these:</div>
-        <div style={{ display: "grid", gap: 8 }}>
-          <button className="textarea" onClick={() => setInput("3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.")}>
-            3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.
-          </button>
-          <button className="textarea" onClick={() => setInput("Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.")}>
-            Downtown condo: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.
-          </button>
-          <button className="textarea" onClick={() => setInput("Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden.")}>
-            Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden.
-          </button>
-        </div>
-      </div>
+      {/* compact suggestion pills — disappear after the first user message */}
+{!messages.some(m => m.role === "user") && (
+  <div className="examples">
+    {[
+      {
+        label: "3bd Fair Oaks w/ upgrades",
+        value:
+          "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks."
+      },
+      {
+        label: "Downtown 1bd loft caption",
+        value:
+          "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops."
+      },
+      {
+        label: "Acreage + barn highlights",
+        value:
+          "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden."
+      }
+    ].map((ex, i) => (
+      <button
+        key={i}
+        onClick={() => setInput(ex.value)}
+        className="example-pill"
+        title={ex.value}
+      >
+        {ex.label}
+      </button>
+    ))}
+    <style jsx>{`
+      .examples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 10px;
+      }
+      .example-pill {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        background: rgba(255,255,255,0.06);
+        border-radius: 14px;
+        cursor: pointer;
+        border: 1px solid rgba(255,255,255,0.10);
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition: background .2s, border-color .2s;
+      }
+      .example-pill:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.2);
+      }
+      /* If you want a single horizontal row instead of wrapping:
+      .examples { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
+      .example-pill { flex: 0 0 auto; }
+      */
+    `}</style>
+  </div>
+)}
 
       {/* messages */}
       <div ref={listRef} className="card" style={{ padding: 12, height: "38vh", overflowY: "auto", marginBottom: 10 }}>
