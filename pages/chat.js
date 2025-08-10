@@ -143,6 +143,50 @@ function TypingDots({ label = "Generating" }) {
   );
 }
 
+// --- helpers for questions-style payloads ---
+function parseMaybeJSON(x) {
+  if (typeof x === "string") {
+    try { return JSON.parse(x); } catch { return x; }
+  }
+  return x;
+}
+
+// Detect a payload like: { type: "questions", questions: [...], missing: [...] }
+function isQuestionsPayload(obj) {
+  return obj && typeof obj === "object" && obj.type === "questions" && Array.isArray(obj.questions);
+}
+
+// Build a human-friendly text block for display (also used if you copy)
+function formatQuestionsList(obj) {
+  const lines = [];
+  lines.push("I need a bit more information to complete your listing. Could you provide:");
+  lines.push("");
+  for (const q of obj.questions) lines.push(`- ${q}`);
+  if (Array.isArray(obj.missing) && obj.missing.length) {
+    lines.push("");
+    lines.push(`Missing fields: ${obj.missing.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
+// Create a template in the input for the user to answer quickly
+function buildAnswerTemplate(obj) {
+  // Use "missing" as labeled prompts if provided, else fall back to questions list
+  if (Array.isArray(obj.missing) && obj.missing.length) {
+    return obj.missing.map(k => `${labelize(k)}: `).join("\n");
+  }
+  if (Array.isArray(obj.questions) && obj.questions.length) {
+    return obj.questions.map(q => `${q} `).join("\n");
+  }
+  return "";
+}
+
+function labelize(key) {
+  return String(key || "")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export default function ChatPage() {
   // plan + trial
   const [plan, setPlan] = useState("trial"); // 'trial' | 'pro' | 'expired'
@@ -311,13 +355,38 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         const txt = await r.text();
         let j = {};
         try { j = JSON.parse(txt || "{}"); } catch {}
-        const rawContent = j?.message?.content ?? j?.content ?? j?.text ?? j;
-        const pretty = coerceToReadableText(rawContent);
-        setMessages((m) => {
-          const next = [...m];
-          next[next.length - 1] = { role: "assistant", content: pretty, streaming: false, ts: Date.now() };
-          return next;
-        });
+      
+        // Try to find the structured content
+        const raw = j?.message?.content ?? j?.content ?? j?.text ?? j;
+        const contentObj = parseMaybeJSON(raw);
+      
+        if (isQuestionsPayload(contentObj)) {
+          const prettyQ = formatQuestionsList(contentObj);
+          setMessages((m) => {
+            const next = [...m];
+            // Attach qFollowup so the renderer can show a nice card + action
+            next[next.length - 1] = {
+              role: "assistant",
+              content: prettyQ,
+              qFollowup: contentObj,
+              streaming: false,
+              ts: Date.now(),
+            };
+            return next;
+          });
+        } else {
+          const pretty = coerceToReadableText(contentObj);
+          setMessages((m) => {
+            const next = [...m];
+            next[next.length - 1] = {
+              role: "assistant",
+              content: pretty,
+              streaming: false,
+              ts: Date.now(),
+            };
+            return next;
+          });
+        }
         return;
       }
   
@@ -536,15 +605,51 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
               </div>
 
               {m.streaming ? (
-                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
-              ) : (
-                <ListingRender
-                  title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
-                  content={m.content}
-                  meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
-                  onSave={(text) => saveListing(text, lastUserPrompt)}
-                />
-              )}
+  <>
+    <TypingDots label="Thinking" />
+    <div className="textarea" style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{m.content}</div>
+  </>
+) : m.qFollowup ? (
+  // Special follow-up UI for questions payloads
+  <div className="card" style={{ padding: 12 }}>
+    <div className="chat-sub" style={{ marginBottom: 8 }}>
+      I need a bit more information to complete your listing:
+    </div>
+    <ul style={{ margin: 0, paddingLeft: 18 }}>
+      {m.qFollowup.questions.map((q, idx) => (
+        <li key={idx} style={{ marginBottom: 6 }}>{q}</li>
+      ))}
+    </ul>
+    {Array.isArray(m.qFollowup.missing) && m.qFollowup.missing.length ? (
+      <div className="chat-sub" style={{ marginTop: 8 }}>
+        Missing fields: {m.qFollowup.missing.join(", ")}
+      </div>
+    ) : null}
+
+    <div style={{ display:"flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+      <button
+        className="btn"
+        onClick={() => setInput(buildAnswerTemplate(m.qFollowup))}
+        title="Insert the questions into the input so you can answer them quickly"
+      >
+        Answer these
+      </button>
+      <button
+        className="btn"
+        onClick={() => navigator.clipboard.writeText(formatQuestionsList(m.qFollowup)).catch(()=>{})}
+      >
+        Copy questions
+      </button>
+    </div>
+  </div>
+) : (
+  <ListingRender
+    title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
+    content={m.content}
+    meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
+    onSave={(text) => saveListing(text, lastUserPrompt)}
+  />
+)}
             </div>
           );
         })}
