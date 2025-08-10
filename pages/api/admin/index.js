@@ -1,5 +1,5 @@
 // pages/api/admin/index.js
-import { supabaseAdmin } from "@/utils/supabase-admin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export default async function handler(req, res) {
   const token = req.headers["x-admin-token"];
@@ -10,20 +10,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { q } = req.query;
+    const q = (req.query.q || "").toString().trim();
+
     let query = supabaseAdmin
       .from("users")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("id, clerk_id, email, name, role, plan, trial_end_date, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
 
-    if (q && q.trim()) {
+    if (q) {
       query = query.or(`email.ilike.%${q}%,name.ilike.%${q}%`);
     }
 
-    const { data: users, error } = await query;
+    const { data, error } = await query;
     if (error) throw error;
 
-    return res.status(200).json({ ok: true, users });
+    return res.status(200).json({ ok: true, users: data || [] });
   } catch (err) {
     console.error("Admin index error:", err);
     return res.status(500).json({ ok: false, error: err.message || "Server error" });
