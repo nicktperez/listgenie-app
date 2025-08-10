@@ -113,13 +113,21 @@ function AdminInner() {
     if (!token) return;
     setErr(null); setLoading(true);
     try {
-      const r = await fetch(`/api/admin/index?q=${encodeURIComponent(query)}&page=${p}&pageSize=${ps}`, {
-        headers: { "X-Admin-Token": token || "" },
-      });
+      const url1 = `/api/admin/index?q=${encodeURIComponent(query)}&page=${p}&pageSize=${ps}`;
+      const url2 = `/api/admin/users/search?q=${encodeURIComponent(query)}`;
+  
+      let r = await fetch(url1, { headers: { "X-Admin-Token": token || "" } });
+      // If the new endpoint isn't present in this deploy, try the legacy one
+      if (r.status === 404) {
+        r = await fetch(url2, { headers: { "X-Admin-Token": token || "" } });
+      }
+  
       const text = await r.text(); let j = null; try { j = JSON.parse(text); } catch {}
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+  
+      // Support either shape
       setList(j.users || []);
-      setTotal(j.total || 0);
+      setTotal(typeof j.total === "number" ? j.total : (j.users ? j.users.length : 0));
       syncUrl(query, p);
     } catch (e) {
       setErr(e.message || "Failed to load");

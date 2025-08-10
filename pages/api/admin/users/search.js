@@ -1,14 +1,11 @@
 // pages/api/admin/users/search.js
-import { isAdminRequest } from "@/lib/adminGuard";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export default async function handler(req, res) {
-  if (req.method !== "GET") {
-    res.setHeader("Allow", "GET");
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
-  }
+  const token = req.headers["x-admin-token"];
+  const ADMIN_TOKEN = process.env.ADMIN_TOKEN;
 
-  if (!isAdminRequest(req)) {
+  if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
     return res.status(401).json({ ok: false, error: "Unauthorized" });
   }
 
@@ -18,10 +15,9 @@ export default async function handler(req, res) {
       .from("users")
       .select("id, clerk_id, email, name, role, plan, trial_end_date, created_at")
       .order("created_at", { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (q) {
-      // simple ilike on email or name
       query = query.or(`email.ilike.%${q}%,name.ilike.%${q}%`);
     }
 
@@ -29,8 +25,8 @@ export default async function handler(req, res) {
     if (error) throw error;
 
     return res.status(200).json({ ok: true, users: data || [] });
-  } catch (e) {
-    console.error("/api/admin/users/search", e);
-    return res.status(500).json({ ok: false, error: e.message || "Server error" });
+  } catch (err) {
+    console.error("admin/users/search error:", err);
+    return res.status(500).json({ ok: false, error: err.message || "Server error" });
   }
 }
