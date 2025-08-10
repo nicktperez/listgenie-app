@@ -9,22 +9,21 @@ export default async function handler(req, res) {
   }
   try {
     const { userId } = getAuth(req);
-    if (!userId) return res.status(401).json({ ok: false, error: "Unauthenticated" });
+    if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
 
     const { id } = req.body || {};
     if (!id) return res.status(400).json({ ok: false, error: "Missing id" });
 
-    // Only delete listings owned by this user
     const { error } = await supabaseAdmin
       .from("saved_listings")
       .delete()
-      .match({ id, clerk_id: userId });
+      .eq("id", id)
+      .eq("clerk_id", userId); // ensure user owns it
 
-    if (error) return res.status(500).json({ ok: false, error: error.message });
-
+    if (error) throw error;
     return res.status(200).json({ ok: true });
   } catch (e) {
-    console.error("/api/listings/delete fatal:", e);
-    return res.status(500).json({ ok: false, error: "Server error" });
+    console.error("/api/listings/delete", e);
+    return res.status(500).json({ ok: false, error: e.message || "Server error" });
   }
 }

@@ -1,438 +1,377 @@
-// pages/chat.js
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { useUserPlan } from "@/hooks/useUserPlan";
-import { ListingRender, QuestionsRender } from "@/components/ListingRender";
+import ProGate from "@/components/ProGate";
+import ListingRender from "@/components/ListingRender";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";
-const FREE_CHAR_LIMIT = 1400; // not actively used with trial, but kept for safety if you reintroduce free gating
-const AUTOSAVE = true;        // set false if you only want manual "Save Listing"
+const TONES = [
+  { key: "mls", label: "MLS-ready", hint: "Use clean, compliant MLS phrasing." },
+  { key: "social", label: "Social caption", hint: "Craft a short, scroll-stopping caption." },
+  { key: "luxury", label: "Luxury tone", hint: "Elevate language for a higher-end audience." },
+  { key: "concise", label: "Concise", hint: "Keep it tight, punchy, and skimmable." },
+];
 
-export default function ChatPage() {
-  return (
-    <div className="chat-wrap">
-      <SignedOut>
-        <div className="card" style={{ padding: 16 }}>
-          <p className="chat-sub" style={{ marginBottom: 8 }}>
-            Please sign in to start generating listings.
-          </p>
-          <SignInButton mode="modal">
-            <button className="btn">Sign in with Clerk</button>
-          </SignInButton>
-        </div>
-      </SignedOut>
-
-      <SignedIn>
-        <ChatInner />
-      </SignedIn>
+// tiny toast helper
+function useToast() {
+  const [toast, setToast] = useState(null); // {msg, type:'ok'|'err'}
+  const show = (msg, type = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2200);
+  };
+  const ui = toast ? (
+    <div
+      style={{
+        position: "fixed",
+        right: 16,
+        bottom: 16,
+        padding: "10px 14px",
+        borderRadius: 10,
+        background: toast.type === "ok" ? "rgba(56,176,0,.18)" : "rgba(255,99,99,.18)",
+        border: `1px solid ${toast.type === "ok" ? "rgba(56,176,0,.55)" : "rgba(255,99,99,.55)"}`,
+        backdropFilter: "blur(6px)",
+        zIndex: 1000,
+      }}
+    >
+      {toast.msg}
     </div>
-  );
+  ) : null;
+  return [ui, show];
 }
 
-function ChatInner() {
-  const { plan, isPro, isTrial, isExpired, daysLeft } = useUserPlan();
+export default function ChatPage() {
+  // plan + trial
+  const [plan, setPlan] = useState("trial"); // 'trial' | 'pro' | 'expired'
+  const [trialEnd, setTrialEnd] = useState(null);
+  const [loadingPlan, setLoadingPlan] = useState(true);
 
-  const [msgs, setMsgs] = useState([
+  // chat state
+  const [input, setInput] = useState("");
+  const [tone, setTone] = useState("mls");
+  const [sending, setSending] = useState(false);
+  const [messages, setMessages] = useState([
     {
-      role: "assistant",
+      role: "system",
       content:
-        "Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing.",
-      parsed: null,
+        "Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.",
     },
   ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
-  const [savingId, setSavingId] = useState(null);
+  const streamRef = useRef(null);
+  const listRef = useRef(null);
+  const [Toast, showToast] = useToast();
 
-  const endRef = useRef(null);
-  const textRef = useRef(null);
-
-  // Scroll to bottom on new activity
+  // get plan
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [msgs, loading]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (!textRef.current) return;
-    textRef.current.style.height = "0px";
-    const h = Math.min(textRef.current.scrollHeight, 200);
-    textRef.current.style.height = h + "px";
-  }, [input]);
-
-  const remaining = useMemo(() => {
-    if (isPro) return null;
-    return FREE_CHAR_LIMIT - input.length;
-  }, [input.length, isPro]);
-
-  const lastAssistantIndex = useMemo(() => {
-    for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].role === "assistant") return i;
-    return -1;
-  }, [msgs]);
-
-  function applyShortcut(kind) {
-    const map = {
-      followups:
-        "Please ask concise follow-up questions for any missing details needed to write an MLS-ready listing.",
-      shorter: "Rewrite the MLS section to be 20% shorter but keep all key facts.",
-      social: "Create a 1–2 line social teaser with emojis and a call-to-action.",
-      luxury: "Rewrite in a refined, luxury tone emphasizing lifestyle and finishes.",
-    };
-    setInput(map[kind]);
-  }
-
-  async function onSend(regen = false) {
-    setErrorMsg(null);
-
-    // Block when trial expired (server also enforces, this is UX guard)
-    if (isExpired) {
-      setErrorMsg("Your trial has ended. Upgrade to continue.");
-      return;
-    }
-
-    const textToSend = regen
-      ? findLastUserContent(msgs) || input.trim()
-      : input.trim();
-
-    if (!textToSend) return;
-
-    // (Optional) keep char limit if you re-enable free gating somewhere
-    if (!isPro && remaining !== null && remaining < 0) {
-      setErrorMsg(`Free plan limit is ${FREE_CHAR_LIMIT} characters. Please shorten or upgrade.`);
-      return;
-    }
-
-    // Add user message and a streaming assistant placeholder
-    const newUserMsg = { role: "user", content: textToSend };
-    const next = [...msgs, newUserMsg, { role: "assistant", content: "", parsed: null, streaming: true }];
-    const assistantIdx = next.length - 1;
-
-    setMsgs(next);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/chat/stream", {
-        method: "POST",
-        body: JSON.stringify({
-          messages: next.map(({ role, content }) => ({ role, content })),
-        }),
-        headers: { "Content-Type": "application/json" },
-      });
-
-      // If the server rejected due to trial status, show paywall friendly message
-      if (!res.ok) {
-        let errMsg = "Request failed";
-        try {
-          const j = await res.json();
-          if (j?.error === "trial_expired") {
-            errMsg = "Your trial has ended. Upgrade to continue.";
-          } else {
-            errMsg = j?.error || errMsg;
-          }
-        } catch {}
-        throw new Error(errMsg);
-      }
-
-      if (!res.body) throw new Error("No response body");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = "";
-      let acc = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-
-        // SSE frames separated by \n\n
-        const parts = buf.split("\n\n");
-        buf = parts.pop() ?? "";
-        for (const part of parts) {
-          const line = part.trim();
-          if (!line) continue;
-
-          if (line.startsWith("data:")) {
-            const jsonStr = line.slice(5).trim();
-            if (jsonStr === "[DONE]") continue;
-
-            // Try OpenRouter delta envelope
-            try {
-              const ev = JSON.parse(jsonStr);
-              const delta = ev?.choices?.[0]?.delta?.content;
-              if (typeof delta === "string") {
-                acc += delta;
-                livePatchAssistant(assistantIdx, acc);
-              }
-              continue;
-            } catch {
-              // might be "done"/"error" events; ignore here
-            }
-          }
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/user/plan");
+        const j = await r.json();
+        if (alive) {
+          setPlan(j?.plan || "trial");
+          setTrialEnd(j?.trial_end_date || null);
         }
+      } catch (_) {
+        // ignore; default trial
+      } finally {
+        if (alive) setLoadingPlan(false);
       }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-      // Finalize assistant message, try to parse JSON
-      let parsed = null;
-      try { parsed = JSON.parse(acc); } catch {}
-      completeAssistant(assistantIdx, acc, parsed);
+  // scroll to latest message
+  useEffect(() => {
+    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages.length]);
 
-      // Autosave structured listing
-      if (AUTOSAVE && parsed?.type === "listing") {
-        await saveListing(parsed, assistantIdx);
-      }
-    } catch (e) {
-      console.error(e);
-      setErrorMsg(e?.message || "Something went wrong.");
-      completeAssistant(assistantIdx, e?.message || "Sorry — I hit an error.", null);
-    } finally {
-      setLoading(false);
+  const trialDaysLeft = useMemo(() => {
+    if (!trialEnd) return null;
+    const ms = new Date(trialEnd).getTime() - Date.now();
+    return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
+  }, [trialEnd]);
+
+  const headerBadge = useMemo(() => {
+    if (loadingPlan) return null;
+    if (plan === "pro")
+      return <span className="badge" style={{ marginLeft: 10 }}>Pro</span>;
+    if (plan === "trial")
+      return (
+        <span className="badge" style={{ marginLeft: 10 }}>
+          Trial{trialDaysLeft != null ? ` • ${trialDaysLeft}d left` : ""}
+        </span>
+      );
+    return (
+      <span className="badge" style={{ marginLeft: 10 }}>
+        Expired
+      </span>
+    );
+  }, [plan, loadingPlan, trialDaysLeft]);
+
+  const disabled = !input.trim() || sending || plan === "expired";
+
+  const baseSystem = `You are ListGenie.ai — a real-estate listing specialist.
+Write polished, MLS-ready listings and short social variants.
+Respect fair housing, avoid superlatives that imply discrimination, and focus on property facts and benefits.`;
+
+  const toneNote = (() => {
+    switch (tone) {
+      case "social":
+        return "Create a short social caption (1–2 sentences) with a hook and a soft CTA. Keep emojis tasteful.";
+      case "luxury":
+        return "Elevate the language for a luxury audience. Warm, refined, and specific — avoid cliché realtor jargon.";
+      case "concise":
+        return "Be concise (120–180 words). Prioritize top features; remove fluff.";
+      default:
+        return "Produce an MLS-ready description that’s clear, factual, and compelling.";
     }
-  }
+  })();
 
-  function livePatchAssistant(idx, text) {
-    setMsgs((m) => {
-      const copy = m.slice();
-      if (!copy[idx]) return m;
-      copy[idx] = { ...copy[idx], content: text, parsed: null, streaming: true };
-      return copy;
-    });
-  }
+  // quick action helpers
+  const applyQuick = (q) => {
+    setInput((s) => (s ? `${s}\n\n${q}` : q));
+  };
 
-  function completeAssistant(idx, text, parsed) {
-    setMsgs((m) => {
-      const copy = m.slice();
-      if (!copy[idx]) return m;
-      copy[idx] = { role: "assistant", content: text, parsed: parsed || null, streaming: false };
-      return copy;
-    });
-  }
-
-  async function saveListing(payload, idx) {
+  // Save to listings (used from pretty render)
+  const saveListing = async (aiText, prompt) => {
     try {
-      setSavingId(idx);
+      const title = (prompt || "").split("\n")[0].slice(0, 80) || "Generated listing";
+      const payload = {
+        tone,
+        prompt,
+        output: aiText,
+        created_at: new Date().toISOString(),
+      };
       const r = await fetch("/api/listings/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ payload }),
+        body: JSON.stringify({ title, payload }),
       });
       const j = await r.json();
       if (!r.ok || !j?.ok) throw new Error(j?.error || "Save failed");
+      showToast("Saved to Listings");
     } catch (e) {
-      console.error(e);
-      setErrorMsg(e?.message || "Failed to save");
-    } finally {
-      setSavingId(null);
-    }
-  }
-
-  function onKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (!loading) onSend();
-    }
-  }
-
-  const startExamples = [
-    "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.",
-    "Downtown condo: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.",
-    "Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, fenced garden.",
-  ];
-
-  const hasAssistant = lastAssistantIndex !== -1;
-
-  return (
-    <>
-      {/* Header with plan/trial badge */}
-      <header className="chat-header" style={{ marginBottom: 18 }}>
-        <div className="chat-logo">🏠</div>
-        <div style={{ display: "flex", flexDirection: "column", width: "100%" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px" }}>
-            <div className="chat-title">ListGenie.ai Chat</div>
-            <span className={`badge ${isPro ? "pro" : ""}`}>
-              {isPro ? "Pro" : isTrial ? `Trial — ${daysLeft}d left` : "Trial ended"}
-            </span>
-          </div>
-          <div className="chat-sub">Generate polished, MLS-ready listings plus social variants.</div>
-        </div>
-      </header>
-
-      {/* Actions: Regenerate + Copy last */}
-      {hasAssistant && (
-        <div className="model-row" style={{ marginTop: 0, marginBottom: 12 }}>
-          <button className="link" onClick={() => onSend(true)} disabled={loading || isExpired}>
-            {loading ? "Generating…" : "Regenerate last"}
-          </button>
-          <button
-            className="link"
-            onClick={() => copyToClipboard(msgs[lastAssistantIndex].content)}
-            style={{ marginLeft: 8 }}
-            disabled={isExpired}
-          >
-            Copy last
-          </button>
-        </div>
-      )}
-
-      {/* Messages */}
-      <div className="msg-list">
-        {msgs.map((m, i) => {
-          const isUser = m.role === "user";
-
-          // Structured cards (listing or questions)
-          if (!isUser && m.parsed) {
-            return (
-              <div
-                key={i}
-                className="bubble assistant"
-                style={{ padding: 0, border: "none", background: "transparent", boxShadow: "none" }}
-              >
-                {m.parsed.type === "listing" ? (
-                  <ListingRender
-                    data={m.parsed}
-                    saving={savingId === i}
-                    onSave={() => saveListing(m.parsed, i)}
-                  />
-                ) : (
-                  <QuestionsRender data={m.parsed} />
-                )}
-              </div>
-            );
-          }
-
-          // Default text bubble (markdown-lite for assistant)
-          return (
-            <div key={i} className={`bubble ${isUser ? "user" : "assistant"}`}>
-              {isUser ? m.content : <MarkdownLite text={m.content} />}
-            </div>
-          );
-        })}
-
-        {msgs.length <= 1 && (
-          <div className="card">
-            <div className="chat-sub" style={{ marginBottom: 6 }}>Try one of these:</div>
-            <div className="examples">
-              {startExamples.map((ex, i) => (
-                <button key={i} className="example-btn" onClick={() => setInput(ex)}>
-                  {ex}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {errorMsg && <div className="error">{errorMsg}</div>}
-
-        <div ref={endRef} />
-      </div>
-
-      {/* Paywall when trial expired */}
-      {isExpired && (
-        <div className="card" style={{ padding: 16, marginTop: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 6 }}>Your trial has ended.</div>
-          <div className="chat-sub" style={{ marginBottom: 10 }}>
-            Upgrade to Pro to continue generating listings.
-          </div>
-          <a href="/upgrade" className="btn">Upgrade to Pro</a>
-        </div>
-      )}
-
-      {/* Composer + Shortcuts */}
-      <div className="composer">
-        <div className="composer-inner">
-          <div className="input-row" style={{ alignItems: "stretch" }}>
-            <textarea
-              ref={textRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder={isExpired ? "Upgrade to continue" : "Describe the property and any highlights…"}
-              rows={1}
-              className="textarea"
-              disabled={isExpired}
-            />
-            <button
-              onClick={() => onSend(false)}
-              disabled={isExpired || loading || (!isPro && remaining !== null && remaining < 0)}
-              className="btn"
-            >
-              {loading ? "Generating…" : "Send"}
-            </button>
-          </div>
-
-          {/* Shortcuts */}
-          <div className="examples" style={{ marginTop: 8 }}>
-            <button className="example-btn" onClick={() => applyShortcut("followups")} disabled={isExpired}>Ask follow-ups</button>
-            <button className="example-btn" onClick={() => applyShortcut("shorter")} disabled={isExpired}>Shorter MLS</button>
-            <button className="example-btn" onClick={() => applyShortcut("social")} disabled={isExpired}>Social caption</button>
-            <button className="example-btn" onClick={() => applyShortcut("luxury")} disabled={isExpired}>Luxury tone</button>
-          </div>
-
-          {/* (If you re-enable free caps later, this stays useful) */}
-          {!isPro && !isExpired && (
-            <div className="free-row">
-              <div>
-                {remaining !== null &&
-                  (remaining >= 0
-                    ? `${remaining} characters left on Free`
-                    : `${Math.abs(remaining)} over the Free limit`)}
-              </div>
-              <a href={`${SITE_URL}/upgrade`} className="link">Unlock Pro</a>
-            </div>
-          )}
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ---------- helpers ---------- */
-function findLastUserContent(list) {
-  for (let i = list.length - 1; i >= 0; i--) {
-    if (list[i].role === "user" && typeof list[i].content === "string") return list[i].content;
-  }
-  return "";
-}
-function copyToClipboard(text) {
-  try { navigator.clipboard.writeText(text); } catch {}
-}
-
-/* Minimal markdown-ish renderer: **bold**, bullets, newlines */
-function MarkdownLite({ text }) {
-  if (!text) return null;
-
-  // Escape basic HTML
-  let safe = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // Bold **text**
-  safe = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-
-  // Turn lines starting with -, •, or * into bullets
-  const lines = safe.split(/\n+/);
-  const blocks = [];
-  let list = [];
-  const flush = () => {
-    if (list.length) {
-      blocks.push(`<ul style="margin:0 0 8px 18px">${list.join("")}</ul>`);
-      list = [];
+      showToast(e.message || "Save failed", "err");
     }
   };
 
-  for (const ln of lines) {
-    const t = ln.trim();
-    if (/^(\*|-|•)\s+/.test(t)) {
-      list.push(`<li>${t.replace(/^(\*|-|•)\s+/, "")}</li>`);
-    } else if (t) {
-      flush();
-      blocks.push(`<p style="margin:0 0 8px">${t}</p>`);
-    }
-  }
-  flush();
+  const send = async () => {
+    if (disabled) return;
+    const userMsg = { role: "user", content: input.trim(), ts: Date.now() };
+    setMessages((m) => [...m, userMsg, { role: "assistant", content: "", streaming: true, ts: Date.now() }]);
+    setInput("");
+    setSending(true);
 
-  return <span dangerouslySetInnerHTML={{ __html: blocks.join("") }} />;
+    try {
+      const body = {
+        input: userMsg.content,
+        system: `${baseSystem}\n\nTone guidance: ${toneNote}`,
+        tone,
+        // short history for continuity
+        history: messages
+          .slice(-6)
+          .filter((x) => x.role === "user" || x.role === "assistant")
+          .map((x) => ({ role: x.role, content: x.content?.slice?.(0, 2000) || "" })),
+      };
+
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!r.ok || !r.body) {
+        const txt = await r.text().catch(() => "");
+        throw new Error(txt || "Server error");
+      }
+
+      const reader = r.body.getReader();
+      streamRef.current = reader;
+
+      let acc = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = new TextDecoder().decode(value);
+        acc += chunk;
+        setMessages((m) => {
+          const last = m[m.length - 1];
+          if (!last || last.role !== "assistant") return m;
+          const next = [...m];
+          next[next.length - 1] = { ...last, content: acc, streaming: true };
+          return next;
+        });
+      }
+
+      // finalize message
+      setMessages((m) => {
+        const next = [...m];
+        const last = next[next.length - 1];
+        next[next.length - 1] = { ...last, streaming: false };
+        return next;
+      });
+    } catch (e) {
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", content: `⚠️ ${e.message || "Failed to generate."}` },
+      ]);
+    } finally {
+      setSending(false);
+      streamRef.current = null;
+    }
+  };
+
+  // stop streaming if needed
+  const stop = async () => {
+    try {
+      streamRef.current?.cancel();
+    } catch {}
+    setSending(false);
+    setMessages((m) => {
+      const next = [...m];
+      const last = next[next.length - 1];
+      if (last?.role === "assistant") next[next.length - 1] = { ...last, streaming: false };
+      return next;
+    });
+  };
+
+  // get the most recent user prompt for save title/context
+  const lastUserPrompt = useMemo(
+    () => [...messages].reverse().find((x) => x.role === "user")?.content || "",
+    [messages]
+  );
+
+  return (
+    <div className="chat-wrap">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+        <div className="chat-title">ListGenie.ai Chat</div>
+        {headerBadge}
+      </div>
+      <div className="chat-sub" style={{ marginBottom: 14 }}>
+        Generate polished real estate listings plus social variants.
+      </div>
+
+      {/* tone chips */}
+      <div className="card" style={{ padding: 10, marginBottom: 10 }}>
+        <div className="chat-sub" style={{ marginBottom: 6 }}>Tone</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {TONES.map((t) => (
+            <button
+              key={t.key}
+              className="btn"
+              onClick={() => setTone(t.key)}
+              style={{
+                padding: "6px 10px",
+                background: tone === t.key ? "rgba(255,255,255,.08)" : undefined,
+              }}
+              title={t.hint}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* suggestion chips */}
+      <div className="card" style={{ padding: 10, marginBottom: 10 }}>
+        <div className="chat-sub" style={{ marginBottom: 6 }}>Try one of these:</div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <button className="textarea" onClick={() => setInput("3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.")}>
+            3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.
+          </button>
+          <button className="textarea" onClick={() => setInput("Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.")}>
+            Downtown condo: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.
+          </button>
+          <button className="textarea" onClick={() => setInput("Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden.")}>
+            Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden.
+          </button>
+        </div>
+      </div>
+
+      {/* messages */}
+      <div ref={listRef} className="card" style={{ padding: 12, height: "38vh", overflowY: "auto", marginBottom: 10 }}>
+        {messages.map((m, i) => {
+          if (m.role === "system") {
+            return (
+              <div key={i} className="card" style={{ padding: 10, marginBottom: 8 }}>
+                {m.content}
+              </div>
+            );
+          }
+          if (m.role === "user") {
+            return (
+              <div key={i} style={{ marginBottom: 8 }}>
+                <div className="badge" style={{ marginBottom: 6 }}>You</div>
+                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+              </div>
+            );
+          }
+          // assistant
+          return (
+            <div key={i} style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                <div className="badge">ListGenie</div>
+                {m.streaming && <div className="chat-sub">…generating</div>}
+              </div>
+
+              {m.streaming ? (
+                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+              ) : (
+                <ListingRender
+                  title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
+                  content={m.content}
+                  meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
+                  onSave={(text) => saveListing(text, lastUserPrompt)}
+                />
+              )}
+            </div>
+          );
+        })}
+        {!messages.length && <div className="chat-sub">No messages yet.</div>}
+      </div>
+
+      {/* quick actions row */}
+      <div className="card" style={{ padding: 8, marginBottom: 10 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button className="link" onClick={() => applyQuick("Please shorten to an MLS-friendly length and keep it factual.")}>
+            Shorter MLS
+          </button>
+          <button className="link" onClick={() => applyQuick("Create a short social caption version with a soft call-to-action.")}>
+            Social caption
+          </button>
+          <button className="link" onClick={() => applyQuick("Elevate the tone slightly for a luxury audience without sounding cliché.")}>
+            Luxury tone
+          </button>
+          <button className="link" onClick={() => applyQuick("What follow-up details should I collect from the seller to improve this?")}>
+            Ask follow-ups
+          </button>
+        </div>
+      </div>
+
+      {/* input */}
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <textarea
+          className="textarea"
+          placeholder="Describe the property and any highlights…"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          rows={3}
+          style={{ flex: 1 }}
+        />
+        {sending ? (
+          <button className="btn" onClick={stop}>Stop</button>
+        ) : (
+          <button className="btn" onClick={send} disabled={disabled}>Send</button>
+        )}
+      </div>
+
+      {/* gate if expired */}
+      {plan === "expired" && (
+        <div style={{ marginTop: 10 }}>
+          <ProGate />
+        </div>
+      )}
+
+      {Toast}
+    </div>
+  );
 }

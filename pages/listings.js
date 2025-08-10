@@ -1,24 +1,37 @@
 // pages/listings.js
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import ListingRender from "@/components/ListingRender";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { ListingRender } from "@/components/ListingRender";
+
+function useToast() {
+  const [t, setT] = useState(null); // {msg, type:'ok'|'err'}
+  const show = (msg, type = "ok") => { setT({ msg, type }); setTimeout(() => setT(null), 2200); };
+  const ui = t ? (
+    <div
+      style={{
+        position: "fixed", right: 16, bottom: 16, zIndex: 1000,
+        padding: "10px 14px", borderRadius: 10,
+        background: t.type === "ok" ? "rgba(56,176,0,.18)" : "rgba(255,99,99,.18)",
+        border: `1px solid ${t.type === "ok" ? "rgba(56,176,0,.55)" : "rgba(255,99,99,.55)"}`,
+        backdropFilter: "blur(6px)",
+      }}
+    >{t.msg}</div>
+  ) : null;
+  return [ui, show];
+}
 
 export default function ListingsPage() {
   return (
     <div className="chat-wrap">
-      <h1 className="chat-title" style={{ marginBottom: 6 }}>Saved Listings</h1>
+      <h1 className="chat-title" style={{ marginBottom: 8 }}>Listings</h1>
       <p className="chat-sub" style={{ marginBottom: 16 }}>
-        View, copy, and manage your generated drafts.
+        Saved outputs from Chat. Copy, export, or delete.
       </p>
 
       <SignedOut>
         <div className="card" style={{ padding: 16 }}>
-          <p className="chat-sub" style={{ marginBottom: 8 }}>
-            Please sign in to view your saved listings.
-          </p>
-          <SignInButton mode="modal">
-            <button className="btn">Sign in</button>
-          </SignInButton>
+          <div className="chat-sub" style={{ marginBottom: 8 }}>Please sign in to view your listings.</div>
+          <SignInButton mode="modal"><button className="btn">Sign in</button></SignInButton>
         </div>
       </SignedOut>
 
@@ -32,20 +45,18 @@ export default function ListingsPage() {
 function ListingsInner() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState(null);
-  const [expanded, setExpanded] = useState(null); // id that's expanded
-  const [deleting, setDeleting] = useState(null);
+  const [q, setQ] = useState("");
+  const [Toast, showToast] = useToast();
 
   async function load() {
+    setLoading(true);
     try {
-      setErr(null);
-      setLoading(true);
-      const r = await fetch("/api/listings/list");
+      const r = await fetch("/api/listings/all");
       const j = await r.json();
-      if (!r.ok || !j?.ok) throw new Error(j?.error || "Failed to load");
+      if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       setItems(j.items || []);
     } catch (e) {
-      setErr(e?.message || "Failed to load");
+      showToast(e.message || "Failed to load", "err");
     } finally {
       setLoading(false);
     }
@@ -54,91 +65,77 @@ function ListingsInner() {
   useEffect(() => { load(); }, []);
 
   async function onDelete(id) {
-    if (!confirm("Delete this listing?")) return;
+    const ok = confirm("Delete this listing? This cannot be undone.");
+    if (!ok) return;
     try {
-      setDeleting(id);
       const r = await fetch("/api/listings/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
       const j = await r.json();
-      if (!r.ok || !j?.ok) throw new Error(j?.error || "Delete failed");
-      setItems((arr) => arr.filter((x) => x.id !== id));
-      if (expanded === id) setExpanded(null);
+      if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+      showToast("Deleted");
+      setItems((prev) => prev.filter((x) => x.id !== id));
     } catch (e) {
-      alert(e?.message || "Delete failed");
-    } finally {
-      setDeleting(null);
+      showToast(e.message || "Delete failed", "err");
     }
   }
 
-  if (loading) return <div className="card" style={{ padding: 16 }}>Loading…</div>;
-  if (err) return <div className="error">{err}</div>;
-  if (!items.length) {
-    return (
-      <div className="card" style={{ padding: 16 }}>
-        <div style={{ marginBottom: 8 }}>No saved listings yet.</div>
-        <a className="link" href="/chat">Go to Chat</a>
-      </div>
-    );
-  }
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return items;
+    return items.filter((it) => {
+      const title = (it.title || "").toLowerCase();
+      const tone = (it.payload?.tone || "").toLowerCase();
+      const text = (it.payload?.output || "").toLowerCase();
+      return title.includes(s) || tone.includes(s) || text.includes(s);
+    });
+  }, [q, items]);
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
-      {items.map((it) => {
-        const date = new Date(it.created_at);
-        const title = it.title || it.payload?.headline || "Listing";
-        const isOpen = expanded === it.id;
+    <>
+      <div className="card" style={{ padding: 10, marginBottom: 12, display:"flex", gap:10, alignItems:"center" }}>
+        <input
+          className="textarea"
+          placeholder="Search title, tone, or text…"
+          value={q}
+          onChange={(e)=>setQ(e.target.value)}
+          style={{ minHeight: 40, flex:1 }}
+        />
+        <button className="btn" onClick={load} disabled={loading}>{loading ? "Loading…" : "Refresh"}</button>
+      </div>
 
-        return (
-          <div key={it.id} className="card" style={{ padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ fontWeight: 700 }}>{title}</div>
-              <div className="chat-sub" style={{ marginLeft: "auto" }}>
-                {date.toLocaleString()}
+      {!filtered.length && !loading && (
+        <div className="card" style={{ padding: 16 }}>
+          <div className="chat-sub">No listings yet. Generate one in Chat and click “save as listing”.</div>
+        </div>
+      )}
+
+      <div style={{ display:"grid", gap: 14 }}>
+        {filtered.map((it) => (
+          <div key={it.id} className="card" style={{ padding: 0 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding: 10, borderBottom:"1px solid rgba(255,255,255,.08)" }}>
+              <div className="chat-sub">
+                Saved: {new Date(it.created_at).toLocaleString()}
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button className="link" onClick={() => onDelete(it.id)}>delete</button>
               </div>
             </div>
 
-            <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button className="btn" onClick={() => setExpanded(isOpen ? null : it.id)}>
-                {isOpen ? "Hide" : "View"}
-              </button>
-              <a className="link" href="/chat">Open Chat</a>
-              <button
-                className="link"
-                onClick={() => onCopy(fullText(it.payload))}
-                type="button"
-              >
-                Copy MLS Text
-              </button>
-              <button
-                className="link"
-                onClick={() => onDelete(it.id)}
-                disabled={deleting === it.id}
-                type="button"
-              >
-                {deleting === it.id ? "Deleting…" : "Delete"}
-              </button>
+            <div style={{ padding: 10 }}>
+              <ListingRender
+                title={it.title}
+                content={it.payload?.output || ""}
+                meta={{ tone: it.payload?.tone, created_at: it.created_at }}
+              />
             </div>
-
-            {isOpen && (
-              <div style={{ marginTop: 12 }}>
-                <ListingRender data={it.payload} />
-              </div>
-            )}
           </div>
-        );
-      })}
-    </div>
-  );
-}
+        ))}
+      </div>
 
-function fullText(data){
-  if (!data) return "";
-  const parts = [data.headline, data?.mls?.body, ...(data?.mls?.bullets||[]).map(b=>`• ${b}`)];
-  return parts.filter(Boolean).join("\n\n");
-}
-function onCopy(text){
-  try { navigator.clipboard.writeText(text); } catch {}
+      {Toast}
+    </>
+  );
 }
