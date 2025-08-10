@@ -21,13 +21,21 @@ export default async function handler(req, res) {
       me?.emailAddresses?.[0]?.emailAddress ||
       null;
 
-    const { error } = await supabaseAdmin
+    // role admin + plan pro (adjust if you only want admin)
+    const { error: updErr } = await supabaseAdmin
       .from("users")
-      .update({ role: "admin" })
+      .update({ role: "admin", plan: "pro", trial_end_date: null })
       .eq("clerk_id", userId);
+    if (updErr) throw updErr;
 
-    if (error) throw error;
-    return res.status(200).json({ ok: true, email });
+    const { data: user, error: selErr } = await supabaseAdmin
+      .from("users")
+      .select("id, clerk_id, email, name, role, plan, trial_end_date, created_at")
+      .eq("clerk_id", userId)
+      .maybeSingle();
+    if (selErr) throw selErr;
+
+    return res.status(200).json({ ok: true, email, user });
   } catch (e) {
     console.error("/api/admin/grant-self", e);
     return res.status(500).json({ ok: false, error: e.message || "Server error" });

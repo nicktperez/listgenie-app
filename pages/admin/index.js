@@ -27,14 +27,12 @@ export default function AdminPage() {
 }
 
 function AdminInner() {
-  // token management — prefer env, fallback to localStorage
   const [stored, setStored] = useState("");
   const token = useMemo(() => ENV_TOKEN || stored, [stored]);
 
   useEffect(() => {
     if (!ENV_TOKEN) {
-      const t = localStorage.getItem("admin_token") || "";
-      setStored(t);
+      setStored(localStorage.getItem("admin_token") || "");
     }
   }, []);
 
@@ -50,20 +48,12 @@ function AdminInner() {
       const r = await fetch(`/api/admin/users/search?q=${encodeURIComponent(q)}`, {
         headers: { "X-Admin-Token": token || "" },
       });
-      const text = await r.text(); // read as text to avoid null parsing issues
-      let j = null;
-      try { j = JSON.parse(text); } catch {}
-
-      if (!r.ok || !j?.ok) {
-        throw new Error(j?.error || `HTTP ${r.status}${text ? ` — ${text}` : ""}`);
-      }
+      const text = await r.text();
+      let j = null; try { j = JSON.parse(text); } catch {}
+      if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       setList(j.users || []);
-    } catch (e) {
-      setErr(e.message || "Failed to load");
-      setList([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setErr(e.message || "Failed to load"); setList([]); }
+    finally { setLoading(false); }
   }
 
   async function setPlan(u, plan) {
@@ -80,11 +70,9 @@ function AdminInner() {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`Plan updated → ${plan} for ${u.email || u.name || u.clerk_id}`);
-      fetchUsers();
-    } catch (e) {
-      setErr(e.message || "Failed to set plan");
-    }
+      setNote(`Plan updated → ${j.user?.plan} for ${j.user?.email || u.email || u.clerk_id}`);
+      await fetchUsers();
+    } catch (e) { setErr(e.message || "Failed to set plan"); }
   }
 
   async function setRole(u, role) {
@@ -97,11 +85,9 @@ function AdminInner() {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`Role updated → ${role} for ${u.email || u.name || u.clerk_id}`);
-      fetchUsers();
-    } catch (e) {
-      setErr(e.message || "Failed to set role");
-    }
+      setNote(`Role updated → ${j.user?.role} for ${j.user?.email || u.email || u.clerk_id}`);
+      await fetchUsers();
+    } catch (e) { setErr(e.message || "Failed to set role"); }
   }
 
   async function grantMeAdmin() {
@@ -113,24 +99,24 @@ function AdminInner() {
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j?.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setNote(`You are now admin${j?.email ? ` (${j.email})` : ""}.`);
-    } catch (e) {
-      setErr(e.message || "Failed to grant admin");
-    }
+      setNote(`Updated: ${j.user?.email || "you"} — role: ${j.user?.role}, plan: ${j.user?.plan}`);
+      await fetchUsers();
+    } catch (e) { setErr(e.message || "Failed to grant admin"); }
   }
 
   function saveTokenLocally() {
     localStorage.setItem("admin_token", stored || "");
-    setNote("Saved token locally for this browser session.");
+    setNote("Saved token locally for this browser.");
   }
+
+  useEffect(() => { fetchUsers(); }, []);
 
   return (
     <>
-      {/* Token input (only shown if NEXT_PUBLIC_ADMIN_TOKEN is not set) */}
       {!ENV_TOKEN && (
         <div className="card" style={{ padding: 12, marginBottom: 12 }}>
           <div className="chat-sub" style={{ marginBottom: 6 }}>
-            NEXT_PUBLIC_ADMIN_TOKEN is not set. Paste your ADMIN_TOKEN here (stored in localStorage):
+            NEXT_PUBLIC_ADMIN_TOKEN not set. Paste ADMIN_TOKEN here (stored locally):
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <input
@@ -145,21 +131,18 @@ function AdminInner() {
         </div>
       )}
 
-      <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by email or name…"
-            className="textarea"
-            style={{ minHeight: 40 }}
-          />
-          <button className="btn" onClick={fetchUsers} disabled={loading || !token}>
-            {loading ? "Loading…" : "Refresh"}
-          </button>
-          <button className="link" onClick={grantMeAdmin} disabled={!token}>Make me Admin</button>
-        </div>
-        {!token && <div className="chat-sub" style={{ marginTop: 8, color: "#ff9aa2" }}>Admin token not set.</div>}
+      <div className="card" style={{ padding: 12, marginBottom: 12, display:"flex", gap:12, alignItems:"center" }}>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by email or name…"
+          className="textarea"
+          style={{ minHeight: 40, flex:1 }}
+        />
+        <button className="btn" onClick={fetchUsers} disabled={loading || !token}>
+          {loading ? "Loading…" : "Refresh"}
+        </button>
+        <button className="link" onClick={grantMeAdmin} disabled={!token}>Make me Admin</button>
       </div>
 
       {err && <div className="error" style={{ marginBottom: 12 }}>{err}</div>}
@@ -193,9 +176,11 @@ function UserTable({ list, setPlan, setRole }) {
 
             <div>
               <span className="badge" style={{ marginRight: 6 }}>{u.role}</span>
-              <button className="link" onClick={() => setRole(u, "admin")}>make admin</button>{" · "}
-              <button className="link" onClick={() => setRole(u, "pro")}>make pro</button>{" · "}
-              <button className="link" onClick={() => setRole(u, "free")}>make free</button>
+              <div style={{ display:"inline-flex", gap:6, flexWrap:"wrap" }}>
+                <button className="link" onClick={() => setRole(u, "admin")}>make admin</button>
+                <button className="link" onClick={() => setRole(u, "pro")}>make pro</button>
+                <button className="link" onClick={() => setRole(u, "free")}>make free</button>
+              </div>
             </div>
 
             <div>
@@ -206,6 +191,8 @@ function UserTable({ list, setPlan, setRole }) {
                 <button className="link" onClick={() => setPlan(u, "trial")}>set trial</button>
                 <button className="link" onClick={() => setPlan(u, "expired")}>expire</button>
                 <button className="link" onClick={() => setPlan(u, "free")}>set free</button>
+                {/* convenience: do both */}
+                <button className="link" onClick={() => (setRole(u, "pro"), setPlan(u, "pro"))}>make pro (role+plan)</button>
               </div>
             </div>
 
