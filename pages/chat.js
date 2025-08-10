@@ -98,6 +98,51 @@ function coerceToReadableText(content) {
   return String(content ?? "");
 }
 
+function TypingDots({ label = "Generating" }) {
+  return (
+    <>
+      <div className="tg-wrap" title={label}>
+        <div className="dot" />
+        <div className="dot" />
+        <div className="dot" />
+        <span className="tg-label">{label}</span>
+      </div>
+
+      <style jsx>{`
+        .tg-wrap {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.9);
+          opacity: 0.4;
+          animation: bounce 1.2s infinite ease-in-out;
+        }
+        .dot:nth-child(1) { animation-delay: 0s; }
+        .dot:nth-child(2) { animation-delay: 0.15s; }
+        .dot:nth-child(3) { animation-delay: 0.30s; }
+        .tg-label {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.85);
+          letter-spacing: .2px;
+        }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: .35; }
+          40% { transform: translateY(-4px); opacity: .95; }
+        }
+      `}</style>
+    </>
+  );
+}
+
 export default function ChatPage() {
   // plan + trial
   const [plan, setPlan] = useState("trial"); // 'trial' | 'pro' | 'expired'
@@ -349,6 +394,39 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         Generate polished real estate listings plus social variants.
       </div>
 
+      {sending && (
+  <div className="lg-shimmer" aria-hidden>
+    <style jsx>{`
+      .lg-shimmer {
+        position: relative;
+        height: 3px;
+        border-radius: 2px;
+        margin: 6px 0 10px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      .lg-shimmer::before {
+        content: "";
+        position: absolute;
+        left: -40%;
+        top: 0; bottom: 0;
+        width: 40%;
+        background: linear-gradient(
+          90deg,
+          rgba(255,255,255,0) 0%,
+          rgba(255,255,255,0.55) 50%,
+          rgba(255,255,255,0) 100%
+        );
+        animation: slide 1.1s linear infinite;
+      }
+      @keyframes slide {
+        0%   { left: -40%; }
+        100% { left: 100%; }
+      }
+    `}</style>
+  </div>
+)}
+
       {/* tone chips */}
       <div className="card" style={{ padding: 10, marginBottom: 10 }}>
         <div className="chat-sub" style={{ marginBottom: 6 }}>Tone</div>
@@ -409,7 +487,7 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
             <div key={i} style={{ marginBottom: 12 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <div className="badge">ListGenie</div>
-                {m.streaming && <div className="chat-sub">…generating</div>}
+                {m.streaming && <TypingDots label="Thinking" />}
               </div>
 
               {m.streaming ? (
@@ -457,10 +535,30 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
           style={{ flex: 1 }}
         />
         {sending ? (
-          <button className="btn" onClick={stop}>Stop</button>
-        ) : (
-          <button className="btn" onClick={send} disabled={disabled}>Send</button>
-        )}
+  <button className="btn" onClick={stop}>
+    <span style={{ marginRight: 8 }}>Stop</span>
+    <span style={{ display: "inline-flex", gap: 4 }}>
+      <span className="mini" />
+      <span className="mini" />
+      <span className="mini" />
+    </span>
+    <style jsx>{`
+      .mini {
+        width: 4px; height: 4px; border-radius: 50%;
+        background: currentColor; opacity: .5;
+        animation: mBounce 1s infinite ease-in-out;
+      }
+      .mini:nth-child(2) { animation-delay: .15s; }
+      .mini:nth-child(3) { animation-delay: .3s; }
+      @keyframes mBounce {
+        0%, 80%, 100% { transform: translateY(0); opacity: .45; }
+        40% { transform: translateY(-2px); opacity: 1; }
+      }
+    `}</style>
+  </button>
+) : (
+  <button className="btn" onClick={send} disabled={disabled}>Send</button>
+)}
       </div>
 
       {/* gate if expired */}
