@@ -36,6 +36,68 @@ function useToast() {
   return [ui, show];
 }
 
+function coerceToReadableText(content) {
+  // If it's already a string, try to see if it's JSON-in-a-string
+  if (typeof content === "string") {
+    try {
+      const maybe = JSON.parse(content);
+      return coerceToReadableText(maybe);
+    } catch {
+      return content; // plain text
+    }
+  }
+
+  // If it's a structured object, extract nice text
+  if (content && typeof content === "object") {
+    // Common shape we saw from your API:
+    // { type: 'listing', headline, mls: { body, bullets[] }, variants: [{label,text}, ...], facts: {...} }
+    const parts = [];
+
+    if (content.headline) {
+      parts.push(content.headline);
+      parts.push(""); // blank line
+    }
+
+    if (content.mls?.body) {
+      parts.push(content.mls.body.trim());
+      parts.push("");
+    }
+
+    if (Array.isArray(content.mls?.bullets) && content.mls.bullets.length) {
+      for (const b of content.mls.bullets) {
+        if (typeof b === "string") parts.push(`- ${b}`);
+        else if (b && typeof b === "object") {
+          // bullet objects with 'text' or similar
+          const text = b.text || b.label || "";
+          if (text) parts.push(`- ${text}`);
+        }
+      }
+      parts.push("");
+    }
+
+    if (Array.isArray(content.variants) && content.variants.length) {
+      for (const v of content.variants) {
+        const label = v?.label || "Variant";
+        const text = v?.text || v?.body || "";
+        if (text) {
+          parts.push(`${label}: ${text}`);
+        }
+      }
+      parts.push("");
+    }
+
+    // Fallback: stringify any remaining object if we still have nothing
+    if (!parts.join("\n").trim()) {
+      try { return JSON.stringify(content, null, 2); } catch { return String(content); }
+    }
+
+    return parts.join("\n");
+  }
+
+  // Last resort
+  return String(content ?? "");
+}
+
 export default function ChatPage() {
   // plan + trial
   const [plan, setPlan] = useState("trial"); // 'trial' | 'pro' | 'expired'
@@ -169,7 +231,6 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         .filter((x) => x.role === "user" || x.role === "assistant")
         .map((x) => ({ role: x.role, content: (x.content || "").slice(0, 2000) }));
   
-      // unified payload: keep legacy fields + add messages[]
       const sys = `${baseSystem}\n\nTone guidance: ${toneNote}`;
       const assembledMessages = [
         { role: "system", content: sys },
@@ -178,13 +239,11 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
       ];
   
       const body = {
-        // legacy fields (some server versions use these)
-        input: userMsg.content,
-        system: sys,
+        input: userMsg.content,     // legacy
+        system: sys,                // legacy
         tone,
-        history: hist,
-        // new/compatible field for chat-style handlers
-        messages: assembledMessages,
+        history: hist,              // legacy
+        messages: assembledMessages // chat-style
       };
   
       const r = await fetch("/api/chat", {
@@ -193,15 +252,32 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         body: JSON.stringify(body),
       });
   
-      // If server returns a non-stream error JSON, surface it nicely
       if (!r.ok) {
         const txt = await r.text().catch(() => "");
         let msg = txt;
         try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
         throw new Error(msg || `HTTP ${r.status}`);
       }
+  
+      const ctype = r.headers.get("content-type") || "";
+  
+      // If server replies with JSON, parse it and show pretty text (no streaming)
+      if (ctype.includes("application/json")) {
+        const txt = await r.text();
+        let j = {};
+        try { j = JSON.parse(txt || "{}"); } catch {}
+        const rawContent = j?.message?.content ?? j?.content ?? j?.text ?? j;
+        const pretty = coerceToReadableText(rawContent);
+        setMessages((m) => {
+          const next = [...m];
+          next[next.length - 1] = { role: "assistant", content: pretty, streaming: false, ts: Date.now() };
+          return next;
+        });
+        return;
+      }
+  
+      // Otherwise, treat as a streaming text response
       if (!r.body || !r.body.getReader) {
-        // Not streaming; treat as an error message
         const txt = await r.text().catch(() => "");
         let msg = txt;
         try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
@@ -226,7 +302,6 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         });
       }
   
-      // finalize message
       setMessages((m) => {
         const next = [...m];
         const last = next[next.length - 1];
