@@ -2,103 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ProGate from "@/components/ProGate";
 import ListingRender from "@/components/ListingRender";
 
-const TONES = [
-  { key: "mls", label: "MLS-ready", hint: "Use clean, compliant MLS phrasing." },
-  { key: "social", label: "Social caption", hint: "Craft a short, scroll-stopping caption." },
-  { key: "luxury", label: "Luxury tone", hint: "Elevate language for a higher-end audience." },
-  { key: "concise", label: "Concise", hint: "Keep it tight, punchy, and skimmable." },
-];
+/* -------------------------- tiny UI widgets -------------------------- */
 
-// tiny toast helper
-function useToast() {
-  const [toast, setToast] = useState(null); // {msg, type:'ok'|'err'}
-  const show = (msg, type = "ok") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 2200);
-  };
-  const ui = toast ? (
-    <div
-      style={{
-        position: "fixed",
-        right: 16,
-        bottom: 16,
-        padding: "10px 14px",
-        borderRadius: 10,
-        background: toast.type === "ok" ? "rgba(56,176,0,.18)" : "rgba(255,99,99,.18)",
-        border: `1px solid ${toast.type === "ok" ? "rgba(56,176,0,.55)" : "rgba(255,99,99,.55)"}`,
-        backdropFilter: "blur(6px)",
-        zIndex: 1000,
-      }}
-    >
-      {toast.msg}
-    </div>
-  ) : null;
-  return [ui, show];
-}
-
-function coerceToReadableText(content) {
-  // If it's already a string, try to see if it's JSON-in-a-string
-  if (typeof content === "string") {
-    try {
-      const maybe = JSON.parse(content);
-      return coerceToReadableText(maybe);
-    } catch {
-      return content; // plain text
-    }
-  }
-
-  // If it's a structured object, extract nice text
-  if (content && typeof content === "object") {
-    // Common shape we saw from your API:
-    // { type: 'listing', headline, mls: { body, bullets[] }, variants: [{label,text}, ...], facts: {...} }
-    const parts = [];
-
-    if (content.headline) {
-      parts.push(content.headline);
-      parts.push(""); // blank line
-    }
-
-    if (content.mls?.body) {
-      parts.push(content.mls.body.trim());
-      parts.push("");
-    }
-
-    if (Array.isArray(content.mls?.bullets) && content.mls.bullets.length) {
-      for (const b of content.mls.bullets) {
-        if (typeof b === "string") parts.push(`- ${b}`);
-        else if (b && typeof b === "object") {
-          // bullet objects with 'text' or similar
-          const text = b.text || b.label || "";
-          if (text) parts.push(`- ${text}`);
-        }
-      }
-      parts.push("");
-    }
-
-    if (Array.isArray(content.variants) && content.variants.length) {
-      for (const v of content.variants) {
-        const label = v?.label || "Variant";
-        const text = v?.text || v?.body || "";
-        if (text) {
-          parts.push(`${label}: ${text}`);
-        }
-      }
-      parts.push("");
-    }
-
-    // Fallback: stringify any remaining object if we still have nothing
-    if (!parts.join("\n").trim()) {
-      try { return JSON.stringify(content, null, 2); } catch { return String(content); }
-    }
-
-    return parts.join("\n");
-  }
-
-  // Last resort
-  return String(content ?? "");
-}
-
-function TypingDots({ label = "Generating" }) {
+function TypingDots({ label = "Thinking" }) {
   return (
     <>
       <div className="tg-wrap" title={label}>
@@ -143,6 +49,82 @@ function TypingDots({ label = "Generating" }) {
   );
 }
 
+/* -------------------------- helpers / transformers -------------------------- */
+
+const TONES = [
+  { key: "mls", label: "MLS-ready", hint: "Use clean, compliant MLS phrasing." },
+  { key: "social", label: "Social caption", hint: "Craft a short, scroll-stopping caption." },
+  { key: "luxury", label: "Luxury tone", hint: "Elevate language for a higher-end audience." },
+  { key: "concise", label: "Concise", hint: "Keep it tight, punchy, and skimmable." },
+];
+
+// compact toasts
+function useToast() {
+  const [toast, setToast] = useState(null); // {msg, type:'ok'|'err'}
+  const show = (msg, type = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2200);
+  };
+  const ui = toast ? (
+    <div
+      style={{
+        position: "fixed",
+        right: 16,
+        bottom: 16,
+        padding: "10px 14px",
+        borderRadius: 10,
+        background: toast.type === "ok" ? "rgba(56,176,0,.18)" : "rgba(255,99,99,.18)",
+        border: `1px solid ${toast.type === "ok" ? "rgba(56,176,0,.55)" : "rgba(255,99,99,.55)"}`,
+        backdropFilter: "blur(6px)",
+        zIndex: 1000,
+      }}
+    >
+      {toast.msg}
+    </div>
+  ) : null;
+  return [ui, show];
+}
+
+// normalize/pretty text from structured content
+function coerceToReadableText(content) {
+  if (typeof content === "string") {
+    try {
+      const maybe = JSON.parse(content);
+      return coerceToReadableText(maybe);
+    } catch {
+      return content;
+    }
+  }
+  if (content && typeof content === "object") {
+    const parts = [];
+    if (content.headline) parts.push(content.headline, "");
+    if (content.mls?.body) parts.push(content.mls.body.trim(), "");
+    if (Array.isArray(content.mls?.bullets) && content.mls.bullets.length) {
+      for (const b of content.mls.bullets) {
+        if (typeof b === "string") parts.push(`- ${b}`);
+        else if (b && typeof b === "object") {
+          const text = b.text || b.label || "";
+          if (text) parts.push(`- ${text}`);
+        }
+      }
+      parts.push("");
+    }
+    if (Array.isArray(content.variants) && content.variants.length) {
+      for (const v of content.variants) {
+        const label = v?.label || "Variant";
+        const text = v?.text || v?.body || "";
+        if (text) parts.push(`${label}: ${text}`);
+      }
+      parts.push("");
+    }
+    if (!parts.join("\n").trim()) {
+      try { return JSON.stringify(content, null, 2); } catch { return String(content); }
+    }
+    return parts.join("\n");
+  }
+  return String(content ?? "");
+}
+
 // --- helpers for questions-style payloads ---
 function parseMaybeJSON(x) {
   if (typeof x === "string") {
@@ -150,13 +132,9 @@ function parseMaybeJSON(x) {
   }
   return x;
 }
-
-// Detect a payload like: { type: "questions", questions: [...], missing: [...] }
 function isQuestionsPayload(obj) {
   return obj && typeof obj === "object" && obj.type === "questions" && Array.isArray(obj.questions);
 }
-
-// Build a human-friendly text block for display (also used if you copy)
 function formatQuestionsList(obj) {
   const lines = [];
   lines.push("I need a bit more information to complete your listing. Could you provide:");
@@ -168,10 +146,7 @@ function formatQuestionsList(obj) {
   }
   return lines.join("\n");
 }
-
-// Create a template in the input for the user to answer quickly
 function buildAnswerTemplate(obj) {
-  // Use "missing" as labeled prompts if provided, else fall back to questions list
   if (Array.isArray(obj.missing) && obj.missing.length) {
     return obj.missing.map(k => `${labelize(k)}: `).join("\n");
   }
@@ -180,12 +155,13 @@ function buildAnswerTemplate(obj) {
   }
   return "";
 }
-
 function labelize(key) {
   return String(key || "")
     .replace(/_/g, " ")
     .replace(/\b\w/g, c => c.toUpperCase());
 }
+
+/* -------------------------- Chat page -------------------------- */
 
 export default function ChatPage() {
   // plan + trial
@@ -225,15 +201,15 @@ export default function ChatPage() {
         if (alive) setLoadingPlan(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
-  // scroll to latest message
+  // auto-scroll to latest
   useEffect(() => {
-    listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+    const el = listRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages]);
 
   const trialDaysLeft = useMemo(() => {
     if (!trialEnd) return null;
@@ -243,19 +219,10 @@ export default function ChatPage() {
 
   const headerBadge = useMemo(() => {
     if (loadingPlan) return null;
-    if (plan === "pro")
-      return <span className="badge" style={{ marginLeft: 10 }}>Pro</span>;
+    if (plan === "pro") return <span className="badge" style={{ marginLeft: 10 }}>Pro</span>;
     if (plan === "trial")
-      return (
-        <span className="badge" style={{ marginLeft: 10 }}>
-          Trial{trialDaysLeft != null ? ` • ${trialDaysLeft}d left` : ""}
-        </span>
-      );
-    return (
-      <span className="badge" style={{ marginLeft: 10 }}>
-        Expired
-      </span>
-    );
+      return <span className="badge" style={{ marginLeft: 10 }}>Trial{trialDaysLeft != null ? ` • ${trialDaysLeft}d left` : ""}</span>;
+    return <span className="badge" style={{ marginLeft: 10 }}>Expired</span>;
   }, [plan, loadingPlan, trialDaysLeft]);
 
   const disabled = !input.trim() || sending || plan === "expired";
@@ -266,32 +233,19 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
 
   const toneNote = (() => {
     switch (tone) {
-      case "social":
-        return "Create a short social caption (1–2 sentences) with a hook and a soft CTA. Keep emojis tasteful.";
-      case "luxury":
-        return "Elevate the language for a luxury audience. Warm, refined, and specific — avoid cliché realtor jargon.";
-      case "concise":
-        return "Be concise (120–180 words). Prioritize top features; remove fluff.";
-      default:
-        return "Produce an MLS-ready description that’s clear, factual, and compelling.";
+      case "social":  return "Create a short social caption (1–2 sentences) with a hook and a soft CTA. Keep emojis tasteful.";
+      case "luxury":  return "Elevate the language for a luxury audience. Warm, refined, and specific — avoid cliché realtor jargon.";
+      case "concise": return "Be concise (120–180 words). Prioritize top features; remove fluff.";
+      default:        return "Produce an MLS-ready description that’s clear, factual, and compelling.";
     }
   })();
 
-  // quick action helpers
-  const applyQuick = (q) => {
-    setInput((s) => (s ? `${s}\n\n${q}` : q));
-  };
+  const applyQuick = (q) => setInput((s) => (s ? `${s}\n\n${q}` : q));
 
-  // Save to listings (used from pretty render)
   const saveListing = async (aiText, prompt) => {
     try {
       const title = (prompt || "").split("\n")[0].slice(0, 80) || "Generated listing";
-      const payload = {
-        tone,
-        prompt,
-        output: aiText,
-        created_at: new Date().toISOString(),
-      };
+      const payload = { tone, prompt, output: aiText, created_at: new Date().toISOString() };
       const r = await fetch("/api/listings/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -307,64 +261,53 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
 
   const send = async () => {
     if (disabled) return;
-  
+
     const userMsg = { role: "user", content: input.trim(), ts: Date.now() };
     setMessages((m) => [...m, userMsg, { role: "assistant", content: "", streaming: true, ts: Date.now() }]);
     setInput("");
     setSending(true);
-  
+
     try {
-      // short history for continuity
       const hist = messages
         .slice(-6)
         .filter((x) => x.role === "user" || x.role === "assistant")
         .map((x) => ({ role: x.role, content: (x.content || "").slice(0, 2000) }));
-  
+
       const sys = `${baseSystem}\n\nTone guidance: ${toneNote}`;
-      const assembledMessages = [
-        { role: "system", content: sys },
-        ...hist,
-        { role: "user", content: userMsg.content },
-      ];
-  
+      const assembledMessages = [{ role: "system", content: sys }, ...hist, { role: "user", content: userMsg.content }];
+
       const body = {
-        input: userMsg.content,     // legacy
-        system: sys,                // legacy
-        tone,
-        history: hist,              // legacy
-        messages: assembledMessages // chat-style
+        input: userMsg.content, system: sys, tone, history: hist, // legacy
+        messages: assembledMessages, // chat-style
       };
-  
+
       const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-  
+
       if (!r.ok) {
         const txt = await r.text().catch(() => "");
         let msg = txt;
         try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
         throw new Error(msg || `HTTP ${r.status}`);
       }
-  
+
       const ctype = r.headers.get("content-type") || "";
-  
-      // If server replies with JSON, parse it and show pretty text (no streaming)
+
+      // JSON mode (non-stream)
       if (ctype.includes("application/json")) {
         const txt = await r.text();
         let j = {};
         try { j = JSON.parse(txt || "{}"); } catch {}
-      
-        // Try to find the structured content
         const raw = j?.message?.content ?? j?.content ?? j?.text ?? j;
         const contentObj = parseMaybeJSON(raw);
-      
+
         if (isQuestionsPayload(contentObj)) {
           const prettyQ = formatQuestionsList(contentObj);
           setMessages((m) => {
             const next = [...m];
-            // Attach qFollowup so the renderer can show a nice card + action
             next[next.length - 1] = {
               role: "assistant",
               content: prettyQ,
@@ -378,29 +321,24 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
           const pretty = coerceToReadableText(contentObj);
           setMessages((m) => {
             const next = [...m];
-            next[next.length - 1] = {
-              role: "assistant",
-              content: pretty,
-              streaming: false,
-              ts: Date.now(),
-            };
+            next[next.length - 1] = { role: "assistant", content: pretty, streaming: false, ts: Date.now() };
             return next;
           });
         }
         return;
       }
-  
-      // Otherwise, treat as a streaming text response
+
+      // Streaming text mode
       if (!r.body || !r.body.getReader) {
         const txt = await r.text().catch(() => "");
         let msg = txt;
         try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
         throw new Error(msg || "Server did not return a stream");
       }
-  
+
       const reader = r.body.getReader();
       streamRef.current = reader;
-  
+
       let acc = "";
       while (true) {
         const { value, done } = await reader.read();
@@ -415,7 +353,7 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
           return next;
         });
       }
-  
+
       setMessages((m) => {
         const next = [...m];
         const last = next[next.length - 1];
@@ -423,21 +361,15 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         return next;
       });
     } catch (e) {
-      setMessages((m) => [
-        ...m,
-        { role: "assistant", content: `⚠️ ${e.message || "Failed to generate."}` },
-      ]);
+      setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${e.message || "Failed to generate."}` }]);
     } finally {
       setSending(false);
       streamRef.current = null;
     }
   };
 
-  // stop streaming if needed
   const stop = async () => {
-    try {
-      streamRef.current?.cancel();
-    } catch {}
+    try { streamRef.current?.cancel(); } catch {}
     setSending(false);
     setMessages((m) => {
       const next = [...m];
@@ -447,11 +379,12 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
     });
   };
 
-  // get the most recent user prompt for save title/context
   const lastUserPrompt = useMemo(
     () => [...messages].reverse().find((x) => x.role === "user")?.content || "",
     [messages]
   );
+
+  /* -------------------------- UI -------------------------- */
 
   return (
     <div className="chat-wrap">
@@ -463,39 +396,6 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         Generate polished real estate listings plus social variants.
       </div>
 
-      {sending && (
-  <div className="lg-shimmer" aria-hidden>
-    <style jsx>{`
-      .lg-shimmer {
-        position: relative;
-        height: 3px;
-        border-radius: 2px;
-        margin: 6px 0 10px;
-        background: rgba(255, 255, 255, 0.08);
-        overflow: hidden;
-      }
-      .lg-shimmer::before {
-        content: "";
-        position: absolute;
-        left: -40%;
-        top: 0; bottom: 0;
-        width: 40%;
-        background: linear-gradient(
-          90deg,
-          rgba(255,255,255,0) 0%,
-          rgba(255,255,255,0.55) 50%,
-          rgba(255,255,255,0) 100%
-        );
-        animation: slide 1.1s linear infinite;
-      }
-      @keyframes slide {
-        0%   { left: -40%; }
-        100% { left: 100%; }
-      }
-    `}</style>
-  </div>
-)}
-
       {/* tone chips */}
       <div className="card" style={{ padding: 10, marginBottom: 10 }}>
         <div className="chat-sub" style={{ marginBottom: 6 }}>Tone</div>
@@ -505,10 +405,7 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
               key={t.key}
               className="btn"
               onClick={() => setTone(t.key)}
-              style={{
-                padding: "6px 10px",
-                background: tone === t.key ? "rgba(255,255,255,.08)" : undefined,
-              }}
+              style={{ padding: "6px 10px", background: tone === t.key ? "rgba(255,255,255,.08)" : undefined }}
               title={t.hint}
             >
               {t.label}
@@ -517,66 +414,96 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
         </div>
       </div>
 
+      {/* subtle shimmer while sending */}
+      {sending && (
+        <div className="lg-shimmer" aria-hidden>
+          <style jsx>{`
+            .lg-shimmer {
+              position: relative;
+              height: 3px;
+              border-radius: 2px;
+              margin: 6px 0 10px;
+              background: rgba(255, 255, 255, 0.08);
+              overflow: hidden;
+            }
+            .lg-shimmer::before {
+              content: "";
+              position: absolute;
+              left: -40%;
+              top: 0; bottom: 0;
+              width: 40%;
+              background: linear-gradient(
+                90deg,
+                rgba(255,255,255,0) 0%,
+                rgba(255,255,255,0.55) 50%,
+                rgba(255,255,255,0) 100%
+              );
+              animation: slide 1.1s linear infinite;
+            }
+            @keyframes slide {
+              0% { left: -40%; }
+              100% { left: 100%; }
+            }
+          `}</style>
+        </div>
+      )}
+
       {/* compact suggestion pills — disappear after the first user message */}
-{!messages.some(m => m.role === "user") && (
-  <div className="examples">
-    {[
-      {
-        label: "3bd Fair Oaks w/ upgrades",
-        value:
-          "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks."
-      },
-      {
-        label: "Downtown 1bd loft caption",
-        value:
-          "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops."
-      },
-      {
-        label: "Acreage + barn highlights",
-        value:
-          "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden."
-      }
-    ].map((ex, i) => (
-      <button
-        key={i}
-        onClick={() => setInput(ex.value)}
-        className="example-pill"
-        title={ex.value}
-      >
-        {ex.label}
-      </button>
-    ))}
-    <style jsx>{`
-      .examples {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-bottom: 10px;
-      }
-      .example-pill {
-        font-size: 0.8rem;
-        padding: 4px 8px;
-        background: rgba(255,255,255,0.06);
-        border-radius: 14px;
-        cursor: pointer;
-        border: 1px solid rgba(255,255,255,0.10);
-        max-width: 220px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        transition: background .2s, border-color .2s;
-      }
-      .example-pill:hover {
-        background: rgba(255,255,255,0.12);
-        border-color: rgba(255,255,255,0.2);
-      }
-      /* If you want a single horizontal row instead of wrapping:
-      .examples { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
-      .example-pill { flex: 0 0 auto; }
-      */
-    `}</style>
-  </div>
-)}
+      {!messages.some(m => m.role === "user") && (
+        <div className="examples">
+          {[
+            {
+              label: "3bd Fair Oaks w/ upgrades",
+              value:
+                "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks."
+            },
+            {
+              label: "Downtown 1bd loft caption",
+              value:
+                "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops."
+            },
+            {
+              label: "Acreage + barn highlights",
+              value:
+                "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden."
+            }
+          ].map((ex, i) => (
+            <button
+              key={i}
+              onClick={() => setInput(ex.value)}
+              className="example-pill"
+              title={ex.value}
+            >
+              {ex.label}
+            </button>
+          ))}
+          <style jsx>{`
+            .examples {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 6px;
+              margin-bottom: 10px;
+            }
+            .example-pill {
+              font-size: 0.8rem;
+              padding: 4px 8px;
+              background: rgba(255,255,255,0.06);
+              border-radius: 14px;
+              cursor: pointer;
+              border: 1px solid rgba(255,255,255,0.10);
+              max-width: 220px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              transition: background .2s, border-color .2s;
+            }
+            .example-pill:hover {
+              background: rgba(255,255,255,0.12);
+              border-color: rgba(255,255,255,0.2);
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* messages */}
       <div ref={listRef} className="card" style={{ padding: 12, height: "38vh", overflowY: "auto", marginBottom: 10 }}>
@@ -605,55 +532,54 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
               </div>
 
               {m.streaming ? (
-  <>
-    <TypingDots label="Thinking" />
-    <div className="textarea" style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{m.content}</div>
-  </>
-) : m.qFollowup ? (
-  // Special follow-up UI for questions payloads
-  <div className="card" style={{ padding: 12 }}>
-    <div className="chat-sub" style={{ marginBottom: 8 }}>
-      I need a bit more information to complete your listing:
-    </div>
-    <ul style={{ margin: 0, paddingLeft: 18 }}>
-      {m.qFollowup.questions.map((q, idx) => (
-        <li key={idx} style={{ marginBottom: 6 }}>{q}</li>
-      ))}
-    </ul>
-    {Array.isArray(m.qFollowup.missing) && m.qFollowup.missing.length ? (
-      <div className="chat-sub" style={{ marginTop: 8 }}>
-        Missing fields: {m.qFollowup.missing.join(", ")}
-      </div>
-    ) : null}
-
-    <div style={{ display:"flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-      <button
-        className="btn"
-        onClick={() => setInput(buildAnswerTemplate(m.qFollowup))}
-        title="Insert the questions into the input so you can answer them quickly"
-      >
-        Answer these
-      </button>
-      <button
-        className="btn"
-        onClick={() => navigator.clipboard.writeText(formatQuestionsList(m.qFollowup)).catch(()=>{})}
-      >
-        Copy questions
-      </button>
-    </div>
-  </div>
-) : (
-  <ListingRender
-    title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
-    content={m.content}
-    meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
-    onSave={(text) => saveListing(text, lastUserPrompt)}
-  />
-)}
+                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+              ) : m.qFollowup ? (
+                <div className="card fade-in" style={{ padding: 12 }}>
+                  <div className="chat-sub" style={{ marginBottom: 8 }}>
+                    I need a bit more information to complete your listing:
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                    {m.qFollowup.questions.map((q, idx) => (
+                      <li key={idx} style={{ marginBottom: 6 }}>{q}</li>
+                    ))}
+                  </ul>
+                  {Array.isArray(m.qFollowup.missing) && m.qFollowup.missing.length ? (
+                    <div className="chat-sub" style={{ marginTop: 8 }}>
+                      Missing fields: {m.qFollowup.missing.join(", ")}
+                    </div>
+                  ) : null}
+                  <div style={{ display:"flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                    <button className="btn" onClick={() => setInput(buildAnswerTemplate(m.qFollowup))}>
+                      Answer these
+                    </button>
+                    <button className="btn" onClick={() => navigator.clipboard.writeText(formatQuestionsList(m.qFollowup)).catch(()=>{})}>
+                      Copy questions
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="fade-in">
+                  <ListingRender
+                    title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
+                    content={m.content}
+                    meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
+                    onSave={(text) => saveListing(text, lastUserPrompt)}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
         {!messages.length && <div className="chat-sub">No messages yet.</div>}
+        <style jsx>{`
+          .fade-in {
+            animation: fIn .28s ease-out both;
+          }
+          @keyframes fIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
       </div>
 
       {/* quick actions row */}
@@ -681,34 +607,34 @@ Respect fair housing, avoid superlatives that imply discrimination, and focus on
           placeholder="Describe the property and any highlights…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          rows={3}
-          style={{ flex: 1 }}
+          rows={4}                      // slightly bigger input
+          style={{ flex: 1, lineHeight: 1.35 }}
         />
         {sending ? (
-  <button className="btn" onClick={stop}>
-    <span style={{ marginRight: 8 }}>Stop</span>
-    <span style={{ display: "inline-flex", gap: 4 }}>
-      <span className="mini" />
-      <span className="mini" />
-      <span className="mini" />
-    </span>
-    <style jsx>{`
-      .mini {
-        width: 4px; height: 4px; border-radius: 50%;
-        background: currentColor; opacity: .5;
-        animation: mBounce 1s infinite ease-in-out;
-      }
-      .mini:nth-child(2) { animation-delay: .15s; }
-      .mini:nth-child(3) { animation-delay: .3s; }
-      @keyframes mBounce {
-        0%, 80%, 100% { transform: translateY(0); opacity: .45; }
-        40% { transform: translateY(-2px); opacity: 1; }
-      }
-    `}</style>
-  </button>
-) : (
-  <button className="btn" onClick={send} disabled={disabled}>Send</button>
-)}
+          <button className="btn" onClick={stop}>
+            <span style={{ marginRight: 8 }}>Stop</span>
+            <span style={{ display: "inline-flex", gap: 4 }}>
+              <span className="mini" />
+              <span className="mini" />
+              <span className="mini" />
+            </span>
+            <style jsx>{`
+              .mini {
+                width: 4px; height: 4px; border-radius: 50%;
+                background: currentColor; opacity: .5;
+                animation: mBounce 1s infinite ease-in-out;
+              }
+              .mini:nth-child(2) { animation-delay: .15s; }
+              .mini:nth-child(3) { animation-delay: .3s; }
+              @keyframes mBounce {
+                0%, 80%, 100% { transform: translateY(0); opacity: .45; }
+                40% { transform: translateY(-2px); opacity: 1; }
+              }
+            `}</style>
+          </button>
+        ) : (
+          <button className="btn" onClick={send} disabled={disabled}>Send</button>
+        )}
       </div>
 
       {/* gate if expired */}
