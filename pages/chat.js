@@ -11,15 +11,48 @@ const EXAMPLES = [
 
 function coerceToReadableText(raw) {
   if (!raw) return "";
+
+  // Normalize to clean text first (strip ``` fences, trim)
+  const stripCodeFences = (s) =>
+    s
+      .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
+      .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
+      .trim();
+
+  // If it's a string, try to parse (after removing fences)
+  const tryParse = (s) => {
+    try {
+      const cleaned = stripCodeFences(s);
+      return JSON.parse(cleaned);
+    } catch {
+      return null;
+    }
+  };
+
+  // Prefer object; parse string if needed
+  let obj = typeof raw === "string" ? tryParse(raw) : raw;
+
+  // If we parsed an object, try common shapes
+  if (obj && typeof obj === "object") {
+    // OpenAI-style
+    if (obj?.message?.content) return String(obj.message.content).trim();
+    if (typeof obj?.content === "string") return obj.content.trim();
+    if (typeof obj?.body === "string") return obj.body.trim();
+    // Our listing shape
+    if (obj?.mls?.body) return String(obj.mls.body).trim();
+    if (obj?.listing?.mls?.body) return String(obj.listing.mls.body).trim();
+  }
+
+  // If it wasn't/ isn’t parseable, but is a string, strip fences and return
+  if (typeof raw === "string") {
+    return stripCodeFences(raw);
+  }
+
+  // Last resort: readable JSON
   try {
-    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    if (parsed?.message?.content) return parsed.message.content;
-    if (typeof parsed?.content === "string") return parsed.content;
-    if (typeof parsed?.body === "string") return parsed.body;
-    if (parsed?.mls?.body) return parsed.mls.body;
-    return typeof raw === "string" ? raw : JSON.stringify(parsed, null, 2);
+    return JSON.stringify(raw, null, 2);
   } catch {
-    return typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
+    return String(raw ?? "");
   }
 }
 
@@ -81,28 +114,37 @@ export default function ChatPage() {
         const out = coerceToReadableText(data.message || data.content);
         setMessages((prev) => [...prev, { role: "assistant", content: out }]);
       } else if (res.body && "getReader" in res.body) {
-        // streaming
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let first = true;
+        let buffer = "";
+      
+        // start the assistant message immediately (for the thinking bubble to be replaced)
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+      
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+      
+          // Live append raw text while streaming (so users see progress)
           setMessages((prev) => {
             const next = [...prev];
-            if (first) {
-              next.push({ role: "assistant", content: chunk });
-              first = false;
-            } else {
-              next[next.length - 1] = {
-                ...next[next.length - 1],
-                content: (next[next.length - 1].content || "") + chunk,
-              };
-            }
+            next[next.length - 1] = {
+              ...next[next.length - 1],
+              content: (next[next.length - 1].content || "") + chunk,
+            };
             return next;
           });
         }
+      
+        // After stream completes, replace raw buffer with readable text
+        const readable = coerceToReadableText(buffer);
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = { ...next[next.length - 1], content: readable };
+          return next;
+        });
       } else {
         const txt = await res.text();
         setMessages((prev) => [...prev, { role: "assistant", content: coerceToReadableText(txt) }]);
