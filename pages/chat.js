@@ -1,6 +1,7 @@
 // pages/chat.js
 import { useEffect, useMemo, useRef, useState } from "react";
 
+/** ----------------------------- Config --------------------------------- */
 const TONES = ["MLS-ready", "Social caption", "Luxury tone", "Concise"];
 
 const EXAMPLES = [
@@ -9,40 +10,38 @@ const EXAMPLES = [
   "Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.",
 ];
 
-// best-effort: if model gave us JSON-ish content
+/** Try to make model output readable even if it’s JSON-ish */
 function coerceToReadableText(raw) {
   if (!raw) return "";
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-    // common shapes we produced earlier
-    if (parsed && parsed.message && typeof parsed.message.content === "string") {
-      return parsed.message.content;
-    }
-    if (parsed && typeof parsed.content === "string") return parsed.content;
-    if (parsed && parsed.body && typeof parsed.body === "string") return parsed.body;
-    // listing-ish
-    if (parsed && parsed.mls && typeof parsed.mls.body === "string") return parsed.mls.body;
+    if (parsed?.message?.content) return parsed.message.content;
+    if (typeof parsed?.content === "string") return parsed.content;
+    if (typeof parsed?.body === "string") return parsed.body;
+    if (parsed?.mls?.body) return parsed.mls.body;
     return typeof raw === "string" ? raw : JSON.stringify(parsed, null, 2);
   } catch {
     return typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
   }
 }
 
+/** --------------------------- Component -------------------------------- */
 export default function ChatPage() {
   const [tone, setTone] = useState(TONES[0]);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content:string}
+  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content}
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const listRef = useRef(null);
-  const firstSendRef = useRef(false);
+  const [showExamples, setShowExamples] = useState(true);
 
-  // scroll to bottom on new messages
+  const listRef = useRef(null);
+
+  // Auto-scroll on new output
   useEffect(() => {
     if (listRef.current) {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, sending]);
 
   const lastAssistant = useMemo(
     () => [...messages].reverse().find((m) => m.role === "assistant"),
@@ -52,17 +51,24 @@ export default function ChatPage() {
   async function sendMessage() {
     if (!input.trim() || sending) return;
     setError("");
-    setSending(true);
 
     const userMsg = { role: "user", content: input.trim(), tone };
-    setMessages((prev) => [...prev, userMsg]);
+    const messagesPlus = [...messages, userMsg]; // IMPORTANT: include the message we’re sending
+
+    // Optimistic add
+    setMessages(messagesPlus);
+    setSending(true);
+    setShowExamples(false);
 
     try {
-      // Prefer JSON API
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input.trim(), tone, messages }),
+        body: JSON.stringify({
+          text: input.trim(),
+          tone,
+          messages: messagesPlus, // your API expects messages (non-empty)
+        }),
       });
 
       if (!res.ok) {
@@ -70,36 +76,33 @@ export default function ChatPage() {
         throw new Error(t || `HTTP ${res.status}`);
       }
 
-      // handle either JSON or streamed text
       const ct = res.headers.get("content-type") || "";
       if (ct.includes("application/json")) {
         const data = await res.json();
-        if (!data || data.ok === false) {
-          throw new Error(data?.error || "Server error");
-        }
+        if (data?.ok === false) throw new Error(data?.error || "Server error");
         const assistantText = coerceToReadableText(data.message || data.content);
         setMessages((prev) => [...prev, { role: "assistant", content: assistantText }]);
       } else if (res.body && "getReader" in res.body) {
-        // streaming text
+        // Streaming text
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let acc = "";
+        let firstChunk = true;
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
-          acc += decoder.decode(value, { stream: true });
+          const chunk = decoder.decode(value, { stream: true });
           setMessages((prev) => {
-            const clone = [...prev];
-            // if last is assistant in-progress append, else create new
-            if (clone.length && clone[clone.length - 1].role === "assistant") {
-              clone[clone.length - 1] = {
-                ...clone[clone.length - 1],
-                content: (clone[clone.length - 1].content || "") + decoder.decode(value),
-              };
+            const next = [...prev];
+            if (firstChunk) {
+              next.push({ role: "assistant", content: chunk });
+              firstChunk = false;
             } else {
-              clone.push({ role: "assistant", content: decoder.decode(value) });
+              next[next.length - 1] = {
+                ...next[next.length - 1],
+                content: (next[next.length - 1].content || "") + chunk,
+              };
             }
-            return clone;
+            return next;
           });
         }
       } else {
@@ -108,19 +111,18 @@ export default function ChatPage() {
       }
     } catch (e) {
       console.error(e);
-      setError(e.message || "Error");
+      setError(e?.message || "Server error");
       setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Server error" }]);
     } finally {
       setSending(false);
       setInput("");
-      if (!firstSendRef.current) firstSendRef.current = true;
     }
   }
 
-  async function handleCopy(text) {
-    try {
-      await navigator.clipboard.writeText(text || "");
-    } catch {}
+  function extractTitle(s = "") {
+    const line = s.split("\n").find((l) => l.trim()) || "";
+    const upToDot = line.split(".")[0];
+    return (upToDot || line).trim().slice(0, 120);
   }
 
   async function handleSave() {
@@ -144,37 +146,39 @@ export default function ChatPage() {
     }
   }
 
-  function extractTitle(s = "") {
-    // take first sentence or first line as a title
-    const line = s.split("\n").find((l) => l.trim().length > 0) || "";
-    const upToDot = line.split(".")[0];
-    return (upToDot || line).trim().slice(0, 120);
+  async function handleCopy(text) {
+    try {
+      await navigator.clipboard.writeText(text || "");
+    } catch {}
   }
 
-  // Wire this to your modal or server flyer endpoint when ready.
-  async function handleFlyer() {
+  // Hook to your modal/flyer flow. Right now it just dispatches an event you can listen for.
+  function handleFlyer() {
     if (!lastAssistant?.content) return;
-    // fire a custom event for your Flyer modal flow if you have one:
-    // window.dispatchEvent(new CustomEvent("open-flyer", { detail: { text: lastAssistant.content, tone } }));
-    // fallback: simple alert so users know button works
-    alert("Flyer flow is ready to wire. Pass the latest listing text into your flyer modal/API.");
-  }
-
-  function quickToneClass(t) {
-    return "chip" + (tone === t ? " is-active" : "");
+    window.dispatchEvent(
+      new CustomEvent("open-flyer", {
+        detail: { text: lastAssistant.content, tone },
+      })
+    );
   }
 
   return (
     <main className="min-h-screen px-4 sm:px-6 md:px-8 py-6 md:py-8 chat-shell">
       <div className="max-w-5xl mx-auto">
-        <header className="mb-4 md:mb-6">
-          <h1 className="text-3xl md:text-4xl font-bold mb-1">ListGenie.ai Chat</h1>
-          <div className="text-white/70">Generate polished real estate listings plus social variants.</div>
-          <div className="mt-3 tone-row">
+        {/* Header */}
+        <div className="mb-4 md:mb-6">
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl md:text-4xl font-bold">ListGenie.ai Chat</h1>
+            <span className="pro-pill">Pro</span>
+          </div>
+          <div className="subtle">Generate polished real estate listings plus social variants.</div>
+
+          {/* Tone Pills */}
+          <div className="tone-row">
             {TONES.map((t) => (
               <button
                 key={t}
-                className={quickToneClass(t)}
+                className={`chip ${tone === t ? "is-active" : ""}`}
                 onClick={() => setTone(t)}
                 type="button"
               >
@@ -182,10 +186,10 @@ export default function ChatPage() {
               </button>
             ))}
           </div>
-        </header>
+        </div>
 
-        {/* Examples */}
-        {!firstSendRef.current && (
+        {/* Examples (white, small, disappear after first send) */}
+        {showExamples && (
           <div className="examples-row">
             {EXAMPLES.map((ex) => (
               <button
@@ -222,47 +226,43 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Errors */}
+        {/* Error surface */}
         {!!error && (
-          <div className="msg-card mb-4" style={{ borderColor: "rgba(244,63,94,0.35)" }}>
+          <div className="msg-card error">
             <div>⚠️ {error}</div>
           </div>
         )}
 
-        {/* Messages */}
-        <div
-          ref={listRef}
-          className="space-y-3 max-h-[56vh] overflow-auto pr-1 pb-10"
-          style={{ scrollbarGutter: "stable" }}
-        >
+        {/* Thread */}
+        <div ref={listRef} className="thread">
           {messages.map((m, idx) => (
             <div key={idx} className="msg-card">
-              <div
-                className="text-[13px] uppercase tracking-wide mb-2"
-                style={{ opacity: 0.65, letterSpacing: "0.08em" }}
-              >
-                {m.role === "user" ? "You" : "ListGenie"}
-              </div>
-              <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+              <div className="bubble-header">{m.role === "user" ? "You" : "ListGenie"}</div>
+              <div className="bubble-content">{m.content}</div>
 
-              {/* actions only on assistant messages */}
               {m.role === "assistant" && (
-                <div className="flex gap-8 flex-wrap mt-3">
-                  <button className="chip" onClick={() => handleCopy(m.content)}>Copy</button>
-                  <button className="chip" onClick={handleSave}>Save</button>
-                  <button className="chip" onClick={handleFlyer}>Flyer (PDF)</button>
+                <div className="actions">
+                  <button className="chip" onClick={() => handleCopy(m.content)}>
+                    Copy
+                  </button>
+                  <button className="chip" onClick={handleSave}>
+                    Save
+                  </button>
+                  <button className="chip" onClick={handleFlyer}>
+                    Flyer (PDF)
+                  </button>
                 </div>
               )}
             </div>
           ))}
 
-          {/* thinking indicator */}
           {sending && (
             <div className="msg-card">
-              <div className="dots">
+              <div className="thinking">
                 <span className="dot" />
                 <span className="dot" />
                 <span className="dot" />
+                <span className="thinking-text">Thinking</span>
               </div>
             </div>
           )}
@@ -280,21 +280,35 @@ export default function ChatPage() {
           color: #eaeaea;
         }
 
-        .chat-shell .tone-row {
+        .pro-pill {
+          font-size: 12px;
+          line-height: 1;
+          padding: 6px 10px;
+          border-radius: 9999px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: linear-gradient(90deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.35));
+        }
+
+        .subtle {
+          opacity: 0.75;
+          margin-bottom: 8px;
+        }
+
+        .tone-row {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
-          margin-top: 10px;
+          margin-top: 8px;
         }
 
-        .chat-shell .examples-row {
+        .examples-row {
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
           margin: 10px 0 18px;
         }
 
-        .chat-shell .chip {
+        .chip {
           display: inline-flex;
           align-items: center;
           height: 34px;
@@ -309,13 +323,10 @@ export default function ChatPage() {
           user-select: none;
           transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
         }
-        .chat-shell .chip:hover {
+        .chip:hover {
           background: var(--chip-bg-hover);
         }
-        .chat-shell .chip:active {
-          transform: translateY(1px);
-        }
-        .chat-shell .chip.is-active {
+        .chip.is-active {
           background: linear-gradient(
             90deg,
             rgba(139, 92, 246, 0.35),
@@ -323,20 +334,20 @@ export default function ChatPage() {
           );
           border-color: rgba(255, 255, 255, 0.18);
         }
-
-        .chat-shell .example-chip {
+        .example-chip {
           height: unset;
           padding: 8px 12px;
           font-size: 15px;
           white-space: nowrap;
+          color: #fff; /* brighter for visibility per your request */
         }
 
-        .chat-shell .field-row {
+        .field-row {
           margin: 10px 0 18px;
         }
-        .chat-shell .chat-field {
+        .chat-field {
           width: 100%;
-          min-height: 120px;
+          min-height: 130px;
           resize: vertical;
           background: var(--field-bg);
           border: 1px solid var(--field-border);
@@ -347,12 +358,12 @@ export default function ChatPage() {
           outline: none;
           box-shadow: 0 0 0 0 transparent;
         }
-        .chat-shell .chat-field:focus {
+        .chat-field:focus {
           border-color: rgba(99, 102, 241, 0.45);
           box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
         }
 
-        .chat-shell .send-btn {
+        .send-btn {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -366,45 +377,80 @@ export default function ChatPage() {
           cursor: pointer;
           transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
         }
-        .chat-shell .send-btn:hover {
+        .send-btn:hover {
           background: var(--chip-bg-hover);
         }
-        .chat-shell .send-btn:active {
-          transform: translateY(1px);
-        }
-        .chat-shell .send-btn[disabled] {
+        .send-btn[disabled] {
           opacity: 0.6;
           cursor: not-allowed;
         }
 
-        .chat-shell .msg-card {
+        .thread {
+          max-height: 58vh;
+          overflow: auto;
+          padding-right: 2px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          scrollbar-gutter: stable;
+        }
+
+        .msg-card {
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid var(--field-border);
           border-radius: 14px;
           padding: 14px;
           color: #fff;
         }
-
-        /* thinking dots */
-        .chat-shell .dots {
-          display: inline-flex;
-          gap: 8px;
-          padding: 6px 10px;
-          border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.06);
+        .msg-card.error {
+          border-color: rgba(244, 63, 94, 0.35);
+          background: rgba(244, 63, 94, 0.08);
         }
-        .chat-shell .dot {
+
+        .bubble-header {
+          font-size: 13px;
+          text-transform: uppercase;
+          opacity: 0.65;
+          letter-spacing: 0.08em;
+          margin-bottom: 6px;
+        }
+        .bubble-content {
+          white-space: pre-wrap;
+          line-height: 1.6;
+        }
+
+        .actions {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 12px;
+        }
+
+        .thinking {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 9999px;
+          padding: 6px 10px;
+          width: fit-content;
+        }
+        .dot {
           width: 6px;
           height: 6px;
           border-radius: 9999px;
           background: rgba(255, 255, 255, 0.9);
           animation: dotPulse 1.2s infinite ease-in-out;
         }
-        .chat-shell .dot:nth-child(2) {
+        .dot:nth-child(2) {
           animation-delay: 0.15s;
         }
-        .chat-shell .dot:nth-child(3) {
+        .dot:nth-child(3) {
           animation-delay: 0.3s;
+        }
+        .thinking-text {
+          font-size: 13px;
+          opacity: 0.9;
         }
         @keyframes dotPulse {
           0%,
@@ -417,14 +463,6 @@ export default function ChatPage() {
             transform: scale(1);
             opacity: 1;
           }
-        }
-
-        /* contain width for readability */
-        .chat-shell .msg-card,
-        .chat-shell .examples-row,
-        .chat-shell .tone-row,
-        .chat-shell .field-row {
-          max-width: 1100px;
         }
       `}</style>
     </main>
