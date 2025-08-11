@@ -47,6 +47,129 @@ function wrapText(doc, text, maxWidth) {
   return lines;
 }
 
+// Extracts useful flyer fields from the model text
+function parseListingForFlyer(raw) {
+  const text = String(raw || '').replace(/\s+/g, ' ').trim();
+
+  // Headline: first sentence or line
+  let headline = text.split(/[.!?\n]/)[0]?.trim() || 'Beautiful Home';
+  if (headline.length > 72) headline = headline.slice(0, 69) + '…';
+
+  // Subhead: Beds • Baths • Sq Ft • Neighborhood (best-effort regex)
+  const beds = (text.match(/(\d+)\s*(bed|beds|bedrooms?)/i) || [])[1];
+  const baths = (text.match(/(\d+)\s*(bath|baths|bathrooms?)/i) || [])[1];
+  const sqft = (text.match(/([\d,]{3,})\s*(sq\s*ft|sqft|square\s*feet)/i) || [])[1];
+  const year = (text.match(/\b(19|20)\d{2}\b/) || [])[0];
+  // Try to grab "in <Place>" or "near <Place>" once
+  const nbhm = text.match(/\b(in|near)\s+([A-Za-z][A-Za-z\s\-']{2,})/i);
+  const neighborhood = nbhm ? nbhm[2].trim().replace(/\s+near\s*$/i,'') : null;
+
+  const parts = [
+    beds && `${beds} Beds`,
+    baths && `${baths} Baths`,
+    sqft && `${sqft.replace(/,/g, ',')} Sq Ft`,
+    neighborhood && neighborhood,
+  ].filter(Boolean);
+  const subhead = parts.join('  •  ') || 'Updated • Spacious • Move-in Ready';
+
+  // Bullets: split on bullets or sentences, keep the punchy ones
+  let rawBullets = [];
+  if (text.includes('•')) {
+    rawBullets = text.split('•').map(s => s.trim());
+  } else {
+    rawBullets = text.split('.').map(s => s.trim());
+  }
+  const bullets = rawBullets
+    .filter(s => s && s.length > 3)
+    .map(s => s.replace(/^[\-–•\s]+/, ''))
+    .slice(0, 8);
+
+  // Narrative (fallback to full text minus headline)
+  const narrative = text.replace(headline, '').trim();
+
+  return {
+    headline,
+    subhead,
+    bullets,
+    narrative,
+    body: text,
+    beds, baths, sqft, year, neighborhood
+  };
+}
+
+// Draws a bullet line with a dot + wrapped text
+function drawBulletLine(doc, text, x, y, maxWidth, lineHeight) {
+  // dot
+  doc.setFillColor(17, 24, 39);
+  doc.circle(x + 3, y - 4, 2, 'F');
+
+  const left = x + 12;
+  const lines = wrapText(doc, text, maxWidth - 12);
+  lines.forEach((ln, i) => {
+    doc.text(ln, left, y + i*lineHeight);
+  });
+  return y + lineHeight * lines.length;
+}
+
+// Inline SVG (your landing logo, simplified) — we’ll rasterize it at runtime
+const BRAND_SVG_STRING = `
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7C5CFF"/>
+      <stop offset="100%" stop-color="#5BC0FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="12" y="12" width="232" height="232" rx="48" fill="#0f1218" stroke="url(#g)" stroke-width="2"/>
+  <path d="M150 36l-54 84h40l-30 100 84-124h-44l4-60z" fill="url(#g)"/>
+  <path d="M56 188c18 20 48 32 76 32 38 0 66-16 82-44" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
+</svg>
+`;
+
+// Convert an SVG string to PNG data URL via offscreen canvas (works in browsers)
+async function svgToPngDataURL(svgString, width = 128, height = 128) {
+  try {
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    const loaded = new Promise((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = reject;
+    });
+    img.src = svgUrl;
+    await loaded;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width; canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    URL.revokeObjectURL(svgUrl);
+    return canvas.toDataURL('image/png');
+  } catch {
+    return null;
+  }
+}
+
+// Fetch an image (PNG/JPG/SVG endpoint) and return a data URL
+async function fetchImageAsDataURL(url) {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(fr.result);
+      fr.onerror = reject;
+      fr.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function ChatPage() {
   const { user } = useUser();
   const { plan, isPro, trialStatus } = useUserPlan(); // plan: 'pro' | 'trial' | 'expired'
@@ -159,55 +282,135 @@ export default function ChatPage() {
     return first.length > 70 ? `${first.slice(0, 67)}…` : first;
   }
 
-  async function handleFlyerPDF(text) {
+  async function handleFlyerPDF(text, opts = {}) {
     try {
-      const { jsPDF } = await import('jspdf'); // lazy-load
-      const doc = new jsPDF({ unit: 'pt', format: 'letter' });
-      const marginX = 48;
-      const maxW = 515;
-
-      // Header
+      // Load jspdf from CDN at runtime
+      const mod = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
+      const jsPDF = (mod?.jspdf || window.jspdf)?.jsPDF;
+      if (!jsPDF) throw new Error('jspdf not available');
+  
+      // ----------- CONFIG -----------
+      const doc = new jsPDF({ unit: 'pt', format: 'letter' }); // 612 x 792
+      const M = 48; const W = 612; const H = 792;
+      const colGap = 24;
+      const colW = (W - M*2 - colGap) / 2;
+      const leftX = M, rightX = M + colW + colGap;
+  
+      // Target URL for QR (later: a per-listing permalink)
+      const targetUrl = opts.url || 'https://app.listgenie.ai';
+  
+      // Parse listing text
+      const parsed = parseListingForFlyer(text);
+  
+      // Prepare assets (logo PNG from inline SVG + QR PNG from API)
+      const logoPng = await svgToPngDataURL(BRAND_SVG_STRING, 88, 88);
+      const qrPng = await fetchImageAsDataURL(
+        `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(targetUrl)}`
+      );
+  
+      // ===== Top Header Ribbon =====
       doc.setFillColor(15, 18, 24);
-      doc.roundedRect(0, 0, 612, 100, 0, 0, 'F');
+      doc.rect(0, 0, W, 96, 'F');
+      doc.setDrawColor(124, 92, 255);
+      doc.setLineWidth(1);
+      doc.line(0, 96, W, 96);
+  
+      // Brand (logo + title)
+      const logoY = 24;
+      if (logoPng) {
+        doc.addImage(logoPng, 'PNG', M, logoY, 44, 44); // small logo
+      }
       doc.setTextColor('#E9ECF1');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(20);
-      doc.text('ListGenie — Property Flyer', marginX, 60);
-
-      // Headline (first line)
-      const lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
-      const headline = (lines[0] || 'Property').replace(/^\W+/, '');
-
-      doc.setTextColor('#000000');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.text(headline, marginX, 130);
-
-      // Body
-      const bodyText = lines.slice(1).join(' ');
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(12);
-
-      const wrapped = wrapText(doc, bodyText, maxW);
-      let y = 160;
-      const step = 18;
-      wrapped.forEach(line => {
-        doc.text(line, marginX, y);
-        y += step;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+      doc.text('ListGenie — Property Flyer', M + 56, logoY + 30);
+  
+      // ===== Headline / Subheader =====
+      doc.setTextColor('#0b0d11');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
+      const headlineLines = wrapText(doc, parsed.headline, W - M*2);
+      doc.text(headlineLines, M, 128);
+  
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+      doc.setTextColor('#4b5563');
+      doc.text(parsed.subhead, M, 150);
+  
+      // ===== Two columns =====
+      // Right: photo placeholder
+      doc.setDrawColor(210); doc.setFillColor(244, 246, 249);
+      const photoY = 180; const photoH = 260;
+      doc.roundedRect(rightX, photoY, colW, photoH, 12, 12, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setTextColor('#6b7280'); doc.setFontSize(12);
+      doc.text('Property Photo', rightX + colW/2, photoY + photoH/2, { align: 'center' });
+  
+      // Left: highlights
+      let y = 188;
+      doc.setTextColor('#0b0d11'); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
+      doc.text('Highlights', leftX, y);
+      y += 22;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
+      parsed.bullets.slice(0, 5).forEach(line => {
+        y = drawBulletLine(doc, line, leftX, y, colW, 14);
+        y += 2;
       });
-
-      // Footer note
-      doc.setDrawColor(230);
-      doc.line(marginX, 700, 612 - marginX, 700);
-      doc.setFontSize(10);
-      doc.setTextColor('#6b7280');
-      doc.text('Generated with ListGenie.ai', marginX, 718);
-
+  
+      // Feature band under photo
+      const bandY = photoY + photoH + 18;
+      doc.setFillColor(245, 243, 255);
+      doc.roundedRect(rightX, bandY, colW, 64, 10, 10, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor('#6b21a8');
+      const feat = [
+        parsed.beds && `${parsed.beds} Beds`,
+        parsed.baths && `${parsed.baths} Baths`,
+        parsed.sqft && `${parsed.sqft} Sq Ft`,
+        parsed.year && `Built ${parsed.year}`,
+      ].filter(Boolean).join('  •  ');
+      doc.text(feat || 'Spacious • Updated • Move-in Ready', rightX + 12, bandY + 24);
+  
+      // Lower narrative (left)
+      const lowerY = bandY + 100;
+      const narrativeTop = Math.max(y + 12, lowerY);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor('#0b0d11');
+      doc.text('Overview', leftX, narrativeTop);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#111827');
+      const bodyLines = wrapText(doc, parsed.narrative || parsed.body, colW);
+      let bodyY = narrativeTop + 18;
+      bodyLines.slice(0, 28).forEach(line => { doc.text(line, leftX, bodyY); bodyY += 16; });
+  
+      // ===== Footer: agent + QR =====
+      const footerY = H - 96;
+      doc.setDrawColor(230); doc.line(M, footerY, W - M, footerY);
+  
+      const agentName  = (user?.fullName || user?.username || 'Your Name').toString();
+      const agentEmail = (user?.primaryEmailAddress?.emailAddress || 'you@yourbrokerage.com').toString();
+      const agentPhone = '(___) ___-____';
+  
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor('#0b0d11');
+      doc.text(agentName, M, footerY + 24);
+  
+      doc.setFont('helvetica', 'normal'); doc.setTextColor('#4b5563');
+      doc.text(`${agentEmail}  •  ${agentPhone}`, M, footerY + 40);
+  
+      // QR block with brand
+      const qrSize = 72;
+      const qrX = W - M - qrSize - 12;
+      const qrY = footerY + 14;
+      if (qrPng) {
+        doc.addImage(qrPng, 'PNG', qrX, qrY, qrSize, qrSize);
+      } else {
+        // fallback box
+        doc.setDrawColor(210);
+        doc.roundedRect(qrX, qrY, qrSize, qrSize, 6, 6);
+      }
+      // tiny brand under QR
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor('#6b7280');
+      doc.text('listgenie.ai', qrX + qrSize/2, qrY + qrSize + 14, { align: 'center' });
+  
+      // save
       doc.save('listing-flyer.pdf');
       toast('PDF downloaded');
     } catch (e) {
       console.error(e);
-      toast('PDF module not available. Run: npm i jspdf');
+      toast('Could not generate PDF (network blocked?)');
     }
   }
 
