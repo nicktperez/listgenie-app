@@ -1,7 +1,6 @@
 // pages/chat.js
 import { useEffect, useMemo, useRef, useState } from "react";
 
-/** ----------------------------- Config --------------------------------- */
 const TONES = ["MLS-ready", "Social caption", "Luxury tone", "Concise"];
 
 const EXAMPLES = [
@@ -10,7 +9,6 @@ const EXAMPLES = [
   "Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.",
 ];
 
-/** Try to make model output readable even if it’s JSON-ish */
 function coerceToReadableText(raw) {
   if (!raw) return "";
   try {
@@ -25,22 +23,18 @@ function coerceToReadableText(raw) {
   }
 }
 
-/** --------------------------- Component -------------------------------- */
 export default function ChatPage() {
   const [tone, setTone] = useState(TONES[0]);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content}
+  const [messages, setMessages] = useState([]); // {role, content}
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [showExamples, setShowExamples] = useState(true);
 
   const listRef = useRef(null);
 
-  // Auto-scroll on new output
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = listRef.current.scrollHeight;
-    }
+    if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight;
   }, [messages.length, sending]);
 
   const lastAssistant = useMemo(
@@ -48,15 +42,21 @@ export default function ChatPage() {
     [messages]
   );
 
+  function extractTitle(s = "") {
+    const line = s.split("\n").find((l) => l.trim()) || "";
+    const upToDot = line.split(".")[0];
+    return (upToDot || line).trim().slice(0, 120);
+  }
+
   async function sendMessage() {
     if (!input.trim() || sending) return;
     setError("");
 
     const userMsg = { role: "user", content: input.trim(), tone };
-    const messagesPlus = [...messages, userMsg]; // IMPORTANT: include the message we’re sending
+    const pending = [...messages, userMsg]; // include current message
 
-    // Optimistic add
-    setMessages(messagesPlus);
+    // optimistic add
+    setMessages(pending);
     setSending(true);
     setShowExamples(false);
 
@@ -67,35 +67,33 @@ export default function ChatPage() {
         body: JSON.stringify({
           text: input.trim(),
           tone,
-          messages: messagesPlus, // your API expects messages (non-empty)
+          messages: pending, // API expects messages array; not empty
         }),
       });
 
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
+      if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
 
-      const ct = res.headers.get("content-type") || "";
-      if (ct.includes("application/json")) {
+      const contentType = res.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
         const data = await res.json();
         if (data?.ok === false) throw new Error(data?.error || "Server error");
-        const assistantText = coerceToReadableText(data.message || data.content);
-        setMessages((prev) => [...prev, { role: "assistant", content: assistantText }]);
+        const out = coerceToReadableText(data.message || data.content);
+        setMessages((prev) => [...prev, { role: "assistant", content: out }]);
       } else if (res.body && "getReader" in res.body) {
-        // Streaming text
+        // streaming
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
-        let firstChunk = true;
+        let first = true;
         for (;;) {
           const { value, done } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
           setMessages((prev) => {
             const next = [...prev];
-            if (firstChunk) {
+            if (first) {
               next.push({ role: "assistant", content: chunk });
-              firstChunk = false;
+              first = false;
             } else {
               next[next.length - 1] = {
                 ...next[next.length - 1],
@@ -106,8 +104,8 @@ export default function ChatPage() {
           });
         }
       } else {
-        const text = await res.text();
-        setMessages((prev) => [...prev, { role: "assistant", content: coerceToReadableText(text) }]);
+        const txt = await res.text();
+        setMessages((prev) => [...prev, { role: "assistant", content: coerceToReadableText(txt) }]);
       }
     } catch (e) {
       console.error(e);
@@ -117,12 +115,6 @@ export default function ChatPage() {
       setSending(false);
       setInput("");
     }
-  }
-
-  function extractTitle(s = "") {
-    const line = s.split("\n").find((l) => l.trim()) || "";
-    const upToDot = line.split(".")[0];
-    return (upToDot || line).trim().slice(0, 120);
   }
 
   async function handleSave() {
@@ -152,43 +144,39 @@ export default function ChatPage() {
     } catch {}
   }
 
-  // Hook to your modal/flyer flow. Right now it just dispatches an event you can listen for.
   function handleFlyer() {
     if (!lastAssistant?.content) return;
+    // your modal listens for this
     window.dispatchEvent(
-      new CustomEvent("open-flyer", {
-        detail: { text: lastAssistant.content, tone },
-      })
+      new CustomEvent("open-flyer", { detail: { text: lastAssistant.content, tone } })
     );
   }
 
   return (
-    <main className="min-h-screen px-4 sm:px-6 md:px-8 py-6 md:py-8 chat-shell">
-      <div className="max-w-5xl mx-auto">
+    <main className="chat-page">
+      <div className="chat-wrap">
         {/* Header */}
-        <div className="mb-4 md:mb-6">
-          <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl md:text-4xl font-bold">ListGenie.ai Chat</h1>
-            <span className="pro-pill">Pro</span>
-          </div>
-          <div className="subtle">Generate polished real estate listings plus social variants.</div>
+        <div className="chat-header">
+          <h1 className="chat-title">ListGenie.ai Chat</h1>
+          <span className="pro-pill">Pro</span>
+        </div>
+        <div className="header-sub">Generate polished real estate listings plus social variants.</div>
 
-          {/* Tone Pills */}
-          <div className="tone-row">
-            {TONES.map((t) => (
-              <button
-                key={t}
-                className={`chip ${tone === t ? "is-active" : ""}`}
-                onClick={() => setTone(t)}
-                type="button"
-              >
-                {t}
-              </button>
-            ))}
-          </div>
+        {/* Tones */}
+        <div className="tone-row">
+          {TONES.map((t) => (
+            <button
+              key={t}
+              className={`chip ${tone === t ? "is-active" : ""}`}
+              onClick={() => setTone(t)}
+              type="button"
+            >
+              {t}
+            </button>
+          ))}
         </div>
 
-        {/* Examples (white, small, disappear after first send) */}
+        {/* Examples */}
         {showExamples && (
           <div className="examples-row">
             {EXAMPLES.map((ex) => (
@@ -206,9 +194,9 @@ export default function ChatPage() {
         )}
 
         {/* Input */}
-        <div className="field-row">
+        <div className="field-card">
           <textarea
-            className="chat-field"
+            className="chat-textarea"
             placeholder="Describe the property and any highlights..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -219,29 +207,24 @@ export default function ChatPage() {
               }
             }}
           />
-          <div className="mt-2">
+          <div className="field-actions">
             <button className="send-btn" disabled={sending || !input.trim()} onClick={sendMessage}>
               {sending ? "Generating…" : "Send"}
             </button>
           </div>
         </div>
 
-        {/* Error surface */}
-        {!!error && (
-          <div className="msg-card error">
-            <div>⚠️ {error}</div>
-          </div>
-        )}
+        {/* Error */}
+        {!!error && <div className="error-card">⚠️ {error}</div>}
 
         {/* Thread */}
         <div ref={listRef} className="thread">
-          {messages.map((m, idx) => (
-            <div key={idx} className="msg-card">
-              <div className="bubble-header">{m.role === "user" ? "You" : "ListGenie"}</div>
-              <div className="bubble-content">{m.content}</div>
-
+          {messages.map((m, i) => (
+            <div key={i} className="msg-card">
+              <div className="msg-header">{m.role === "user" ? "You" : "ListGenie"}</div>
+              <div className="msg-body">{m.content}</div>
               {m.role === "assistant" && (
-                <div className="actions">
+                <div className="msg-actions">
                   <button className="chip" onClick={() => handleCopy(m.content)}>
                     Copy
                   </button>
@@ -268,203 +251,6 @@ export default function ChatPage() {
           )}
         </div>
       </div>
-
-      {/* Scoped styling for the chat page only */}
-      <style jsx global>{`
-        .chat-shell {
-          --chip-bg: rgba(255, 255, 255, 0.08);
-          --chip-bg-hover: rgba(255, 255, 255, 0.14);
-          --chip-border: rgba(255, 255, 255, 0.12);
-          --field-bg: rgba(255, 255, 255, 0.05);
-          --field-border: rgba(255, 255, 255, 0.12);
-          color: #eaeaea;
-        }
-
-        .pro-pill {
-          font-size: 12px;
-          line-height: 1;
-          padding: 6px 10px;
-          border-radius: 9999px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          background: linear-gradient(90deg, rgba(139, 92, 246, 0.35), rgba(59, 130, 246, 0.35));
-        }
-
-        .subtle {
-          opacity: 0.75;
-          margin-bottom: 8px;
-        }
-
-        .tone-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 8px;
-        }
-
-        .examples-row {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-          margin: 10px 0 18px;
-        }
-
-        .chip {
-          display: inline-flex;
-          align-items: center;
-          height: 34px;
-          padding: 0 12px;
-          border-radius: 9999px;
-          background: var(--chip-bg);
-          border: 1px solid var(--chip-border);
-          color: #fff;
-          font-size: 14px;
-          line-height: 1;
-          cursor: pointer;
-          user-select: none;
-          transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
-        }
-        .chip:hover {
-          background: var(--chip-bg-hover);
-        }
-        .chip.is-active {
-          background: linear-gradient(
-            90deg,
-            rgba(139, 92, 246, 0.35),
-            rgba(59, 130, 246, 0.35)
-          );
-          border-color: rgba(255, 255, 255, 0.18);
-        }
-        .example-chip {
-          height: unset;
-          padding: 8px 12px;
-          font-size: 15px;
-          white-space: nowrap;
-          color: #fff; /* brighter for visibility per your request */
-        }
-
-        .field-row {
-          margin: 10px 0 18px;
-        }
-        .chat-field {
-          width: 100%;
-          min-height: 130px;
-          resize: vertical;
-          background: var(--field-bg);
-          border: 1px solid var(--field-border);
-          border-radius: 12px;
-          color: #fff;
-          padding: 14px 16px;
-          font-size: 16px;
-          outline: none;
-          box-shadow: 0 0 0 0 transparent;
-        }
-        .chat-field:focus {
-          border-color: rgba(99, 102, 241, 0.45);
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
-        }
-
-        .send-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          height: 40px;
-          padding: 0 18px;
-          border-radius: 10px;
-          border: 1px solid var(--chip-border);
-          background: var(--chip-bg);
-          color: #fff;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
-        }
-        .send-btn:hover {
-          background: var(--chip-bg-hover);
-        }
-        .send-btn[disabled] {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .thread {
-          max-height: 58vh;
-          overflow: auto;
-          padding-right: 2px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          scrollbar-gutter: stable;
-        }
-
-        .msg-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid var(--field-border);
-          border-radius: 14px;
-          padding: 14px;
-          color: #fff;
-        }
-        .msg-card.error {
-          border-color: rgba(244, 63, 94, 0.35);
-          background: rgba(244, 63, 94, 0.08);
-        }
-
-        .bubble-header {
-          font-size: 13px;
-          text-transform: uppercase;
-          opacity: 0.65;
-          letter-spacing: 0.08em;
-          margin-bottom: 6px;
-        }
-        .bubble-content {
-          white-space: pre-wrap;
-          line-height: 1.6;
-        }
-
-        .actions {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-top: 12px;
-        }
-
-        .thinking {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.06);
-          border-radius: 9999px;
-          padding: 6px 10px;
-          width: fit-content;
-        }
-        .dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 9999px;
-          background: rgba(255, 255, 255, 0.9);
-          animation: dotPulse 1.2s infinite ease-in-out;
-        }
-        .dot:nth-child(2) {
-          animation-delay: 0.15s;
-        }
-        .dot:nth-child(3) {
-          animation-delay: 0.3s;
-        }
-        .thinking-text {
-          font-size: 13px;
-          opacity: 0.9;
-        }
-        @keyframes dotPulse {
-          0%,
-          80%,
-          100% {
-            transform: scale(0.8);
-            opacity: 0.6;
-          }
-          40% {
-            transform: scale(1);
-            opacity: 1;
-          }
-        }
-      `}</style>
     </main>
   );
 }

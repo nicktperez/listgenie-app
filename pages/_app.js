@@ -1,5 +1,6 @@
 // pages/_app.js
 import "@/styles/globals.css";
+import "@/styles/chat.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 import NavBar from "@/components/NavBar";
