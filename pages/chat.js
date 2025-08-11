@@ -1,776 +1,641 @@
 // pages/chat.js
-import { useEffect, useRef, useState } from 'react';
-import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
-import useUserPlan from '@/lib/useUserPlan';
-import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import Head from 'next/head';
+import { useUser } from '@clerk/nextjs';
+import ProGate from '@/components/ProGate';
 
-/* ------------------------ demo examples & tone chips ------------------------ */
-const EXAMPLES = [
-  '3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.',
-  'Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.',
-  'Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.',
-];
-const TONE_OPTIONS = ['MLS-ready', 'Social caption', 'Luxury tone', 'Concise'];
-
-/* ------------------------ helpers: text handling ------------------------ */
-function coerceToReadableText(s) {
-  if (s == null) return '';
-  if (typeof s === 'string') {
-    const str = s.trim();
-    if (str.startsWith('{') || str.startsWith('[')) {
-      try { return coerceToReadableText(JSON.parse(str)); } catch {}
-    }
-    return str;
-  }
-  if (typeof s === 'object') {
-    if (typeof s.body === 'string') return s.body;
-    if (s.mls && typeof s.mls.body === 'string') return s.mls.body;
-    if (s.message !== undefined) return coerceToReadableText(s.message);
-    if (s.content !== undefined) return coerceToReadableText(s.content);
-    if (Array.isArray(s.choices) && s.choices[0]?.message?.content) {
-      return coerceToReadableText(s.choices[0].message.content);
-    }
-    if (Array.isArray(s.messages)) {
-      return s.messages.map(coerceToReadableText).filter(Boolean).join('\n\n');
-    }
-    for (const k of ['text', 'output', 'result']) {
-      if (typeof s[k] === 'string') return s[k];
-    }
-    try { return JSON.stringify(s, null, 2); } catch {}
-  }
-  return String(s);
-}
-function makeTitleFrom(t) {
-  const first = (String(t || '').split('\n').map(s => s.trim()).find(Boolean)) || 'Listing';
-  return first.length > 70 ? `${first.slice(0, 67)}…` : first;
+// ------------ helpers ------------
+function cn(...xs) {
+  return xs.filter(Boolean).join(' ');
 }
 
-/* ------------------------ helpers: flyer parsing & drawing ------------------------ */
-function wrapText(doc, text, maxWidth) {
-  const safe = String(text || '');
-  const words = safe.split(/\s+/);
-  const lines = [];
-  let line = '';
-  for (const w of words) {
-    const test = line ? `${line} ${w}` : w;
-    const width = doc.getTextWidth(test);
-    if (width > maxWidth && line) { lines.push(line); line = w; }
-    else { line = test; }
-  }
-  if (line) lines.push(line);
-  return lines;
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
-function parseListingForFlyer(raw) {
-  const text = String(raw || '').replace(/\s+/g, ' ').trim();
-  let headline = text.split(/[.!?\n]/)[0]?.trim() || 'Beautiful Home';
-  if (headline.length > 72) headline = headline.slice(0, 69) + '…';
-  const beds = (text.match(/(\d+)\s*(bed|beds|bedrooms?)/i) || [])[1];
-  const baths = (text.match(/(\d+)\s*(bath|baths|bathrooms?)/i) || [])[1];
-  const sqft = (text.match(/([\d,]{3,})\s*(sq\s*ft|sqft|square\s*feet)/i) || [])[1];
-  const year = (text.match(/\b(19|20)\d{2}\b/) || [])[0];
-  const nbhm = text.match(/\b(in|near)\s+([A-Za-z][A-Za-z\s\-']{2,})/i);
-  const neighborhood = nbhm ? nbhm[2].trim().replace(/\s+near\s*$/i,'') : null;
-  const parts = [
-    beds && `${beds} Beds`,
-    baths && `${baths} Baths`,
-    sqft && `${sqft.replace(/,/g, ',')} Sq Ft`,
-    neighborhood && neighborhood,
-  ].filter(Boolean);
-  const subhead = parts.join('  •  ') || 'Updated • Spacious • Move-in Ready';
 
-  let rawBullets = [];
-  if (text.includes('•')) rawBullets = text.split('•').map(s => s.trim());
-  else rawBullets = text.split('.').map(s => s.trim());
-  const bullets = rawBullets
-    .filter(s => s && s.length > 3)
-    .map(s => s.replace(/^[\-–•\s]+/, ''))
-    .slice(0, 8);
+function copyToClipboard(text) {
+  navigator.clipboard?.writeText(text).catch(() => {});
+}
 
-  const narrative = text.replace(headline, '').trim();
-  return { headline, subhead, bullets, narrative, body: text, beds, baths, sqft, year, neighborhood };
+function nowStamp() {
+  const d = new Date();
+  return d.toLocaleString();
 }
-function drawBulletLine(doc, text, x, y, maxWidth, lineHeight) {
-  const safe = String(text || '');
-  doc.setFillColor(17, 24, 39);
-  doc.circle(x + 3, y - 4, 2, 'F');
-  const left = x + 12;
-  const lines = wrapText(doc, safe, maxWidth - 12);
-  lines.forEach((ln, i) => doc.text(ln, left, y + i*lineHeight));
-  return y + lineHeight * lines.length;
-}
-async function fileToDataURL(file) {
-  return new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = reject;
-    fr.readAsDataURL(file);
-  });
-}
-async function fetchImageAsDataURL(url) {
+
+/**
+ * Try to coerce various model response shapes into readable text.
+ * Supports:
+ * { type: 'listing', headline, mls:{body}, bullets:[...], variants:[{label,text}] }
+ * { blocks:[...] }  // any structured content
+ * plain string
+ */
+function coerceToReadableText(payload) {
   try {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return await new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = reject;
-      fr.readAsDataURL(blob);
-    });
-  } catch { return null; }
+    if (typeof payload === 'string') {
+      return payload.trim();
+    }
+    if (!payload || typeof payload !== 'object') {
+      return '';
+    }
+
+    // common ListingGen shape
+    if (payload.type === 'listing') {
+      const out = [];
+      if (payload.headline) out.push(payload.headline);
+      if (payload.mls?.body) out.push('\n' + payload.mls.body);
+      if (Array.isArray(payload.bullets) && payload.bullets.length) {
+        out.push('\nHighlights:\n• ' + payload.bullets.filter(Boolean).join('\n• '));
+      }
+      if (Array.isArray(payload.variants) && payload.variants.length) {
+        for (const v of payload.variants) {
+          if (!v?.text) continue;
+          if (v.label) out.push(`\n${v.label}:\n${v.text}`);
+          else out.push('\n' + v.text);
+        }
+      }
+      return out.join('\n').trim();
+    }
+
+    // generic blocks -> join text fields
+    if (Array.isArray(payload.blocks)) {
+      return payload.blocks
+        .map(b => (typeof b === 'string' ? b : b?.text || ''))
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+    }
+
+    // best effort: flatten simple object fields
+    const flat = [];
+    for (const [k, v] of Object.entries(payload)) {
+      if (typeof v === 'string') flat.push(v);
+      if (Array.isArray(v)) flat.push(v.filter(Boolean).join('\n'));
+      if (typeof v === 'object' && v && v.text) flat.push(v.text);
+    }
+    if (flat.length) return flat.join('\n').trim();
+
+    return JSON.stringify(payload);
+  } catch {
+    try {
+      return typeof payload === 'string' ? payload : JSON.stringify(payload);
+    } catch {
+      return String(payload ?? '');
+    }
+  }
 }
 
-/* ------------------------ inline Pro gate ------------------------ */
-const Gate = ({ show }) => {
-  if (!show) return null;
+// ------------ small UI bits ------------
+function Chip({ active, children, onClick }) {
   return (
-    <div className="gate">
-      <div className="gate-title">Upgrade to Pro</div>
-      <p className="gate-body">
-        Your trial/plan doesn’t allow more generations. Upgrade to Pro to continue.
-      </p>
-      <a className="btn primary" href="/api/stripe/create-checkout-session">Upgrade</a>
+    <button
+      onClick={onClick}
+      className={cn(
+        'px-3 py-1 rounded-full text-sm',
+        active
+          ? 'bg-white/10 text-white'
+          : 'bg-white/5 text-white/80 hover:bg-white/10'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ThinkingBubble() {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-white/70 text-sm">
+      <span className="inline-flex gap-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.2s]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.05s]" />
+        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" />
+      </span>
+      Thinking
     </div>
   );
-};
+}
 
-/* ------------------------ Flyer modal (portal + multi-template + remember) ------------------------ */
+// ------------ Flyer Modal ------------
 function FlyerModal({
-  open, onClose,
-  form, onFormChange,
-  templates, setTemplates,
-  rememberAgent, setRememberAgent,
-  onSubmit
+  open,
+  onClose,
+  form,
+  setForm,
+  onGenerate,
+  onSaveLogo,
+  flyerBusy,
 }) {
-  const [mounted, setMounted] = useState(false);
-  const modalRef = useRef(null);
-  useEffect(() => setMounted(true), []);
+  const topRef = useRef(null);
+
   useEffect(() => {
-    if (open && modalRef.current) {
-      modalRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      modalRef.current.focus({ preventScroll: true });
+    if (open) {
+      // scroll into view when opened
+      setTimeout(() => {
+        topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 0);
     }
   }, [open]);
+
   if (!open) return null;
 
-  const handleFile = async (e, key) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const dataUrl = await fileToDataURL(file);
-    onFormChange({ ...form, [key]: dataUrl });
-  };
-  const toggleTpl = (k) => {
-    if (templates.includes(k)) setTemplates(templates.filter(t => t !== k));
-    else setTemplates([...templates, k]);
-  };
+  function onFile(e, key) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm(prev => ({ ...prev, [key]: reader.result }));
+    };
+    reader.readAsDataURL(f);
+  }
 
-  const modal = (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} ref={modalRef} tabIndex={-1}>
-        <div className="modal-title">Flyer details</div>
-
-        <div className="modal-row">
-          <label className="check">
-            <input type="checkbox" checked={templates.includes('standard')} onChange={()=>toggleTpl('standard')}/>
-            <span>Standard</span>
-          </label>
-          <label className="check">
-            <input type="checkbox" checked={templates.includes('openHouse')} onChange={()=>toggleTpl('openHouse')}/>
-            <span>Open House</span>
-          </label>
+  return (
+    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60">
+      <div ref={topRef} className="w-full max-w-3xl rounded-2xl bg-[#12141a] p-6 shadow-xl border border-white/10">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white text-lg font-semibold">Create flyer PDF</h3>
+          <button onClick={onClose} className="text-white/60 hover:text-white">Close</button>
         </div>
 
-        <div className="modal-grid">
-          <label>
-            Agent name
-            <input value={form.agentName} onChange={e=>onFormChange({...form,agentName:e.target.value})}/>
-          </label>
-          <label>
-            Agent email
-            <input value={form.agentEmail} onChange={e=>onFormChange({...form,agentEmail:e.target.value})}/>
-          </label>
-          <label>
-            Agent phone
-            <input value={form.agentPhone} onChange={e=>onFormChange({...form,agentPhone:e.target.value})}/>
-          </label>
-          <label>
-            Brokerage
-            <input value={form.brokerage} onChange={e=>onFormChange({...form,brokerage:e.target.value})}/>
-          </label>
-          <label>
-            Brokerage logo URL (optional)
-            <input
-              value={form.logoUrl || ''}
-              onChange={e=>onFormChange({...form, logoUrl:e.target.value})}
-              placeholder="https://…/my-logo.png"
-            />
-          </label>
-          <label>
-            Brokerage logo upload (PNG/JPG/SVG)
-            <input type="file" accept="image/*,.svg" onChange={e=>handleFile(e,'logoDataUrl')}/>
-          </label>
-          <div style={{display:'flex', gap:8, alignItems:'center'}}>
-  <button type="button" className="btn" onClick={uploadLogoAndRemember}>
-    Save uploaded logo to profile
-  </button>
-  {form.logoUrl ? <span style={{fontSize:12,color:'#9aa3b2'}}>Saved ✓</span> : null}
-</div>
-          <label>
-            Property photo (PNG/JPG)
-            <input type="file" accept="image/*" onChange={e=>handleFile(e,'photoDataUrl')}/>
-          </label>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <label className="block text-sm text-white/70">
+              Agent name
+              <input
+                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                value={form.agent_name || ''}
+                onChange={e => setForm(s => ({ ...s, agent_name: e.target.value }))}
+              />
+            </label>
 
-          {templates.includes('openHouse') && (
-            <>
-              <label>
-                Date
-                <input value={form.ohDate} onChange={e=>onFormChange({...form,ohDate:e.target.value})} placeholder="Aug 24, 1–4 PM"/>
+            <label className="block text-sm text-white/70">
+              Agent email
+              <input
+                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                value={form.agent_email || ''}
+                onChange={e => setForm(s => ({ ...s, agent_email: e.target.value }))}
+              />
+            </label>
+
+            <label className="block text-sm text-white/70">
+              Agent phone
+              <input
+                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                value={form.agent_phone || ''}
+                onChange={e => setForm(s => ({ ...s, agent_phone: e.target.value }))}
+              />
+            </label>
+
+            <label className="block text-sm text-white/70">
+              Brokerage
+              <input
+                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                value={form.brokerage || ''}
+                onChange={e => setForm(s => ({ ...s, brokerage: e.target.value }))}
+              />
+            </label>
+
+            <label className="block text-sm text-white/70">
+              Brokerage logo upload (PNG/JPG/SVG)
+              <input
+                type="file"
+                accept="image/*,.svg"
+                className="mt-1 block w-full text-white/80"
+                onChange={e => onFile(e, 'logoDataUrl')}
+              />
+            </label>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="px-3 py-1.5 rounded-md bg-white/10 text-white hover:bg-white/20 disabled:opacity-60"
+                onClick={onSaveLogo}
+                disabled={flyerBusy || !form.logoDataUrl}
+                title={!form.logoDataUrl ? 'Choose a logo file first' : 'Save to profile'}
+              >
+                {flyerBusy ? 'Saving…' : 'Save uploaded logo to profile'}
+              </button>
+              {form.logoUrl ? (
+                <span className="text-xs text-emerald-300">Saved ✓</span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <fieldset className="border border-white/10 rounded-lg p-3">
+              <legend className="px-1 text-sm text-white/70">Templates</legend>
+
+              <label className="flex items-center gap-2 text-white/80 text-sm mb-2">
+                <input
+                  type="checkbox"
+                  checked={!!form.useStandard}
+                  onChange={e => setForm(s => ({ ...s, useStandard: e.target.checked }))}
+                />
+                Standard (headline + highlights)
               </label>
-              <label>
-                Time range
-                <input value={form.ohTime} onChange={e=>onFormChange({...form,ohTime:e.target.value})} placeholder="1:00–4:00 PM"/>
+
+              <label className="flex items-center gap-2 text-white/80 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!form.useOpenHouse}
+                  onChange={e => setForm(s => ({ ...s, useOpenHouse: e.target.checked }))}
+                />
+                Open House (banner + date/time/address + optional map QR)
               </label>
-              <label>
-                Address
-                <input value={form.ohAddress} onChange={e=>onFormChange({...form,ohAddress:e.target.value})} placeholder="123 Main St, City"/>
-              </label>
-              <label>
-                Link/Maps URL (for QR)
-                <input value={form.ohUrl} onChange={e=>onFormChange({...form,ohUrl:e.target.value})} placeholder="https://maps..."/>
-              </label>
-            </>
-          )}
+
+              {!!form.useOpenHouse && (
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <input
+                    className="rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                    placeholder="Date (e.g. Sat Aug 24)"
+                    value={form.oh_date || ''}
+                    onChange={e => setForm(s => ({ ...s, oh_date: e.target.value }))}
+                  />
+                  <input
+                    className="rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                    placeholder="Time (e.g. 1–4 PM)"
+                    value={form.oh_time || ''}
+                    onChange={e => setForm(s => ({ ...s, oh_time: e.target.value }))}
+                  />
+                  <input
+                    className="col-span-2 rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                    placeholder="Address"
+                    value={form.oh_address || ''}
+                    onChange={e => setForm(s => ({ ...s, oh_address: e.target.value }))}
+                  />
+                  <input
+                    className="col-span-2 rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
+                    placeholder="Maps URL (optional for QR)"
+                    value={form.oh_maps_url || ''}
+                    onChange={e => setForm(s => ({ ...s, oh_maps_url: e.target.value }))}
+                  />
+                </div>
+              )}
+            </fieldset>
+          </div>
         </div>
 
-        <div className="modal-actions">
-          <label className="remember">
-            <input
-              type="checkbox"
-              checked={rememberAgent}
-              onChange={e => setRememberAgent(e.target.checked)}
-            />
-            <span>Remember my details</span>
-          </label>
-          <div className="spacer" />
-          <button className="btn" onClick={onClose}>Cancel</button>
-          <button className="btn primary" onClick={onSubmit}>Generate PDF</button>
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-md bg-white/5 text-white hover:bg-white/10"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onGenerate}
+            className="px-3 py-1.5 rounded-md bg-indigo-500/80 text-white hover:bg-indigo-500"
+            disabled={!form.useStandard && !form.useOpenHouse}
+          >
+            Generate PDF{form.useStandard && form.useOpenHouse ? 's' : ''}
+          </button>
         </div>
-
-        <style jsx>{`
-          .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:99999}
-          .modal{width:min(760px,92vw);background:#0f1218;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px;outline:none}
-          .modal-title{font-weight:700;margin-bottom:10px}
-          .modal-row{display:flex;gap:16px;margin-bottom:10px}
-          .check{display:flex;align-items:center;gap:8px;font-size:13px;color:#dfe3f0}
-          .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-          label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#b9c0cc}
-          input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;color:#e9ecf1}
-          .modal-actions{display:flex;align-items:center;gap:8px;margin-top:12px}
-          .remember{display:flex;align-items:center;gap:8px;color:#dfe3f0;font-size:12px}
-          .modal-actions .spacer{flex:1}
-          .btn{padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:#fff}
-          .btn.primary{background:#7c5cff;border-color:#6b54f2}
-        `}</style>
       </div>
     </div>
   );
-  return mounted ? createPortal(modal, document.body) : null;
 }
 
-/* ------------------------ main page ------------------------ */
+// ------------ main ------------
 export default function ChatPage() {
   const { user } = useUser();
-  const { isPro, trialStatus } = useUserPlan();
 
-  const [tone, setTone] = useState(TONE_OPTIONS[0]);
+  const [tone, setTone] = useState('mls');
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]); // {role, text, at, tone?}
-  const [thinking, setThinking] = useState(false);
+  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', text:string, raw?:any}
+  const [loading, setLoading] = useState(false);
   const [sentOnce, setSentOnce] = useState(false);
 
-  const [flyerOpen, setFlyerOpen] = useState(false);
-  const [flyerDraftText, setFlyerDraftText] = useState('');
+  // flyer modal
+  const [showFlyer, setShowFlyer] = useState(false);
   const [flyerForm, setFlyerForm] = useState({
-    agentName: '',
-    agentEmail: '',
-    agentPhone: '',
-    brokerage: '',
-    logoDataUrl: '',
-    logoUrl: '',
-    photoDataUrl: '',
-    ohDate: '',
-    ohTime: '',
-    ohAddress: '',
-    ohUrl: '',
+    useStandard: true,
+    useOpenHouse: false,
   });
-  const [templates, setTemplates] = useState(['standard']); // 'standard', 'openHouse'
-  const [rememberAgent, setRememberAgent] = useState(true);
-  const loadedProfileRef = useRef(false);
+  const [flyerBusy, setFlyerBusy] = useState(false);
 
-  const scrollRef = useRef(null);
-  const canGenerate = isPro || trialStatus === 'active';
-  const gated = !canGenerate;
+  // compact examples (white text, auto-hide after first send)
+  const examples = useMemo(
+    () => [
+      '3 bed, 2 bath, 1,850 sqft in Fair Oaks, remodeled kitchen with quartz counters, large backyard near parks.',
+      'Downtown loft: 1 bed, skyline views, floor-to-ceiling windows, walkable to coffee shops.',
+      'Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, fenced garden.',
+    ],
+    []
+  );
 
-  // Prefill agent name/email from Clerk on first render
-  useEffect(() => {
-    setFlyerForm(prev => ({
-      ...prev,
-      agentName: prev.agentName || (user?.fullName || user?.username || ''),
-      agentEmail: prev.agentEmail || (user?.primaryEmailAddress?.emailAddress || ''),
-    }));
-  }, [user]);
-
-  // Load saved agent profile when modal opens for the first time
-  useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const r = await fetch('/api/agent/get');
-        if (!r.ok) return;
-        const j = await r.json();
-        const p = j?.profile;
-        if (!p) return;
+  // load agent profile into flyer form on first open
+  async function loadAgentProfile() {
+    try {
+      const r = await fetch('/api/agent/get');
+      const j = await r.json();
+      if (j?.ok && j.profile) {
         setFlyerForm(prev => ({
           ...prev,
-          agentName: prev.agentName || p.name || '',
-          agentEmail: prev.agentEmail || p.email || '',
-          agentPhone: prev.agentPhone || p.phone || '',
-          brokerage: prev.brokerage || p.brokerage || '',
-          logoUrl: prev.logoUrl || p.logo_url || '',
+          agent_name: j.profile.agent_name || prev.agent_name,
+          agent_email: j.profile.agent_email || prev.agent_email,
+          agent_phone: j.profile.agent_phone || prev.agent_phone,
+          brokerage: j.profile.brokerage || prev.brokerage,
+          logoUrl: j.profile.logo_url || prev.logoUrl,
         }));
-      } catch (e) {
-        console.warn('agent/get failed', e);
       }
-    };
-    if (flyerOpen && !loadedProfileRef.current) {
-      loadedProfileRef.current = true;
-      loadProfile();
-    }
-  }, [flyerOpen]);
+    } catch {}
+  }
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages, thinking]);
+    if (showFlyer) loadAgentProfile();
+  }, [showFlyer]);
 
-  function toast(s) {
-    const el = document.createElement('div');
-    el.textContent = String(s || '');
-    el.className = 'lg-toast';
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1700);
-  }
+  async function onSend() {
+    if (!input.trim()) return;
+    setLoading(true);
+    setSentOnce(true);
 
-  async function handleSend(e) {
-    e?.preventDefault?.();
-    const trimmed = input.trim();
-    if (!trimmed) return;
-    setMessages(prev => [...prev, { role: 'user', text: trimmed, at: Date.now() }]);
+    const userMsg = { role: 'user', text: input.trim(), at: nowStamp() };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
-    setThinking(true);
-    if (!sentOnce) setSentOnce(true);
-
-    const system = [
-      'You are ListGenie, a real-estate listing assistant.',
-      'Write MLS-friendly listings that avoid fair-housing risks and focus on property features.',
-      'Use confident, tasteful language. Return polished prose.',
-      'Also consider a printable flyer: short headline + quick bullets suitable for a one-page handout.',
-      'Avoid asking follow-up questions unless info is clearly missing.',
-    ].join(' ');
-
-    const body = {
-      system,
-      tone,
-      messages: [
-        ...messages.map(m => ({ role: m.role, content: String(m.text || '') })),
-        { role: 'user', content: trimmed },
-      ],
-    };
 
     try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      let data; try { data = await res.json(); } catch {}
-      const text = coerceToReadableText(data);
-      setMessages(prev => [...prev, { role: 'assistant', text, at: Date.now(), tone }]);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'assistant', text: 'Sorry—there was a server error.', at: Date.now() }]);
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tone,
+          text: userMsg.text,
+        }),
+      });
+      const j = await r.json();
+
+      if (!j?.ok) {
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', text: 'Server error', at: nowStamp() },
+        ]);
+      } else {
+        const readable = coerceToReadableText(j.message?.content ?? j.message);
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', text: readable, raw: j.message, at: nowStamp() },
+        ]);
+      }
+    } catch (e) {
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', text: 'Server error', at: nowStamp() },
+      ]);
     } finally {
-      setThinking(false);
+      setLoading(false);
     }
   }
 
-  async function handleCopy(text) {
-    try { await navigator.clipboard.writeText(String(text || '')); toast('Copied!'); }
-    catch { toast('Copy failed'); }
-  }
-
-  async function handleSave(text) {
-    try {
-      const title = makeTitleFrom(text);
-      const payload = { tone, text: String(text || '') };
-      const r = await fetch('/api/listings/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, payload }),
-      });
-      const j = await r.json();
-      if (!j?.ok) throw new Error(j?.error || 'Save failed');
-      toast('Saved to Listings');
-    } catch (e) { console.error(e); toast('Save failed'); }
-  }
-
+  // ----- Flyer integrations -----
   async function uploadLogoAndRemember() {
     try {
-      if (!flyerForm.logoDataUrl) {
-        toast('Choose a logo file first'); 
+      if (!flyerForm?.logoDataUrl) {
+        alert('Choose a logo file first');
         return;
       }
-      const r = await fetch('/api/agent/upload', {
+      setFlyerBusy(true);
+
+      const res = await fetch('/api/agent/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           dataUrl: flyerForm.logoDataUrl,
           filename: 'logo',
-          remember: true, // also save to agent_profiles
+          remember: true,
         }),
       });
-      const j = await r.json();
+      const j = await res.json();
       if (!j?.ok) throw new Error(j?.error || 'Upload failed');
+
       setFlyerForm(prev => ({ ...prev, logoUrl: j.url }));
-      toast('Logo saved to profile');
+      alert('Logo saved to profile');
     } catch (e) {
       console.error(e);
-      toast('Upload failed');
+      alert('Upload failed');
+    } finally {
+      setFlyerBusy(false);
     }
   }
 
-  /* ------------------------ flyer generation (supports multiple templates) ------------------------ */
-  async function handleFlyerPDF(text, opts = {}) {
+  async function handleGeneratePdf() {
     try {
-      const mod = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
-      const jsPDF = (mod?.jspdf || window.jspdf)?.jsPDF;
-      if (!jsPDF) throw new Error('jspdf not available');
+      setFlyerBusy(true);
 
-      const doc = new jsPDF({ unit: 'pt', format: 'letter' }); // 612 x 792
-      const M = 48, W = 612, H = 792;
-      const colGap = 24;
-      const colW = (W - M*2 - colGap) / 2;
-      const leftX = M, rightX = M + colW + colGap;
+      // persist profile (agent name/email/phone/brokerage, logoUrl)
+      await fetch('/api/agent/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_name: flyerForm.agent_name || '',
+          agent_email: flyerForm.agent_email || '',
+          agent_phone: flyerForm.agent_phone || '',
+          brokerage: flyerForm.brokerage || '',
+          logo_url: flyerForm.logoUrl || '',
+        }),
+      }).catch(() => {});
 
-      const {
-        agentName = (user?.fullName || user?.username || 'Your Name'),
-        agentEmail = (user?.primaryEmailAddress?.emailAddress || 'you@yourbrokerage.com'),
-        agentPhone = '(___) ___-____',
-        brokerage = '',
-        logoDataUrl = '',
-        photoDataUrl = '',
-        targetUrl = 'https://app.listgenie.ai',
-        template = 'standard', // 'standard' | 'openHouse'
-        ohDate = '',
-        ohTime = '',
-        ohAddress = '',
-        ohUrl = '',
-        showBrandHeader = false,
-        showBrandFooter = true,
-      } = opts;
+      // Take the last assistant text as body
+      const last = [...messages].reverse().find(m => m.role === 'assistant');
+      const bodyText = last?.text || '';
 
-      const parsed = parseListingForFlyer(text);
+      // Request PDFs (one or two)
+      const payload = {
+        body: bodyText,
+        standard: !!flyerForm.useStandard,
+        open_house: !!flyerForm.useOpenHouse,
+        oh: {
+          date: flyerForm.oh_date || '',
+          time: flyerForm.oh_time || '',
+          address: flyerForm.oh_address || '',
+          maps_url: flyerForm.oh_maps_url || '',
+        },
+        agent: {
+          name: flyerForm.agent_name || '',
+          email: flyerForm.agent_email || '',
+          phone: flyerForm.agent_phone || '',
+          brokerage: flyerForm.brokerage || '',
+          logo_url: flyerForm.logoUrl || '',
+        },
+      };
 
-      // Optional brand header (subtle)
-      let topY = M;
-      if (showBrandHeader) {
-        const headerH = 88;
-        doc.setFillColor(15, 18, 24); doc.rect(0, 0, W, headerH, 'F');
-        doc.setDrawColor(124, 92, 255); doc.setLineWidth(1); doc.line(0, headerH, W, headerH);
-        doc.setTextColor('#E9ECF1'); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
-        doc.text('ListGenie — Property Flyer', M, 54);
-        topY = headerH + 14;
-      }
+      const r = await fetch('/api/flyer/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      // Headline
-      doc.setTextColor('#0b0d11');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(26);
-      const headlineLines = wrapText(doc, parsed.headline, W - M*2);
-      let y = topY + 10;
-      headlineLines.forEach(line => { doc.text(line, M, y); y += 28; });
+      if (!r.ok) throw new Error('Failed to generate');
+      // Could be a single blob or a zip; assume API returns application/pdf for one,
+      // or multipart-like JSON with array of base64s. We’ll handle both.
 
-      // Subhead
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#4b5563');
-      doc.text(parsed.subhead, M, y + 8);
-      y += 32;
-
-      // Open House banner strip (if template)
-      if (template === 'openHouse') {
-        const bandH = 44;
-        doc.setFillColor(245, 243, 255);
-        doc.roundedRect(M, y, W - M*2, bandH, 8, 8, 'F');
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor('#6b21a8');
-        let bandText = 'Open House';
-        const parts = [ohDate, ohTime, ohAddress].filter(Boolean);
-        if (parts.length) bandText += ` — ${parts.join(' • ')}`;
-        doc.text(bandText, M + 12, y + 28);
-
-        // QR to maps/url if provided
-        if (ohUrl) {
-          const qrPng = await fetchImageAsDataURL(
-            `https://api.qrserver.com/v1/create-qr-code/?size=108x108&data=${encodeURIComponent(ohUrl)}`
-          );
-          if (qrPng) {
-            doc.addImage(qrPng, 'PNG', W - M - 108 - 8, y + (bandH - 108) / 2, 108, 108);
-          }
-        }
-        y += bandH + 16;
-      }
-
-      // Right photo
-      const photoY = y;
-      const photoH = 260;
-      if (photoDataUrl) {
-        doc.addImage(photoDataUrl, 'JPEG', rightX, photoY, colW, photoH, undefined, 'FAST');
-        doc.setDrawColor(210); doc.roundedRect(rightX, photoY, colW, photoH, 12, 12);
+      const ct = r.headers.get('Content-Type') || '';
+      if (ct.includes('application/pdf')) {
+        const blob = await r.blob();
+        downloadBlob(blob, 'listgenie-flyer.pdf');
       } else {
-        doc.setDrawColor(210); doc.setFillColor(244, 246, 249);
-        doc.roundedRect(rightX, photoY, colW, photoH, 12, 12, 'FD');
-        doc.setFont('helvetica', 'bold'); doc.setTextColor('#6b7280'); doc.setFontSize(12);
-        doc.text('Property Photo', rightX + colW/2, photoY + photoH/2, { align: 'center' });
+        const j = await r.json();
+        if (Array.isArray(j?.files)) {
+          // { name, data: base64, contentType }
+          for (const f of j.files) {
+            const b = await (await fetch(`data:${f.contentType};base64,${f.data}`)).blob();
+            downloadBlob(b, f.name || 'flyer.pdf');
+          }
+        } else if (j?.file) {
+          const b = await (await fetch(`data:${j.file.contentType};base64,${j.file.data}`)).blob();
+          downloadBlob(b, j.file.name || 'flyer.pdf');
+        } else {
+          throw new Error('Unexpected flyer response');
+        }
       }
 
-      // Left highlights
-      doc.setTextColor('#0b0d11'); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-      doc.text('Highlights', leftX, y);
-      y += 18;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
-      parsed.bullets.slice(0,5).forEach(line => { y = drawBulletLine(doc, line, leftX, y, colW, 16); y += 2; });
-
-      // Feature band under photo
-      const bandY = photoY + photoH + 18;
-      doc.setFillColor(245, 243, 255);
-      doc.roundedRect(rightX, bandY, colW, 64, 10, 10, 'F');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor('#6b21a8');
-      const feat = [
-        parsed.beds && `${parsed.beds} Beds`,
-        parsed.baths && `${parsed.baths} Baths`,
-        parsed.sqft && `${parsed.sqft} Sq Ft`,
-        parsed.year && `Built ${parsed.year}`,
-      ].filter(Boolean).join('  •  ');
-      doc.text(feat || 'Spacious • Updated • Move-in Ready', rightX + 12, bandY + 24);
-
-      // Overview
-      const narrativeTop = Math.max(y + 16, bandY + 100);
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor('#0b0d11');
-      doc.text('Overview', leftX, narrativeTop);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#111827');
-      let bodyY = narrativeTop + 18;
-      wrapText(doc, parsed.narrative || parsed.body, colW).slice(0, 28)
-        .forEach(line => { doc.text(line, leftX, bodyY); bodyY += 16; });
-
-      // Footer with agent + brokerage + logo
-      const footerY = H - 96;
-      doc.setDrawColor(230); doc.line(M, footerY, W - M, footerY);
-
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor('#0b0d11');
-      doc.text(agentName || 'Your Name', M, footerY + 24);
-      doc.setFont('helvetica', 'normal'); doc.setTextColor('#4b5563');
-      const agentLine = [agentEmail, agentPhone].filter(Boolean).join('  •  ');
-      doc.text(agentLine, M, footerY + 40);
-      if (brokerage) doc.text(brokerage, M, footerY + 56);
-
-      if (logoDataUrl) {
-        doc.addImage(logoDataUrl, 'PNG', W - M - 120, footerY + 8, 120, 48, undefined, 'FAST');
-      }
-
-      if (showBrandFooter) {
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor('#6b7280');
-        doc.text('Generated with ListGenie.ai', W/2, footerY + 56, { align: 'center' });
-      }
-
-      doc.save(template === 'openHouse' ? 'open-house-flyer.pdf' : 'listing-flyer.pdf');
+      setShowFlyer(false);
     } catch (e) {
       console.error(e);
-      toast('Could not generate PDF (network blocked?)');
+      alert('Could not generate PDF');
+    } finally {
+      setFlyerBusy(false);
     }
   }
 
-  /* ------------------------ render ------------------------ */
+  // ----- Render -----
   return (
-    <div className="page">
-      <SignedIn>
-        <div className="header">
-          <h1>ListGenie.ai Chat</h1>
-          <span className="pill">{isPro ? 'Pro' : trialStatus === 'active' ? 'Trial' : 'Free'}</span>
-        </div>
-        <p className="sub">Generate polished real estate listings plus social variants.</p>
+    <>
+      <Head>
+        <title>ListGenie.ai — Chat</title>
+      </Head>
 
-        <div className="content">
-          {/* tone */}
-          <div className="tone-row">
-            {TONE_OPTIONS.map(t => (
-              <button key={t} className={`tone ${t===tone?'on':''}`} onClick={() => setTone(t)}>{t}</button>
-            ))}
+      <main className="min-h-screen bg-gradient-to-b from-[#0b0e14] to-[#0f1320] text-white">
+        <div className="mx-auto w-full max-w-5xl px-4 py-6">
+
+          {/* title */}
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">ListGenie.ai Chat</h1>
+            {/* Pro indicator */}
+            <span className="text-xs rounded-full bg-white/10 px-2 py-0.5">{user ? 'Pro' : 'Free'}</span>
           </div>
+          <p className="text-white/70 mt-1">
+            Generate polished real estate listings plus social variants.
+          </p>
 
-          {/* examples */}
+          {/* tone */}
+          <section className="mt-4">
+            <div className="flex flex-wrap gap-2">
+              <Chip active={tone === 'mls'} onClick={() => setTone('mls')}>MLS-ready</Chip>
+              <Chip active={tone === 'social'} onClick={() => setTone('social')}>Social caption</Chip>
+              <Chip active={tone === 'luxury'} onClick={() => setTone('luxury')}>Luxury tone</Chip>
+              <Chip active={tone === 'concise'} onClick={() => setTone('concise')}>Concise</Chip>
+            </div>
+          </section>
+
+          {/* compact examples */}
           {!sentOnce && (
-            <div className="examples">
-              {EXAMPLES.map((ex, i) => (
-                <button key={i} className="example-chip" onClick={() => setInput(ex)}>{ex}</button>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+              {examples.map((ex, i) => (
+                <button
+                  key={i}
+                  className="truncate rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-white hover:bg-white/10"
+                  onClick={() => setInput(ex)}
+                  title={ex}
+                >
+                  {ex}
+                </button>
               ))}
             </div>
           )}
 
-          {/* chat */}
-          <div className="chat" ref={scrollRef}>
-            {!sentOnce && (
-              <div className="bubble assistant">
-                Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.
-              </div>
-            )}
-
-            {messages.map(m => {
-              const clean = coerceToReadableText(m.text);
-              return (
-                <div key={m.at} className={`bubble ${m.role==='assistant'?'assistant':'user'}`}>
-                  {clean}
-                  {m.role==='assistant' && (
-                    <div className="tools">
-                      <button className="tool" onClick={() => handleCopy(clean)}>Copy</button>
-                      <button className="tool" onClick={() => handleSave(clean)}>Save</button>
+          {/* messages */}
+          <section className="mt-4 space-y-3">
+            {messages.map((m, idx) => (
+              <div key={idx} className="rounded-xl border border-white/10 bg-[#12141a]">
+                <div className="flex items-center justify-between px-3 py-2 text-xs text-white/60">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-md bg-white/10 px-2 py-0.5">{m.role === 'user' ? 'You' : 'ListGenie'}</span>
+                    <span>{m.at}</span>
+                  </div>
+                  {m.role === 'assistant' && (
+                    <div className="flex items-center gap-2">
                       <button
-                        className="tool primary"
+                        className="rounded-md bg-white/10 px-3 py-1 text-white hover:bg-white/20"
+                        onClick={() => copyToClipboard(m.text)}
+                      >
+                        Copy
+                      </button>
+                      <button
+                        className="rounded-md bg-white/10 px-3 py-1 text-white hover:bg-white/20"
                         onClick={() => {
-                          setFlyerDraftText(clean);
-                          setFlyerOpen(true);
+                          // optional save to your /api/listings/save
+                          fetch('/api/listings/save', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              title: (m.text || '').slice(0, 60),
+                              payload: { text: m.text, tone },
+                            }),
+                          }).catch(() => {});
+                          alert('Saved to your listings');
                         }}
+                      >
+                        Save
+                      </button>
+                      <button
+                        className="rounded-md bg-indigo-500/80 px-3 py-1 text-white hover:bg-indigo-500"
+                        onClick={() => setShowFlyer(true)}
                       >
                         Flyer (PDF)
                       </button>
                     </div>
                   )}
                 </div>
-              );
-            })}
+                <div className="px-4 pb-4 whitespace-pre-wrap text-white/90">
+                  {m.text || '[empty]'}
+                </div>
+              </div>
+            ))}
 
-            {thinking && (
-              <div className="thinking"><span className="dot"/><span className="dot"/><span className="dot"/>&nbsp;Thinking</div>
+            {loading && (
+              <div className="px-2"><ThinkingBubble /></div>
             )}
-          </div>
+          </section>
 
           {/* input */}
-          <form className="input-row" onSubmit={handleSend}>
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder="Describe the property and any highlights…"
-              rows={3}
-            />
-            <button className="send" type="submit" disabled={!input.trim() || thinking}>
-              {thinking ? 'Generating…' : 'Send'}
-            </button>
-          </form>
-
-          <Gate show={gated} />
+          <section className="mt-4">
+            <div className="rounded-xl border border-white/10 bg-[#12141a] p-3">
+              <textarea
+                className="h-28 w-full resize-none rounded-md bg-white/5 p-3 text-white outline-none"
+                placeholder="Describe the property and any highlights…"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+              />
+              <div className="mt-3 flex items-center justify-end">
+                <button
+                  onClick={onSend}
+                  disabled={loading}
+                  className="rounded-md bg-indigo-500/80 px-4 py-1.5 text-white hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {loading ? 'Generating…' : 'Send'}
+                </button>
+              </div>
+            </div>
+          </section>
         </div>
 
         {/* Flyer modal */}
         <FlyerModal
-          open={flyerOpen}
-          onClose={() => setFlyerOpen(false)}
+          open={showFlyer}
+          onClose={() => setShowFlyer(false)}
           form={flyerForm}
-          onFormChange={setFlyerForm}
-          templates={templates}
-          setTemplates={setTemplates}
-          rememberAgent={rememberAgent}
-          setRememberAgent={setRememberAgent}
-          onSubmit={async () => {
-            const clean = coerceToReadableText(flyerDraftText);
-            const selected = templates.length ? templates : ['standard'];
-
-            // Persist profile if requested
-            if (rememberAgent) {
-              try {
-                await fetch('/api/agent/save', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: flyerForm.agentName || null,
-                    email: flyerForm.agentEmail || null,
-                    phone: flyerForm.agentPhone || null,
-                    brokerage: flyerForm.brokerage || null,
-                    logo_url: flyerForm.logoUrl || null,
-                  }),
-                });
-              } catch (e) { console.warn('agent/save failed', e); }
-            }
-
-            // Prefer uploaded logo; else use persisted URL (if resolves)
-            let resolvedLogo = flyerForm.logoDataUrl;
-            if (!resolvedLogo && flyerForm.logoUrl) {
-              resolvedLogo = await fetchImageAsDataURL(flyerForm.logoUrl);
-            }
-
-            for (const tpl of selected) {
-              await handleFlyerPDF(clean, {
-                agentName: flyerForm.agentName,
-                agentEmail: flyerForm.agentEmail,
-                agentPhone: flyerForm.agentPhone,
-                brokerage: flyerForm.brokerage,
-                logoDataUrl: resolvedLogo || '',
-                photoDataUrl: flyerForm.photoDataUrl,
-                template: tpl,
-                ohDate: flyerForm.ohDate,
-                ohTime: flyerForm.ohTime,
-                ohAddress: flyerForm.ohAddress,
-                ohUrl: flyerForm.ohUrl,
-                showBrandHeader: false,
-                showBrandFooter: true,
-              });
-            }
-            setFlyerOpen(false);
-          }}
+          setForm={setFlyerForm}
+          onGenerate={handleGeneratePdf}
+          onSaveLogo={uploadLogoAndRemember}
+          flyerBusy={flyerBusy}
         />
-      </SignedIn>
-
-      <SignedOut>
-        <div className="signedout">
-          <p>You’ll need to sign in to use ListGenie.</p>
-          <SignInButton mode="modal"><button className="btn primary">Sign in</button></SignInButton>
-        </div>
-      </SignedOut>
-
-      <style jsx>{`
-        .page{min-height:100vh;background:radial-gradient(1200px 500px at 50% -180px,rgba(124,92,255,.2),transparent 70%),#0b0d11;color:#e9ecf1}
-        .header{max-width:900px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center}
-        h1{margin:0;font-size:24px}
-        .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05)}
-        .sub{max-width:900px;margin:6px auto 14px;color:#b9c0cc;padding:0 16px}
-        .content{max-width:900px;margin:0 auto;padding:0 16px 120px}
-        .tone-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
-        .tone{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:#dfe3f0;font-size:14px}
-        .tone.on{background:#7c5cff;border-color:#6b54f2;color:#fff}
-        .examples{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:10px}
-        .example-chip{text-align:left;padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;opacity:.92;font-size:13px}
-        .example-chip:hover{background:rgba(255,255,255,.1)}
-        .chat{border:1px solid rgba(255,255,255,.12);background:rgba(14,17,23,.6);border-radius:14px;padding:10px;height:520px;overflow-y:auto}
-        .bubble{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;padding:12px;margin:10px 6px;white-space:pre-wrap;line-height:1.5}
-        .assistant{background:rgba(124,92,255,.12);border-color:rgba(124,92,255,.35)}
-        .input-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px;align-items:center}
-        textarea{width:100%;resize:vertical;min-height:64px;color:#e9ecf1;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px}
-        .send{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#7c5cff;color:#fff}
-        .send:disabled{opacity:.6;cursor:not-allowed}
-        .tools{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
-        .tool{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:12px}
-        .tool.primary{background:#7c5cff;border-color:#6b54f2}
-        .gate{margin-top:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;padding:16px}
-        .gate-title{font-weight:700;margin-bottom:6px}
-        .gate-body{color:#b9c0cc;margin:0 0 10px}
-        .signedout{max-width:600px;margin:80px auto;text-align:center}
-        .btn.primary{display:inline-block;text-decoration:none;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#7c5cff;color:#fff}
-        .thinking{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.05);margin:10px 6px;color:#b9c0cc;font-size:12px}
-        @keyframes lgBounce {0%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}100%{opacity:.25;transform:translateY(0)}}
-        .dot{width:6px;height:6px;border-radius:50%;background:#d1d5db;display:inline-block;animation:lgBounce 1.2s infinite}
-        .dot:nth-child(1){animation-delay:0s}.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
-        .lg-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:rgba(22,22,24,.9);color:#fff;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font-size:12px;z-index:9999}
-      `}</style>
-    </div>
+      </main>
+    </>
   );
 }
