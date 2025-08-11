@@ -1,6 +1,6 @@
 // pages/chat.js
 import { useEffect, useRef, useState } from 'react';
-import { useUser, SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 import useUserPlan from '@/lib/useUserPlan';
 
 const EXAMPLES = [
@@ -11,55 +11,48 @@ const EXAMPLES = [
 
 const TONE_OPTIONS = ['MLS-ready', 'Social caption', 'Luxury tone', 'Concise'];
 
-/* ---------- helpers ---------- */
+/* ------------------------ helpers: text handling ------------------------ */
+
 function coerceToReadableText(s) {
   if (s == null) return '';
 
-  // If it's already a string, try to parse JSON strings too
   if (typeof s === 'string') {
     const str = s.trim();
     if (str.startsWith('{') || str.startsWith('[')) {
-      try { return coerceToReadableText(JSON.parse(str)); } catch { /* fall through */ }
+      try { return coerceToReadableText(JSON.parse(str)); } catch {}
     }
     return str;
   }
 
-  // If it's an object, walk the common shapes we return
   if (typeof s === 'object') {
-    // direct body
     if (typeof s.body === 'string') return s.body;
-
-    // { mls: { body: "" }, ... }
     if (s.mls && typeof s.mls.body === 'string') return s.mls.body;
-
-    // { message: ... }
     if (s.message !== undefined) return coerceToReadableText(s.message);
-
-    // { content: "" | {...} }
     if (s.content !== undefined) return coerceToReadableText(s.content);
-
-    // { choices: [{ message: { content } }] } (OpenAI-like)
     if (Array.isArray(s.choices) && s.choices[0]?.message?.content) {
       return coerceToReadableText(s.choices[0].message.content);
     }
-
-    // { messages: [ ... ] } -> join strings
     if (Array.isArray(s.messages)) {
       return s.messages.map(coerceToReadableText).filter(Boolean).join('\n\n');
     }
-
-    // Try some common fields
     for (const k of ['text', 'output', 'result']) {
       if (typeof s[k] === 'string') return s[k];
     }
-
-    // Last resort: JSON stringify but prettified (rarely needed)
-    try { return JSON.stringify(s, null, 2); } catch { /* ignore */ }
+    try { return JSON.stringify(s, null, 2); } catch {}
   }
 
-  // number/boolean/etc.
   return String(s);
 }
+
+function makeTitleFrom(t) {
+  const first = (String(t || '')
+    .split('\n')
+    .map(s => s.trim())
+    .find(Boolean)) || 'Listing';
+  return first.length > 70 ? `${first.slice(0, 67)}…` : first;
+}
+
+/* ------------------------ helpers: flyer parsing ------------------------ */
 
 function wrapText(doc, text, maxWidth) {
   const safe = String(text || '');
@@ -80,12 +73,6 @@ function wrapText(doc, text, maxWidth) {
   return lines;
 }
 
-function makeTitleFrom(t) {
-  const first = (String(t || '').split('\n').map(s => s.trim()).find(Boolean)) || 'Listing';
-  return first.length > 70 ? `${first.slice(0, 67)}…` : first;
-}
-
-/* Flyer parsing + drawing helpers */
 function parseListingForFlyer(raw) {
   const text = String(raw || '').replace(/\s+/g, ' ').trim();
 
@@ -131,35 +118,13 @@ function drawBulletLine(doc, text, x, y, maxWidth, lineHeight) {
   return y + lineHeight * lines.length;
 }
 
-/* Inline SVG logo we rasterize at runtime for the flyer */
-const BRAND_SVG_STRING = `
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#7C5CFF"/>
-      <stop offset="100%" stop-color="#5BC0FF"/>
-    </linearGradient>
-  </defs>
-  <rect x="12" y="12" width="232" height="232" rx="48" fill="#0f1218" stroke="url(#g)" stroke-width="2"/>
-  <path d="M150 36l-54 84h40l-30 100 84-124h-44l4-60z" fill="url(#g)"/>
-  <path d="M56 188c18 20 48 32 76 32 38 0 66-16 82-44" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round"/>
-</svg>
-`;
-
-async function svgToPngDataURL(svgString, width = 128, height = 128) {
-  try {
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
-    const canvas = document.createElement('canvas');
-    canvas.width = width; canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, width, height);
-    URL.revokeObjectURL(url);
-    return canvas.toDataURL('image/png');
-  } catch { return null; }
+async function fileToDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result);
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
 }
 
 async function fetchImageAsDataURL(url) {
@@ -176,6 +141,8 @@ async function fetchImageAsDataURL(url) {
   } catch { return null; }
 }
 
+/* ------------------------ inline Pro gate ------------------------ */
+
 const Gate = ({ show }) => {
   if (!show) return null;
   return (
@@ -189,18 +156,144 @@ const Gate = ({ show }) => {
   );
 };
 
-/* ---------- page ---------- */
+/* ------------------------ Flyer modal ------------------------ */
+
+function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, onSubmit }) {
+  if (!open) return null;
+
+  const handleFile = async (e, key) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await fileToDataURL(file);
+    onFormChange({ ...form, [key]: dataUrl });
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-title">Flyer details</div>
+
+        <div className="modal-row">
+          <label className="radio">
+            <input type="radio" name="tpl" checked={template==='standard'} onChange={()=>setTemplate('standard')}/>
+            <span>Standard</span>
+          </label>
+          <label className="radio">
+            <input type="radio" name="tpl" checked={template==='openHouse'} onChange={()=>setTemplate('openHouse')}/>
+            <span>Open House</span>
+          </label>
+        </div>
+
+        <div className="modal-grid">
+          <label>
+            Agent name
+            <input value={form.agentName} onChange={e=>onFormChange({...form,agentName:e.target.value})}/>
+          </label>
+          <label>
+            Agent email
+            <input value={form.agentEmail} onChange={e=>onFormChange({...form,agentEmail:e.target.value})}/>
+          </label>
+          <label>
+            Agent phone
+            <input value={form.agentPhone} onChange={e=>onFormChange({...form,agentPhone:e.target.value})}/>
+          </label>
+          <label>
+            Brokerage
+            <input value={form.brokerage} onChange={e=>onFormChange({...form,brokerage:e.target.value})}/>
+          </label>
+          <label>
+            Brokerage logo (PNG/JPG/SVG)
+            <input type="file" accept="image/*,.svg" onChange={e=>handleFile(e,'logoDataUrl')}/>
+          </label>
+          <label>
+            Property photo (PNG/JPG)
+            <input type="file" accept="image/*" onChange={e=>handleFile(e,'photoDataUrl')}/>
+          </label>
+
+          {template === 'openHouse' && (
+            <>
+              <label>
+                Date
+                <input value={form.ohDate} onChange={e=>onFormChange({...form,ohDate:e.target.value})} placeholder="Aug 24, 1–4 PM"/>
+              </label>
+              <label>
+                Time range
+                <input value={form.ohTime} onChange={e=>onFormChange({...form,ohTime:e.target.value})} placeholder="1:00–4:00 PM"/>
+              </label>
+              <label>
+                Address
+                <input value={form.ohAddress} onChange={e=>onFormChange({...form,ohAddress:e.target.value})} placeholder="123 Main St, City"/>
+              </label>
+              <label>
+                Link/Maps URL (for QR)
+                <input value={form.ohUrl} onChange={e=>onFormChange({...form,ohUrl:e.target.value})} placeholder="https://maps..."/>
+              </label>
+            </>
+          )}
+        </div>
+
+        <div className="modal-actions">
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <button className="btn primary" onClick={onSubmit}>Generate PDF</button>
+        </div>
+
+        <style jsx>{`
+          .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+          .modal{width:min(760px,92vw);background:#0f1218;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px}
+          .modal-title{font-weight:700;margin-bottom:10px}
+          .modal-row{display:flex;gap:16px;margin-bottom:10px}
+          .radio{display:flex;align-items:center;gap:8px;font-size:13px;color:#dfe3f0}
+          .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+          label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#b9c0cc}
+          input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;color:#e9ecf1}
+          .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+          .btn{padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:#fff}
+          .btn.primary{background:#7c5cff;border-color:#6b54f2}
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------ main page ------------------------ */
+
 export default function ChatPage() {
   const { user } = useUser();
-  const { plan, isPro, trialStatus } = useUserPlan();
+  const { isPro, trialStatus } = useUserPlan();
+
   const [tone, setTone] = useState(TONE_OPTIONS[0]);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]); // {role, text, at, tone?}
   const [thinking, setThinking] = useState(false);
   const [sentOnce, setSentOnce] = useState(false);
-  const scrollRef = useRef(null);
 
+  const [flyerOpen, setFlyerOpen] = useState(false);
+  const [flyerDraftText, setFlyerDraftText] = useState('');
+  const [flyerForm, setFlyerForm] = useState({
+    agentName: '',
+    agentEmail: '',
+    agentPhone: '',
+    brokerage: '',
+    logoDataUrl: '',
+    photoDataUrl: '',
+    ohDate: '',
+    ohTime: '',
+    ohAddress: '',
+    ohUrl: '',
+  });
+  const [flyerTemplate, setFlyerTemplate] = useState('standard'); // 'standard' | 'openHouse'
+
+  const scrollRef = useRef(null);
   const canGenerate = isPro || trialStatus === 'active';
+  const gated = !canGenerate;
+
+  useEffect(() => {
+    setFlyerForm(prev => ({
+      ...prev,
+      agentName: prev.agentName || (user?.fullName || user?.username || ''),
+      agentEmail: prev.agentEmail || (user?.primaryEmailAddress?.emailAddress || ''),
+    }));
+  }, [user]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -214,13 +307,10 @@ export default function ChatPage() {
     setTimeout(() => el.remove(), 1700);
   }
 
-  function setExample(s) { setInput(s); }
-
   async function handleSend(e) {
     e?.preventDefault?.();
     const trimmed = input.trim();
     if (!trimmed) return;
-
     setMessages(prev => [...prev, { role: 'user', text: trimmed, at: Date.now() }]);
     setInput('');
     setThinking(true);
@@ -244,15 +334,10 @@ export default function ChatPage() {
     };
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
       let data; try { data = await res.json(); } catch {}
-      const text = coerceToReadableText(data?.message ?? data ?? '');
+      const text = coerceToReadableText(data);
       setMessages(prev => [...prev, { role: 'assistant', text, at: Date.now(), tone }]);
     } catch (err) {
       console.error(err);
@@ -284,6 +369,8 @@ export default function ChatPage() {
     }
   }
 
+  /* ------------------------ flyer generation ------------------------ */
+
   async function handleFlyerPDF(text, opts = {}) {
     try {
       const mod = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
@@ -296,45 +383,91 @@ export default function ChatPage() {
       const colW = (W - M*2 - colGap) / 2;
       const leftX = M, rightX = M + colW + colGap;
 
-      const targetUrl = opts.url || 'https://app.listgenie.ai';
+      const {
+        agentName = (user?.fullName || user?.username || 'Your Name'),
+        agentEmail = (user?.primaryEmailAddress?.emailAddress || 'you@yourbrokerage.com'),
+        agentPhone = '(___) ___-____',
+        brokerage = '',
+        logoDataUrl = '',
+        photoDataUrl = '',
+        targetUrl = 'https://app.listgenie.ai',
+        template = 'standard', // 'standard' | 'openHouse'
+        ohDate = '',
+        ohTime = '',
+        ohAddress = '',
+        ohUrl = '',
+        showBrandHeader = false,
+        showBrandFooter = true,
+      } = opts;
+
       const parsed = parseListingForFlyer(text);
 
-      const logoPng = await svgToPngDataURL(BRAND_SVG_STRING, 88, 88);
-      const qrPng = await fetchImageAsDataURL(
-        `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(targetUrl)}`
-      );
+      // Optional brand header (subtle)
+      let topY = M;
+      if (showBrandHeader) {
+        doc.setFillColor(15, 18, 24); doc.rect(0, 0, W, 88, 'F');
+        doc.setDrawColor(124, 92, 255); doc.setLineWidth(1); doc.line(0, 88, W, 88);
+        doc.setTextColor('#E9ECF1'); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+        doc.text('ListGenie — Property Flyer', M, 54);
+        topY = 102;
+      }
 
-      // Header
-      doc.setFillColor(15, 18, 24); doc.rect(0, 0, W, 96, 'F');
-      doc.setDrawColor(124, 92, 255); doc.setLineWidth(1); doc.line(0, 96, W, 96);
-
-      if (logoPng) doc.addImage(logoPng, 'PNG', M, 24, 44, 44);
-      doc.setTextColor('#E9ECF1');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
-      doc.text('ListGenie — Property Flyer', M + 56, 54);
-
-      // Headline / Subhead
+      // Headline
       doc.setTextColor('#0b0d11');
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(22);
-      doc.text(wrapText(doc, parsed.headline, W - M*2), M, 128);
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#4b5563');
-      doc.text(parsed.subhead, M, 150);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(26);
+      const headlineLines = wrapText(doc, parsed.headline, W - M*2);
+      let y = topY + 10;
+      headlineLines.forEach(line => { doc.text(line, M, y); y += 28; });
 
-      // Right photo box
-      doc.setDrawColor(210); doc.setFillColor(244, 246, 249);
-      const photoY = 180, photoH = 260;
-      doc.roundedRect(rightX, photoY, colW, photoH, 12, 12, 'FD');
-      doc.setFont('helvetica', 'bold'); doc.setTextColor('#6b7280'); doc.setFontSize(12);
-      doc.text('Property Photo', rightX + colW/2, photoY + photoH/2, { align: 'center' });
+      // Subhead
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#4b5563');
+      doc.text(parsed.subhead, M, y + 8);
+      y += 32;
+
+      // Open House banner strip (if template)
+      if (template === 'openHouse') {
+        const bandH = 44;
+        doc.setFillColor(245, 243, 255);
+        doc.roundedRect(M, y, W - M*2, bandH, 8, 8, 'F');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor('#6b21a8');
+        let bandText = 'Open House';
+        const parts = [ohDate, ohTime, ohAddress].filter(Boolean);
+        if (parts.length) bandText += ` — ${parts.join(' • ')}`;
+        doc.text(bandText, M + 12, y + 28);
+
+        // QR to maps/url if provided
+        if (ohUrl) {
+          const qrPng = await fetchImageAsDataURL(
+            `https://api.qrserver.com/v1/create-qr-code/?size=108x108&data=${encodeURIComponent(ohUrl)}`
+          );
+          if (qrPng) {
+            doc.addImage(qrPng, 'PNG', W - M - 108 - 8, y + (bandH - 108) / 2, 108, 108);
+          }
+        }
+        y += bandH + 16;
+      }
+
+      // Right photo
+      const photoY = y;
+      const photoH = 260;
+      if (photoDataUrl) {
+        doc.addImage(photoDataUrl, 'JPEG', rightX, photoY, colW, photoH, undefined, 'FAST');
+        doc.setDrawColor(210); doc.roundedRect(rightX, photoY, colW, photoH, 12, 12);
+      } else {
+        doc.setDrawColor(210); doc.setFillColor(244, 246, 249);
+        doc.roundedRect(rightX, photoY, colW, photoH, 12, 12, 'FD');
+        doc.setFont('helvetica', 'bold'); doc.setTextColor('#6b7280'); doc.setFontSize(12);
+        doc.text('Property Photo', rightX + colW/2, photoY + photoH/2, { align: 'center' });
+      }
 
       // Left highlights
-      let y = 188;
       doc.setTextColor('#0b0d11'); doc.setFont('helvetica', 'bold'); doc.setFontSize(14);
-      doc.text('Highlights', leftX, y); y += 22;
+      doc.text('Highlights', leftX, y);
+      y += 18;
       doc.setFont('helvetica', 'normal'); doc.setFontSize(12);
-      parsed.bullets.slice(0,5).forEach(line => { y = drawBulletLine(doc, line, leftX, y, colW, 14); y += 2; });
+      parsed.bullets.slice(0,5).forEach(line => { y = drawBulletLine(doc, line, leftX, y, colW, 16); y += 2; });
 
-      // Band under photo
+      // Feature band under photo
       const bandY = photoY + photoH + 18;
       doc.setFillColor(245, 243, 255);
       doc.roundedRect(rightX, bandY, colW, 64, 10, 10, 'F');
@@ -348,34 +481,35 @@ export default function ChatPage() {
       doc.text(feat || 'Spacious • Updated • Move-in Ready', rightX + 12, bandY + 24);
 
       // Overview
-      const narrativeTop = Math.max(y + 12, bandY + 100);
+      const narrativeTop = Math.max(y + 16, bandY + 100);
       doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor('#0b0d11');
       doc.text('Overview', leftX, narrativeTop);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(12); doc.setTextColor('#111827');
-      const bodyLines = wrapText(doc, parsed.narrative || parsed.body, colW);
       let bodyY = narrativeTop + 18;
-      bodyLines.slice(0, 28).forEach(line => { doc.text(line, leftX, bodyY); bodyY += 16; });
+      wrapText(doc, parsed.narrative || parsed.body, colW).slice(0, 28)
+        .forEach(line => { doc.text(line, leftX, bodyY); bodyY += 16; });
 
-      // Footer
+      // Footer with agent + brokerage + logo
       const footerY = H - 96;
       doc.setDrawColor(230); doc.line(M, footerY, W - M, footerY);
 
-      const agentName  = String(user?.fullName || user?.username || 'Your Name');
-      const agentEmail = String(user?.primaryEmailAddress?.emailAddress || 'you@yourbrokerage.com');
-      const agentPhone = '(___) ___-____';
-
       doc.setFont('helvetica', 'bold'); doc.setFontSize(12); doc.setTextColor('#0b0d11');
-      doc.text(agentName, M, footerY + 24);
+      doc.text(agentName || 'Your Name', M, footerY + 24);
       doc.setFont('helvetica', 'normal'); doc.setTextColor('#4b5563');
-      doc.text(`${agentEmail}  •  ${agentPhone}`, M, footerY + 40);
+      const agentLine = [agentEmail, agentPhone].filter(Boolean).join('  •  ');
+      doc.text(agentLine, M, footerY + 40);
+      if (brokerage) doc.text(brokerage, M, footerY + 56);
 
-      const qrSize = 72, qrX = W - M - qrSize - 12, qrY = footerY + 14;
-      if (qrPng) doc.addImage(qrPng, 'PNG', qrX, qrY, qrSize, qrSize);
-      else { doc.setDrawColor(210); doc.roundedRect(qrX, qrY, qrSize, qrSize, 6, 6); }
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor('#6b7280');
-      doc.text('listgenie.ai', qrX + qrSize/2, qrY + qrSize + 14, { align: 'center' });
+      if (logoDataUrl) {
+        doc.addImage(logoDataUrl, 'PNG', W - M - 120, footerY + 8, 120, 48, undefined, 'FAST');
+      }
 
-      doc.save('listing-flyer.pdf');
+      if (showBrandFooter) {
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor('#6b7280');
+        doc.text('Generated with ListGenie.ai', W/2, footerY + 56, { align: 'center' });
+      }
+
+      doc.save(template === 'openHouse' ? 'open-house-flyer.pdf' : 'listing-flyer.pdf');
       toast('PDF downloaded');
     } catch (e) {
       console.error(e);
@@ -383,7 +517,7 @@ export default function ChatPage() {
     }
   }
 
-  const gated = !canGenerate;
+  /* ------------------------ render ------------------------ */
 
   return (
     <div className="page">
@@ -406,7 +540,7 @@ export default function ChatPage() {
           {!sentOnce && (
             <div className="examples">
               {EXAMPLES.map((ex, i) => (
-                <button key={i} className="example-chip" onClick={() => setExample(ex)}>{ex}</button>
+                <button key={i} className="example-chip" onClick={() => setInput(ex)}>{ex}</button>
               ))}
             </div>
           )}
@@ -419,23 +553,32 @@ export default function ChatPage() {
               </div>
             )}
 
-            {messages.map(m => (
-              <div key={m.at} className={`bubble ${m.role==='assistant'?'assistant':'user'}`}>
-                {coerceToReadableText(m.text)}
-                {m.role==='assistant' && (
-                  <div className="tools">
-                    <button className="tool" onClick={() => handleCopy(m.text)}>Copy</button>
-                    <button className="tool" onClick={() => handleSave(m.text)}>Save</button>
-                    <button className="tool primary" onClick={() => handleFlyerPDF(m.text)}>Flyer (PDF)</button>
-                  </div>
-                )}
-              </div>
-            ))}
+            {messages.map(m => {
+              const clean = coerceToReadableText(m.text);
+              return (
+                <div key={m.at} className={`bubble ${m.role==='assistant'?'assistant':'user'}`}>
+                  {clean}
+                  {m.role==='assistant' && (
+                    <div className="tools">
+                      <button className="tool" onClick={() => handleCopy(clean)}>Copy</button>
+                      <button className="tool" onClick={() => handleSave(clean)}>Save</button>
+                      <button
+                        className="tool primary"
+                        onClick={() => {
+                          setFlyerDraftText(clean);
+                          setFlyerOpen(true);
+                        }}
+                      >
+                        Flyer (PDF)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {thinking && (
-              <div className="thinking">
-                <span className="dot"/><span className="dot"/><span className="dot"/>&nbsp;Thinking
-              </div>
+              <div className="thinking"><span className="dot"/><span className="dot"/><span className="dot"/>&nbsp;Thinking</div>
             )}
           </div>
 
@@ -452,9 +595,36 @@ export default function ChatPage() {
             </button>
           </form>
 
-          {/* was: {gated && <ProGate />} */}
-<Gate show={gated} />
+          <Gate show={gated} />
         </div>
+
+        {/* Flyer modal */}
+        <FlyerModal
+          open={flyerOpen}
+          onClose={() => setFlyerOpen(false)}
+          form={flyerForm}
+          onFormChange={setFlyerForm}
+          template={flyerTemplate}
+          setTemplate={setFlyerTemplate}
+          onSubmit={async () => {
+            setFlyerOpen(false);
+            await handleFlyerPDF(flyerDraftText, {
+              agentName: flyerForm.agentName,
+              agentEmail: flyerForm.agentEmail,
+              agentPhone: flyerForm.agentPhone,
+              brokerage: flyerForm.brokerage,
+              logoDataUrl: flyerForm.logoDataUrl,
+              photoDataUrl: flyerForm.photoDataUrl,
+              template: flyerTemplate,
+              ohDate: flyerForm.ohDate,
+              ohTime: flyerForm.ohTime,
+              ohAddress: flyerForm.ohAddress,
+              ohUrl: flyerForm.ohUrl,
+              showBrandHeader: false,
+              showBrandFooter: true,
+            });
+          }}
+        />
       </SignedIn>
 
       <SignedOut>
@@ -465,10 +635,6 @@ export default function ChatPage() {
       </SignedOut>
 
       <style jsx>{`
-        .gate{margin-top:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;padding:16px}
-.gate-title{font-weight:700;margin-bottom:6px}
-.gate-body{color:#b9c0cc;margin:0 0 10px}
-.btn.primary{display:inline-block;text-decoration:none}
         .page{min-height:100vh;background:radial-gradient(1200px 500px at 50% -180px,rgba(124,92,255,.2),transparent 70%),#0b0d11;color:#e9ecf1}
         .header{max-width:900px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center}
         h1{margin:0;font-size:24px}
@@ -491,8 +657,11 @@ export default function ChatPage() {
         .tools{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
         .tool{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-size:12px}
         .tool.primary{background:#7c5cff;border-color:#6b54f2}
+        .gate{margin-top:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;padding:16px}
+        .gate-title{font-weight:700;margin-bottom:6px}
+        .gate-body{color:#b9c0cc;margin:0 0 10px}
         .signedout{max-width:600px;margin:80px auto;text-align:center}
-        .btn.primary{padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#7c5cff;color:#fff}
+        .btn.primary{display:inline-block;text-decoration:none;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:#7c5cff;color:#fff}
         .thinking{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.05);margin:10px 6px;color:#b9c0cc;font-size:12px}
         @keyframes lgBounce {0%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-2px)}100%{opacity:.25;transform:translateY(0)}}
         .dot{width:6px;height:6px;border-radius:50%;background:#d1d5db;display:inline-block;animation:lgBounce 1.2s infinite}
