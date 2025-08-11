@@ -14,16 +14,51 @@ const TONE_OPTIONS = ['MLS-ready', 'Social caption', 'Luxury tone', 'Concise'];
 /* ---------- helpers ---------- */
 function coerceToReadableText(s) {
   if (s == null) return '';
-  const raw = String(s);
-  try {
-    const maybe = JSON.parse(raw);
-    if (maybe && typeof maybe === 'object') {
-      if (typeof maybe.body === 'string') return maybe.body;
-      if (maybe.mls && typeof maybe.mls.body === 'string') return maybe.mls.body;
-      if (maybe.message && typeof maybe.message.content === 'string') return maybe.message.content;
+
+  // If it's already a string, try to parse JSON strings too
+  if (typeof s === 'string') {
+    const str = s.trim();
+    if (str.startsWith('{') || str.startsWith('[')) {
+      try { return coerceToReadableText(JSON.parse(str)); } catch { /* fall through */ }
     }
-  } catch {}
-  return raw;
+    return str;
+  }
+
+  // If it's an object, walk the common shapes we return
+  if (typeof s === 'object') {
+    // direct body
+    if (typeof s.body === 'string') return s.body;
+
+    // { mls: { body: "" }, ... }
+    if (s.mls && typeof s.mls.body === 'string') return s.mls.body;
+
+    // { message: ... }
+    if (s.message !== undefined) return coerceToReadableText(s.message);
+
+    // { content: "" | {...} }
+    if (s.content !== undefined) return coerceToReadableText(s.content);
+
+    // { choices: [{ message: { content } }] } (OpenAI-like)
+    if (Array.isArray(s.choices) && s.choices[0]?.message?.content) {
+      return coerceToReadableText(s.choices[0].message.content);
+    }
+
+    // { messages: [ ... ] } -> join strings
+    if (Array.isArray(s.messages)) {
+      return s.messages.map(coerceToReadableText).filter(Boolean).join('\n\n');
+    }
+
+    // Try some common fields
+    for (const k of ['text', 'output', 'result']) {
+      if (typeof s[k] === 'string') return s[k];
+    }
+
+    // Last resort: JSON stringify but prettified (rarely needed)
+    try { return JSON.stringify(s, null, 2); } catch { /* ignore */ }
+  }
+
+  // number/boolean/etc.
+  return String(s);
 }
 
 function wrapText(doc, text, maxWidth) {
