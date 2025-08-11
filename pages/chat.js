@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 import useUserPlan from '@/lib/useUserPlan';
+import { createPortal } from 'react-dom';
 
 const EXAMPLES = [
   '3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.',
@@ -159,6 +160,9 @@ const Gate = ({ show }) => {
 /* ------------------------ Flyer modal ------------------------ */
 
 function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, onSubmit }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   if (!open) return null;
 
   const handleFile = async (e, key) => {
@@ -168,7 +172,7 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
     onFormChange({ ...form, [key]: dataUrl });
   };
 
-  return (
+  const modal = (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal-title">Flyer details</div>
@@ -238,7 +242,7 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
         </div>
 
         <style jsx>{`
-          .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000}
+          .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:99999}
           .modal{width:min(760px,92vw);background:#0f1218;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px}
           .modal-title{font-weight:700;margin-bottom:10px}
           .modal-row{display:flex;gap:16px;margin-bottom:10px}
@@ -253,6 +257,9 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
       </div>
     </div>
   );
+
+  // Render into body to avoid parent overflow/z-index issues
+  return mounted ? createPortal(modal, document.body) : null;
 }
 
 /* ------------------------ main page ------------------------ */
