@@ -1,641 +1,432 @@
 // pages/chat.js
-import { useEffect, useMemo, useRef, useState } from 'react';
-import Head from 'next/head';
-import { useUser } from '@clerk/nextjs';
-import ProGate from '@/components/ProGate';
+import { useEffect, useMemo, useRef, useState } from "react";
 
-// ------------ helpers ------------
-function cn(...xs) {
-  return xs.filter(Boolean).join(' ');
-}
+const TONES = ["MLS-ready", "Social caption", "Luxury tone", "Concise"];
 
-function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+const EXAMPLES = [
+  "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.",
+  "Downtown condo: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.",
+  "Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.",
+];
 
-function copyToClipboard(text) {
-  navigator.clipboard?.writeText(text).catch(() => {});
-}
-
-function nowStamp() {
-  const d = new Date();
-  return d.toLocaleString();
-}
-
-/**
- * Try to coerce various model response shapes into readable text.
- * Supports:
- * { type: 'listing', headline, mls:{body}, bullets:[...], variants:[{label,text}] }
- * { blocks:[...] }  // any structured content
- * plain string
- */
-function coerceToReadableText(payload) {
+// best-effort: if model gave us JSON-ish content
+function coerceToReadableText(raw) {
+  if (!raw) return "";
   try {
-    if (typeof payload === 'string') {
-      return payload.trim();
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    // common shapes we produced earlier
+    if (parsed && parsed.message && typeof parsed.message.content === "string") {
+      return parsed.message.content;
     }
-    if (!payload || typeof payload !== 'object') {
-      return '';
-    }
-
-    // common ListingGen shape
-    if (payload.type === 'listing') {
-      const out = [];
-      if (payload.headline) out.push(payload.headline);
-      if (payload.mls?.body) out.push('\n' + payload.mls.body);
-      if (Array.isArray(payload.bullets) && payload.bullets.length) {
-        out.push('\nHighlights:\n• ' + payload.bullets.filter(Boolean).join('\n• '));
-      }
-      if (Array.isArray(payload.variants) && payload.variants.length) {
-        for (const v of payload.variants) {
-          if (!v?.text) continue;
-          if (v.label) out.push(`\n${v.label}:\n${v.text}`);
-          else out.push('\n' + v.text);
-        }
-      }
-      return out.join('\n').trim();
-    }
-
-    // generic blocks -> join text fields
-    if (Array.isArray(payload.blocks)) {
-      return payload.blocks
-        .map(b => (typeof b === 'string' ? b : b?.text || ''))
-        .filter(Boolean)
-        .join('\n')
-        .trim();
-    }
-
-    // best effort: flatten simple object fields
-    const flat = [];
-    for (const [k, v] of Object.entries(payload)) {
-      if (typeof v === 'string') flat.push(v);
-      if (Array.isArray(v)) flat.push(v.filter(Boolean).join('\n'));
-      if (typeof v === 'object' && v && v.text) flat.push(v.text);
-    }
-    if (flat.length) return flat.join('\n').trim();
-
-    return JSON.stringify(payload);
+    if (parsed && typeof parsed.content === "string") return parsed.content;
+    if (parsed && parsed.body && typeof parsed.body === "string") return parsed.body;
+    // listing-ish
+    if (parsed && parsed.mls && typeof parsed.mls.body === "string") return parsed.mls.body;
+    return typeof raw === "string" ? raw : JSON.stringify(parsed, null, 2);
   } catch {
-    try {
-      return typeof payload === 'string' ? payload : JSON.stringify(payload);
-    } catch {
-      return String(payload ?? '');
-    }
+    return typeof raw === "string" ? raw : JSON.stringify(raw, null, 2);
   }
 }
 
-// ------------ small UI bits ------------
-function Chip({ active, children, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        'px-3 py-1 rounded-full text-sm',
-        active
-          ? 'bg-white/10 text-white'
-          : 'bg-white/5 text-white/80 hover:bg-white/10'
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function ThinkingBubble() {
-  return (
-    <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 text-white/70 text-sm">
-      <span className="inline-flex gap-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.2s]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce [animation-delay:-0.05s]" />
-        <span className="w-1.5 h-1.5 rounded-full bg-white/50 animate-bounce" />
-      </span>
-      Thinking
-    </div>
-  );
-}
-
-// ------------ Flyer Modal ------------
-function FlyerModal({
-  open,
-  onClose,
-  form,
-  setForm,
-  onGenerate,
-  onSaveLogo,
-  flyerBusy,
-}) {
-  const topRef = useRef(null);
-
-  useEffect(() => {
-    if (open) {
-      // scroll into view when opened
-      setTimeout(() => {
-        topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 0);
-    }
-  }, [open]);
-
-  if (!open) return null;
-
-  function onFile(e, key) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setForm(prev => ({ ...prev, [key]: reader.result }));
-    };
-    reader.readAsDataURL(f);
-  }
-
-  return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-black/60">
-      <div ref={topRef} className="w-full max-w-3xl rounded-2xl bg-[#12141a] p-6 shadow-xl border border-white/10">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white text-lg font-semibold">Create flyer PDF</h3>
-          <button onClick={onClose} className="text-white/60 hover:text-white">Close</button>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-3">
-            <label className="block text-sm text-white/70">
-              Agent name
-              <input
-                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                value={form.agent_name || ''}
-                onChange={e => setForm(s => ({ ...s, agent_name: e.target.value }))}
-              />
-            </label>
-
-            <label className="block text-sm text-white/70">
-              Agent email
-              <input
-                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                value={form.agent_email || ''}
-                onChange={e => setForm(s => ({ ...s, agent_email: e.target.value }))}
-              />
-            </label>
-
-            <label className="block text-sm text-white/70">
-              Agent phone
-              <input
-                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                value={form.agent_phone || ''}
-                onChange={e => setForm(s => ({ ...s, agent_phone: e.target.value }))}
-              />
-            </label>
-
-            <label className="block text-sm text-white/70">
-              Brokerage
-              <input
-                className="mt-1 w-full rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                value={form.brokerage || ''}
-                onChange={e => setForm(s => ({ ...s, brokerage: e.target.value }))}
-              />
-            </label>
-
-            <label className="block text-sm text-white/70">
-              Brokerage logo upload (PNG/JPG/SVG)
-              <input
-                type="file"
-                accept="image/*,.svg"
-                className="mt-1 block w-full text-white/80"
-                onChange={e => onFile(e, 'logoDataUrl')}
-              />
-            </label>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="px-3 py-1.5 rounded-md bg-white/10 text-white hover:bg-white/20 disabled:opacity-60"
-                onClick={onSaveLogo}
-                disabled={flyerBusy || !form.logoDataUrl}
-                title={!form.logoDataUrl ? 'Choose a logo file first' : 'Save to profile'}
-              >
-                {flyerBusy ? 'Saving…' : 'Save uploaded logo to profile'}
-              </button>
-              {form.logoUrl ? (
-                <span className="text-xs text-emerald-300">Saved ✓</span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <fieldset className="border border-white/10 rounded-lg p-3">
-              <legend className="px-1 text-sm text-white/70">Templates</legend>
-
-              <label className="flex items-center gap-2 text-white/80 text-sm mb-2">
-                <input
-                  type="checkbox"
-                  checked={!!form.useStandard}
-                  onChange={e => setForm(s => ({ ...s, useStandard: e.target.checked }))}
-                />
-                Standard (headline + highlights)
-              </label>
-
-              <label className="flex items-center gap-2 text-white/80 text-sm">
-                <input
-                  type="checkbox"
-                  checked={!!form.useOpenHouse}
-                  onChange={e => setForm(s => ({ ...s, useOpenHouse: e.target.checked }))}
-                />
-                Open House (banner + date/time/address + optional map QR)
-              </label>
-
-              {!!form.useOpenHouse && (
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <input
-                    className="rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                    placeholder="Date (e.g. Sat Aug 24)"
-                    value={form.oh_date || ''}
-                    onChange={e => setForm(s => ({ ...s, oh_date: e.target.value }))}
-                  />
-                  <input
-                    className="rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                    placeholder="Time (e.g. 1–4 PM)"
-                    value={form.oh_time || ''}
-                    onChange={e => setForm(s => ({ ...s, oh_time: e.target.value }))}
-                  />
-                  <input
-                    className="col-span-2 rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                    placeholder="Address"
-                    value={form.oh_address || ''}
-                    onChange={e => setForm(s => ({ ...s, oh_address: e.target.value }))}
-                  />
-                  <input
-                    className="col-span-2 rounded-md bg-white/5 text-white p-2 outline-none border border-white/10"
-                    placeholder="Maps URL (optional for QR)"
-                    value={form.oh_maps_url || ''}
-                    onChange={e => setForm(s => ({ ...s, oh_maps_url: e.target.value }))}
-                  />
-                </div>
-              )}
-            </fieldset>
-          </div>
-        </div>
-
-        <div className="mt-5 flex items-center justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="px-3 py-1.5 rounded-md bg-white/5 text-white hover:bg-white/10"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onGenerate}
-            className="px-3 py-1.5 rounded-md bg-indigo-500/80 text-white hover:bg-indigo-500"
-            disabled={!form.useStandard && !form.useOpenHouse}
-          >
-            Generate PDF{form.useStandard && form.useOpenHouse ? 's' : ''}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ------------ main ------------
 export default function ChatPage() {
-  const { user } = useUser();
+  const [tone, setTone] = useState(TONES[0]);
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', content:string}
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const listRef = useRef(null);
+  const firstSendRef = useRef(false);
 
-  const [tone, setTone] = useState('mls');
-  const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', text:string, raw?:any}
-  const [loading, setLoading] = useState(false);
-  const [sentOnce, setSentOnce] = useState(false);
+  // scroll to bottom on new messages
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [messages.length]);
 
-  // flyer modal
-  const [showFlyer, setShowFlyer] = useState(false);
-  const [flyerForm, setFlyerForm] = useState({
-    useStandard: true,
-    useOpenHouse: false,
-  });
-  const [flyerBusy, setFlyerBusy] = useState(false);
-
-  // compact examples (white text, auto-hide after first send)
-  const examples = useMemo(
-    () => [
-      '3 bed, 2 bath, 1,850 sqft in Fair Oaks, remodeled kitchen with quartz counters, large backyard near parks.',
-      'Downtown loft: 1 bed, skyline views, floor-to-ceiling windows, walkable to coffee shops.',
-      'Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, fenced garden.',
-    ],
-    []
+  const lastAssistant = useMemo(
+    () => [...messages].reverse().find((m) => m.role === "assistant"),
+    [messages]
   );
 
-  // load agent profile into flyer form on first open
-  async function loadAgentProfile() {
+  async function sendMessage() {
+    if (!input.trim() || sending) return;
+    setError("");
+    setSending(true);
+
+    const userMsg = { role: "user", content: input.trim(), tone };
+    setMessages((prev) => [...prev, userMsg]);
+
     try {
-      const r = await fetch('/api/agent/get');
-      const j = await r.json();
-      if (j?.ok && j.profile) {
-        setFlyerForm(prev => ({
-          ...prev,
-          agent_name: j.profile.agent_name || prev.agent_name,
-          agent_email: j.profile.agent_email || prev.agent_email,
-          agent_phone: j.profile.agent_phone || prev.agent_phone,
-          brokerage: j.profile.brokerage || prev.brokerage,
-          logoUrl: j.profile.logo_url || prev.logoUrl,
-        }));
+      // Prefer JSON API
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: input.trim(), tone, messages }),
+      });
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
       }
+
+      // handle either JSON or streamed text
+      const ct = res.headers.get("content-type") || "";
+      if (ct.includes("application/json")) {
+        const data = await res.json();
+        if (!data || data.ok === false) {
+          throw new Error(data?.error || "Server error");
+        }
+        const assistantText = coerceToReadableText(data.message || data.content);
+        setMessages((prev) => [...prev, { role: "assistant", content: assistantText }]);
+      } else if (res.body && "getReader" in res.body) {
+        // streaming text
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let acc = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+          setMessages((prev) => {
+            const clone = [...prev];
+            // if last is assistant in-progress append, else create new
+            if (clone.length && clone[clone.length - 1].role === "assistant") {
+              clone[clone.length - 1] = {
+                ...clone[clone.length - 1],
+                content: (clone[clone.length - 1].content || "") + decoder.decode(value),
+              };
+            } else {
+              clone.push({ role: "assistant", content: decoder.decode(value) });
+            }
+            return clone;
+          });
+        }
+      } else {
+        const text = await res.text();
+        setMessages((prev) => [...prev, { role: "assistant", content: coerceToReadableText(text) }]);
+      }
+    } catch (e) {
+      console.error(e);
+      setError(e.message || "Error");
+      setMessages((prev) => [...prev, { role: "assistant", content: "⚠️ Server error" }]);
+    } finally {
+      setSending(false);
+      setInput("");
+      if (!firstSendRef.current) firstSendRef.current = true;
+    }
+  }
+
+  async function handleCopy(text) {
+    try {
+      await navigator.clipboard.writeText(text || "");
     } catch {}
   }
 
-  useEffect(() => {
-    if (showFlyer) loadAgentProfile();
-  }, [showFlyer]);
-
-  async function onSend() {
-    if (!input.trim()) return;
-    setLoading(true);
-    setSentOnce(true);
-
-    const userMsg = { role: 'user', text: input.trim(), at: nowStamp() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-
+  async function handleSave() {
+    if (!lastAssistant?.content) return;
     try {
-      const r = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tone,
-          text: userMsg.text,
-        }),
-      });
-      const j = await r.json();
-
-      if (!j?.ok) {
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', text: 'Server error', at: nowStamp() },
-        ]);
-      } else {
-        const readable = coerceToReadableText(j.message?.content ?? j.message);
-        setMessages(prev => [
-          ...prev,
-          { role: 'assistant', text: readable, raw: j.message, at: nowStamp() },
-        ]);
-      }
-    } catch (e) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'assistant', text: 'Server error', at: nowStamp() },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  // ----- Flyer integrations -----
-  async function uploadLogoAndRemember() {
-    try {
-      if (!flyerForm?.logoDataUrl) {
-        alert('Choose a logo file first');
-        return;
-      }
-      setFlyerBusy(true);
-
-      const res = await fetch('/api/agent/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dataUrl: flyerForm.logoDataUrl,
-          filename: 'logo',
-          remember: true,
-        }),
-      });
-      const j = await res.json();
-      if (!j?.ok) throw new Error(j?.error || 'Upload failed');
-
-      setFlyerForm(prev => ({ ...prev, logoUrl: j.url }));
-      alert('Logo saved to profile');
-    } catch (e) {
-      console.error(e);
-      alert('Upload failed');
-    } finally {
-      setFlyerBusy(false);
-    }
-  }
-
-  async function handleGeneratePdf() {
-    try {
-      setFlyerBusy(true);
-
-      // persist profile (agent name/email/phone/brokerage, logoUrl)
-      await fetch('/api/agent/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agent_name: flyerForm.agent_name || '',
-          agent_email: flyerForm.agent_email || '',
-          agent_phone: flyerForm.agent_phone || '',
-          brokerage: flyerForm.brokerage || '',
-          logo_url: flyerForm.logoUrl || '',
-        }),
-      }).catch(() => {});
-
-      // Take the last assistant text as body
-      const last = [...messages].reverse().find(m => m.role === 'assistant');
-      const bodyText = last?.text || '';
-
-      // Request PDFs (one or two)
+      const title = extractTitle(lastAssistant.content) || "Generated listing";
       const payload = {
-        body: bodyText,
-        standard: !!flyerForm.useStandard,
-        open_house: !!flyerForm.useOpenHouse,
-        oh: {
-          date: flyerForm.oh_date || '',
-          time: flyerForm.oh_time || '',
-          address: flyerForm.oh_address || '',
-          maps_url: flyerForm.oh_maps_url || '',
-        },
-        agent: {
-          name: flyerForm.agent_name || '',
-          email: flyerForm.agent_email || '',
-          phone: flyerForm.agent_phone || '',
-          brokerage: flyerForm.brokerage || '',
-          logo_url: flyerForm.logoUrl || '',
-        },
+        tone,
+        content: lastAssistant.content,
+        createdAt: new Date().toISOString(),
       };
-
-      const r = await fetch('/api/flyer/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+      const res = await fetch("/api/listings/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, payload }),
       });
-
-      if (!r.ok) throw new Error('Failed to generate');
-      // Could be a single blob or a zip; assume API returns application/pdf for one,
-      // or multipart-like JSON with array of base64s. We’ll handle both.
-
-      const ct = r.headers.get('Content-Type') || '';
-      if (ct.includes('application/pdf')) {
-        const blob = await r.blob();
-        downloadBlob(blob, 'listgenie-flyer.pdf');
-      } else {
-        const j = await r.json();
-        if (Array.isArray(j?.files)) {
-          // { name, data: base64, contentType }
-          for (const f of j.files) {
-            const b = await (await fetch(`data:${f.contentType};base64,${f.data}`)).blob();
-            downloadBlob(b, f.name || 'flyer.pdf');
-          }
-        } else if (j?.file) {
-          const b = await (await fetch(`data:${j.file.contentType};base64,${j.file.data}`)).blob();
-          downloadBlob(b, j.file.name || 'flyer.pdf');
-        } else {
-          throw new Error('Unexpected flyer response');
-        }
-      }
-
-      setShowFlyer(false);
+      if (!res.ok) throw new Error(await res.text());
     } catch (e) {
       console.error(e);
-      alert('Could not generate PDF');
-    } finally {
-      setFlyerBusy(false);
+      setError("Save failed");
     }
   }
 
-  // ----- Render -----
+  function extractTitle(s = "") {
+    // take first sentence or first line as a title
+    const line = s.split("\n").find((l) => l.trim().length > 0) || "";
+    const upToDot = line.split(".")[0];
+    return (upToDot || line).trim().slice(0, 120);
+  }
+
+  // Wire this to your modal or server flyer endpoint when ready.
+  async function handleFlyer() {
+    if (!lastAssistant?.content) return;
+    // fire a custom event for your Flyer modal flow if you have one:
+    // window.dispatchEvent(new CustomEvent("open-flyer", { detail: { text: lastAssistant.content, tone } }));
+    // fallback: simple alert so users know button works
+    alert("Flyer flow is ready to wire. Pass the latest listing text into your flyer modal/API.");
+  }
+
+  function quickToneClass(t) {
+    return "chip" + (tone === t ? " is-active" : "");
+  }
+
   return (
-    <>
-      <Head>
-        <title>ListGenie.ai — Chat</title>
-      </Head>
-
-      <main className="min-h-screen bg-gradient-to-b from-[#0b0e14] to-[#0f1320] text-white">
-        <div className="mx-auto w-full max-w-5xl px-4 py-6">
-
-          {/* title */}
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">ListGenie.ai Chat</h1>
-            {/* Pro indicator */}
-            <span className="text-xs rounded-full bg-white/10 px-2 py-0.5">{user ? 'Pro' : 'Free'}</span>
-          </div>
-          <p className="text-white/70 mt-1">
-            Generate polished real estate listings plus social variants.
-          </p>
-
-          {/* tone */}
-          <section className="mt-4">
-            <div className="flex flex-wrap gap-2">
-              <Chip active={tone === 'mls'} onClick={() => setTone('mls')}>MLS-ready</Chip>
-              <Chip active={tone === 'social'} onClick={() => setTone('social')}>Social caption</Chip>
-              <Chip active={tone === 'luxury'} onClick={() => setTone('luxury')}>Luxury tone</Chip>
-              <Chip active={tone === 'concise'} onClick={() => setTone('concise')}>Concise</Chip>
-            </div>
-          </section>
-
-          {/* compact examples */}
-          {!sentOnce && (
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
-              {examples.map((ex, i) => (
-                <button
-                  key={i}
-                  className="truncate rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-white hover:bg-white/10"
-                  onClick={() => setInput(ex)}
-                  title={ex}
-                >
-                  {ex}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* messages */}
-          <section className="mt-4 space-y-3">
-            {messages.map((m, idx) => (
-              <div key={idx} className="rounded-xl border border-white/10 bg-[#12141a]">
-                <div className="flex items-center justify-between px-3 py-2 text-xs text-white/60">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-md bg-white/10 px-2 py-0.5">{m.role === 'user' ? 'You' : 'ListGenie'}</span>
-                    <span>{m.at}</span>
-                  </div>
-                  {m.role === 'assistant' && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        className="rounded-md bg-white/10 px-3 py-1 text-white hover:bg-white/20"
-                        onClick={() => copyToClipboard(m.text)}
-                      >
-                        Copy
-                      </button>
-                      <button
-                        className="rounded-md bg-white/10 px-3 py-1 text-white hover:bg-white/20"
-                        onClick={() => {
-                          // optional save to your /api/listings/save
-                          fetch('/api/listings/save', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              title: (m.text || '').slice(0, 60),
-                              payload: { text: m.text, tone },
-                            }),
-                          }).catch(() => {});
-                          alert('Saved to your listings');
-                        }}
-                      >
-                        Save
-                      </button>
-                      <button
-                        className="rounded-md bg-indigo-500/80 px-3 py-1 text-white hover:bg-indigo-500"
-                        onClick={() => setShowFlyer(true)}
-                      >
-                        Flyer (PDF)
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <div className="px-4 pb-4 whitespace-pre-wrap text-white/90">
-                  {m.text || '[empty]'}
-                </div>
-              </div>
+    <main className="min-h-screen px-4 sm:px-6 md:px-8 py-6 md:py-8 chat-shell">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-4 md:mb-6">
+          <h1 className="text-3xl md:text-4xl font-bold mb-1">ListGenie.ai Chat</h1>
+          <div className="text-white/70">Generate polished real estate listings plus social variants.</div>
+          <div className="mt-3 tone-row">
+            {TONES.map((t) => (
+              <button
+                key={t}
+                className={quickToneClass(t)}
+                onClick={() => setTone(t)}
+                type="button"
+              >
+                {t}
+              </button>
             ))}
+          </div>
+        </header>
 
-            {loading && (
-              <div className="px-2"><ThinkingBubble /></div>
-            )}
-          </section>
+        {/* Examples */}
+        {!firstSendRef.current && (
+          <div className="examples-row">
+            {EXAMPLES.map((ex) => (
+              <button
+                key={ex}
+                className="chip example-chip"
+                onClick={() => setInput(ex)}
+                type="button"
+                title="Click to use this example"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        )}
 
-          {/* input */}
-          <section className="mt-4">
-            <div className="rounded-xl border border-white/10 bg-[#12141a] p-3">
-              <textarea
-                className="h-28 w-full resize-none rounded-md bg-white/5 p-3 text-white outline-none"
-                placeholder="Describe the property and any highlights…"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-              />
-              <div className="mt-3 flex items-center justify-end">
-                <button
-                  onClick={onSend}
-                  disabled={loading}
-                  className="rounded-md bg-indigo-500/80 px-4 py-1.5 text-white hover:bg-indigo-500 disabled:opacity-50"
-                >
-                  {loading ? 'Generating…' : 'Send'}
-                </button>
-              </div>
-            </div>
-          </section>
+        {/* Input */}
+        <div className="field-row">
+          <textarea
+            className="chat-field"
+            placeholder="Describe the property and any highlights..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+          />
+          <div className="mt-2">
+            <button className="send-btn" disabled={sending || !input.trim()} onClick={sendMessage}>
+              {sending ? "Generating…" : "Send"}
+            </button>
+          </div>
         </div>
 
-        {/* Flyer modal */}
-        <FlyerModal
-          open={showFlyer}
-          onClose={() => setShowFlyer(false)}
-          form={flyerForm}
-          setForm={setFlyerForm}
-          onGenerate={handleGeneratePdf}
-          onSaveLogo={uploadLogoAndRemember}
-          flyerBusy={flyerBusy}
-        />
-      </main>
-    </>
+        {/* Errors */}
+        {!!error && (
+          <div className="msg-card mb-4" style={{ borderColor: "rgba(244,63,94,0.35)" }}>
+            <div>⚠️ {error}</div>
+          </div>
+        )}
+
+        {/* Messages */}
+        <div
+          ref={listRef}
+          className="space-y-3 max-h-[56vh] overflow-auto pr-1 pb-10"
+          style={{ scrollbarGutter: "stable" }}
+        >
+          {messages.map((m, idx) => (
+            <div key={idx} className="msg-card">
+              <div
+                className="text-[13px] uppercase tracking-wide mb-2"
+                style={{ opacity: 0.65, letterSpacing: "0.08em" }}
+              >
+                {m.role === "user" ? "You" : "ListGenie"}
+              </div>
+              <div style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
+
+              {/* actions only on assistant messages */}
+              {m.role === "assistant" && (
+                <div className="flex gap-8 flex-wrap mt-3">
+                  <button className="chip" onClick={() => handleCopy(m.content)}>Copy</button>
+                  <button className="chip" onClick={handleSave}>Save</button>
+                  <button className="chip" onClick={handleFlyer}>Flyer (PDF)</button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* thinking indicator */}
+          {sending && (
+            <div className="msg-card">
+              <div className="dots">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Scoped styling for the chat page only */}
+      <style jsx global>{`
+        .chat-shell {
+          --chip-bg: rgba(255, 255, 255, 0.08);
+          --chip-bg-hover: rgba(255, 255, 255, 0.14);
+          --chip-border: rgba(255, 255, 255, 0.12);
+          --field-bg: rgba(255, 255, 255, 0.05);
+          --field-border: rgba(255, 255, 255, 0.12);
+          color: #eaeaea;
+        }
+
+        .chat-shell .tone-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 10px;
+        }
+
+        .chat-shell .examples-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin: 10px 0 18px;
+        }
+
+        .chat-shell .chip {
+          display: inline-flex;
+          align-items: center;
+          height: 34px;
+          padding: 0 12px;
+          border-radius: 9999px;
+          background: var(--chip-bg);
+          border: 1px solid var(--chip-border);
+          color: #fff;
+          font-size: 14px;
+          line-height: 1;
+          cursor: pointer;
+          user-select: none;
+          transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
+        }
+        .chat-shell .chip:hover {
+          background: var(--chip-bg-hover);
+        }
+        .chat-shell .chip:active {
+          transform: translateY(1px);
+        }
+        .chat-shell .chip.is-active {
+          background: linear-gradient(
+            90deg,
+            rgba(139, 92, 246, 0.35),
+            rgba(59, 130, 246, 0.35)
+          );
+          border-color: rgba(255, 255, 255, 0.18);
+        }
+
+        .chat-shell .example-chip {
+          height: unset;
+          padding: 8px 12px;
+          font-size: 15px;
+          white-space: nowrap;
+        }
+
+        .chat-shell .field-row {
+          margin: 10px 0 18px;
+        }
+        .chat-shell .chat-field {
+          width: 100%;
+          min-height: 120px;
+          resize: vertical;
+          background: var(--field-bg);
+          border: 1px solid var(--field-border);
+          border-radius: 12px;
+          color: #fff;
+          padding: 14px 16px;
+          font-size: 16px;
+          outline: none;
+          box-shadow: 0 0 0 0 transparent;
+        }
+        .chat-shell .chat-field:focus {
+          border-color: rgba(99, 102, 241, 0.45);
+          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22);
+        }
+
+        .chat-shell .send-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          height: 40px;
+          padding: 0 18px;
+          border-radius: 10px;
+          border: 1px solid var(--chip-border);
+          background: var(--chip-bg);
+          color: #fff;
+          font-weight: 500;
+          cursor: pointer;
+          transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
+        }
+        .chat-shell .send-btn:hover {
+          background: var(--chip-bg-hover);
+        }
+        .chat-shell .send-btn:active {
+          transform: translateY(1px);
+        }
+        .chat-shell .send-btn[disabled] {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .chat-shell .msg-card {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid var(--field-border);
+          border-radius: 14px;
+          padding: 14px;
+          color: #fff;
+        }
+
+        /* thinking dots */
+        .chat-shell .dots {
+          display: inline-flex;
+          gap: 8px;
+          padding: 6px 10px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.06);
+        }
+        .chat-shell .dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 9999px;
+          background: rgba(255, 255, 255, 0.9);
+          animation: dotPulse 1.2s infinite ease-in-out;
+        }
+        .chat-shell .dot:nth-child(2) {
+          animation-delay: 0.15s;
+        }
+        .chat-shell .dot:nth-child(3) {
+          animation-delay: 0.3s;
+        }
+        @keyframes dotPulse {
+          0%,
+          80%,
+          100% {
+            transform: scale(0.8);
+            opacity: 0.6;
+          }
+          40% {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        /* contain width for readability */
+        .chat-shell .msg-card,
+        .chat-shell .examples-row,
+        .chat-shell .tone-row,
+        .chat-shell .field-row {
+          max-width: 1100px;
+        }
+      `}</style>
+    </main>
   );
 }
