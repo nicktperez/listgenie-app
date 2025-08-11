@@ -2,23 +2,54 @@
 import React from "react";
 import { useUserPlan } from "@/hooks/useUserPlan";
 
+export function ProOnly({ children }) {
+  const { isPro, loading } = useUserPlan();
+  if (loading) return null;
+  if (!isPro) return null;
+  return <>{children}</>;
+}
+
 export function ProWall({ children, fallback }) {
-  const { isPro, isTrial, isExpired } = useUserPlan();
-
-  if (isPro || isTrial) return <>{children}</>;
-
-  // expired or unknown -> show fallback or default upsell
-  if (fallback) return fallback;
-  return <DefaultUpsell />;
+  const { isPro, loading } = useUserPlan();
+  if (loading) return null;
+  return <>{isPro ? children : (fallback ?? <DefaultUpsell />)}</>;
 }
 
 function DefaultUpsell() {
   return (
-    <div className="card" style={{ padding: 16 }}>
-      <div className="chat-sub" style={{ marginBottom: 8 }}>
-        This feature requires an active plan.
-      </div>
-      <a href="/upgrade" className="link">Upgrade to Pro</a>
+    <div className="rounded-xl border border-white/10 p-4 bg-white/5">
+      <div className="text-sm opacity-80">This feature requires Pro.</div>
+      <button className="mt-3 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/20 text-sm">
+        Upgrade to Pro
+      </button>
+    </div>
+  );
+}
+
+// components/ProGate.js
+import React from "react";
+import { useUserPlan } from "@/hooks/useUserPlan";
+
+export function ProOnly({ children }) {
+  const { isPro, loading } = useUserPlan();
+  if (loading) return null;
+  if (!isPro) return null;
+  return <>{children}</>;
+}
+
+export function ProWall({ children, fallback }) {
+  const { isPro, loading } = useUserPlan();
+  if (loading) return null;
+  return <>{isPro ? children : (fallback ?? <DefaultUpsell />)}</>;
+}
+
+function DefaultUpsell() {
+  return (
+    <div className="rounded-xl border border-white/10 p-4 bg-white/5">
+      <div className="text-sm opacity-80">This feature requires Pro.</div>
+      <button className="mt-3 rounded-lg px-3 py-2 bg-white/10 hover:bg-white/20 text-sm">
+        Upgrade to Pro
+      </button>
     </div>
   );
 }

@@ -4,19 +4,17 @@ import { SignedIn, SignedOut, SignInButton, useUser } from '@clerk/nextjs';
 import useUserPlan from '@/lib/useUserPlan';
 import { createPortal } from 'react-dom';
 
+/* ------------------------ demo examples & tone chips ------------------------ */
 const EXAMPLES = [
   '3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.',
   'Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.',
   'Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.',
 ];
-
 const TONE_OPTIONS = ['MLS-ready', 'Social caption', 'Luxury tone', 'Concise'];
 
 /* ------------------------ helpers: text handling ------------------------ */
-
 function coerceToReadableText(s) {
   if (s == null) return '';
-
   if (typeof s === 'string') {
     const str = s.trim();
     if (str.startsWith('{') || str.startsWith('[')) {
@@ -24,7 +22,6 @@ function coerceToReadableText(s) {
     }
     return str;
   }
-
   if (typeof s === 'object') {
     if (typeof s.body === 'string') return s.body;
     if (s.mls && typeof s.mls.body === 'string') return s.mls.body;
@@ -41,20 +38,14 @@ function coerceToReadableText(s) {
     }
     try { return JSON.stringify(s, null, 2); } catch {}
   }
-
   return String(s);
 }
-
 function makeTitleFrom(t) {
-  const first = (String(t || '')
-    .split('\n')
-    .map(s => s.trim())
-    .find(Boolean)) || 'Listing';
+  const first = (String(t || '').split('\n').map(s => s.trim()).find(Boolean)) || 'Listing';
   return first.length > 70 ? `${first.slice(0, 67)}…` : first;
 }
 
-/* ------------------------ helpers: flyer parsing ------------------------ */
-
+/* ------------------------ helpers: flyer parsing & drawing ------------------------ */
 function wrapText(doc, text, maxWidth) {
   const safe = String(text || '');
   const words = safe.split(/\s+/);
@@ -63,30 +54,22 @@ function wrapText(doc, text, maxWidth) {
   for (const w of words) {
     const test = line ? `${line} ${w}` : w;
     const width = doc.getTextWidth(test);
-    if (width > maxWidth && line) {
-      lines.push(line);
-      line = w;
-    } else {
-      line = test;
-    }
+    if (width > maxWidth && line) { lines.push(line); line = w; }
+    else { line = test; }
   }
   if (line) lines.push(line);
   return lines;
 }
-
 function parseListingForFlyer(raw) {
   const text = String(raw || '').replace(/\s+/g, ' ').trim();
-
   let headline = text.split(/[.!?\n]/)[0]?.trim() || 'Beautiful Home';
   if (headline.length > 72) headline = headline.slice(0, 69) + '…';
-
   const beds = (text.match(/(\d+)\s*(bed|beds|bedrooms?)/i) || [])[1];
   const baths = (text.match(/(\d+)\s*(bath|baths|bathrooms?)/i) || [])[1];
   const sqft = (text.match(/([\d,]{3,})\s*(sq\s*ft|sqft|square\s*feet)/i) || [])[1];
   const year = (text.match(/\b(19|20)\d{2}\b/) || [])[0];
   const nbhm = text.match(/\b(in|near)\s+([A-Za-z][A-Za-z\s\-']{2,})/i);
   const neighborhood = nbhm ? nbhm[2].trim().replace(/\s+near\s*$/i,'') : null;
-
   const parts = [
     beds && `${beds} Beds`,
     baths && `${baths} Baths`,
@@ -98,17 +81,14 @@ function parseListingForFlyer(raw) {
   let rawBullets = [];
   if (text.includes('•')) rawBullets = text.split('•').map(s => s.trim());
   else rawBullets = text.split('.').map(s => s.trim());
-
   const bullets = rawBullets
     .filter(s => s && s.length > 3)
     .map(s => s.replace(/^[\-–•\s]+/, ''))
     .slice(0, 8);
 
   const narrative = text.replace(headline, '').trim();
-
   return { headline, subhead, bullets, narrative, body: text, beds, baths, sqft, year, neighborhood };
 }
-
 function drawBulletLine(doc, text, x, y, maxWidth, lineHeight) {
   const safe = String(text || '');
   doc.setFillColor(17, 24, 39);
@@ -118,7 +98,6 @@ function drawBulletLine(doc, text, x, y, maxWidth, lineHeight) {
   lines.forEach((ln, i) => doc.text(ln, left, y + i*lineHeight));
   return y + lineHeight * lines.length;
 }
-
 async function fileToDataURL(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -127,7 +106,6 @@ async function fileToDataURL(file) {
     fr.readAsDataURL(file);
   });
 }
-
 async function fetchImageAsDataURL(url) {
   try {
     const res = await fetch(url, { cache: 'no-store' });
@@ -143,7 +121,6 @@ async function fetchImageAsDataURL(url) {
 }
 
 /* ------------------------ inline Pro gate ------------------------ */
-
 const Gate = ({ show }) => {
   if (!show) return null;
   return (
@@ -157,12 +134,23 @@ const Gate = ({ show }) => {
   );
 };
 
-/* ------------------------ Flyer modal ------------------------ */
-
-function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, onSubmit }) {
+/* ------------------------ Flyer modal (portal + multi-template + remember) ------------------------ */
+function FlyerModal({
+  open, onClose,
+  form, onFormChange,
+  templates, setTemplates,
+  rememberAgent, setRememberAgent,
+  onSubmit
+}) {
   const [mounted, setMounted] = useState(false);
+  const modalRef = useRef(null);
   useEffect(() => setMounted(true), []);
-
+  useEffect(() => {
+    if (open && modalRef.current) {
+      modalRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      modalRef.current.focus({ preventScroll: true });
+    }
+  }, [open]);
   if (!open) return null;
 
   const handleFile = async (e, key) => {
@@ -171,19 +159,23 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
     const dataUrl = await fileToDataURL(file);
     onFormChange({ ...form, [key]: dataUrl });
   };
+  const toggleTpl = (k) => {
+    if (templates.includes(k)) setTemplates(templates.filter(t => t !== k));
+    else setTemplates([...templates, k]);
+  };
 
   const modal = (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
+      <div className="modal" onClick={e => e.stopPropagation()} ref={modalRef} tabIndex={-1}>
         <div className="modal-title">Flyer details</div>
 
         <div className="modal-row">
-          <label className="radio">
-            <input type="radio" name="tpl" checked={template==='standard'} onChange={()=>setTemplate('standard')}/>
+          <label className="check">
+            <input type="checkbox" checked={templates.includes('standard')} onChange={()=>toggleTpl('standard')}/>
             <span>Standard</span>
           </label>
-          <label className="radio">
-            <input type="radio" name="tpl" checked={template==='openHouse'} onChange={()=>setTemplate('openHouse')}/>
+          <label className="check">
+            <input type="checkbox" checked={templates.includes('openHouse')} onChange={()=>toggleTpl('openHouse')}/>
             <span>Open House</span>
           </label>
         </div>
@@ -206,15 +198,29 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
             <input value={form.brokerage} onChange={e=>onFormChange({...form,brokerage:e.target.value})}/>
           </label>
           <label>
-            Brokerage logo (PNG/JPG/SVG)
+            Brokerage logo URL (optional)
+            <input
+              value={form.logoUrl || ''}
+              onChange={e=>onFormChange({...form, logoUrl:e.target.value})}
+              placeholder="https://…/my-logo.png"
+            />
+          </label>
+          <label>
+            Brokerage logo upload (PNG/JPG/SVG)
             <input type="file" accept="image/*,.svg" onChange={e=>handleFile(e,'logoDataUrl')}/>
           </label>
+          <div style={{display:'flex', gap:8, alignItems:'center'}}>
+  <button type="button" className="btn" onClick={uploadLogoAndRemember}>
+    Save uploaded logo to profile
+  </button>
+  {form.logoUrl ? <span style={{fontSize:12,color:'#9aa3b2'}}>Saved ✓</span> : null}
+</div>
           <label>
             Property photo (PNG/JPG)
             <input type="file" accept="image/*" onChange={e=>handleFile(e,'photoDataUrl')}/>
           </label>
 
-          {template === 'openHouse' && (
+          {templates.includes('openHouse') && (
             <>
               <label>
                 Date
@@ -237,33 +243,41 @@ function FlyerModal({ open, onClose, form, onFormChange, template, setTemplate, 
         </div>
 
         <div className="modal-actions">
+          <label className="remember">
+            <input
+              type="checkbox"
+              checked={rememberAgent}
+              onChange={e => setRememberAgent(e.target.checked)}
+            />
+            <span>Remember my details</span>
+          </label>
+          <div className="spacer" />
           <button className="btn" onClick={onClose}>Cancel</button>
           <button className="btn primary" onClick={onSubmit}>Generate PDF</button>
         </div>
 
         <style jsx>{`
           .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:99999}
-          .modal{width:min(760px,92vw);background:#0f1218;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px}
+          .modal{width:min(760px,92vw);background:#0f1218;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:16px;outline:none}
           .modal-title{font-weight:700;margin-bottom:10px}
           .modal-row{display:flex;gap:16px;margin-bottom:10px}
-          .radio{display:flex;align-items:center;gap:8px;font-size:13px;color:#dfe3f0}
+          .check{display:flex;align-items:center;gap:8px;font-size:13px;color:#dfe3f0}
           .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
           label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#b9c0cc}
           input{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:8px;color:#e9ecf1}
-          .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+          .modal-actions{display:flex;align-items:center;gap:8px;margin-top:12px}
+          .remember{display:flex;align-items:center;gap:8px;color:#dfe3f0;font-size:12px}
+          .modal-actions .spacer{flex:1}
           .btn{padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.06);color:#fff}
           .btn.primary{background:#7c5cff;border-color:#6b54f2}
         `}</style>
       </div>
     </div>
   );
-
-  // Render into body to avoid parent overflow/z-index issues
   return mounted ? createPortal(modal, document.body) : null;
 }
 
 /* ------------------------ main page ------------------------ */
-
 export default function ChatPage() {
   const { user } = useUser();
   const { isPro, trialStatus } = useUserPlan();
@@ -282,18 +296,22 @@ export default function ChatPage() {
     agentPhone: '',
     brokerage: '',
     logoDataUrl: '',
+    logoUrl: '',
     photoDataUrl: '',
     ohDate: '',
     ohTime: '',
     ohAddress: '',
     ohUrl: '',
   });
-  const [flyerTemplate, setFlyerTemplate] = useState('standard'); // 'standard' | 'openHouse'
+  const [templates, setTemplates] = useState(['standard']); // 'standard', 'openHouse'
+  const [rememberAgent, setRememberAgent] = useState(true);
+  const loadedProfileRef = useRef(false);
 
   const scrollRef = useRef(null);
   const canGenerate = isPro || trialStatus === 'active';
   const gated = !canGenerate;
 
+  // Prefill agent name/email from Clerk on first render
   useEffect(() => {
     setFlyerForm(prev => ({
       ...prev,
@@ -301,6 +319,33 @@ export default function ChatPage() {
       agentEmail: prev.agentEmail || (user?.primaryEmailAddress?.emailAddress || ''),
     }));
   }, [user]);
+
+  // Load saved agent profile when modal opens for the first time
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const r = await fetch('/api/agent/get');
+        if (!r.ok) return;
+        const j = await r.json();
+        const p = j?.profile;
+        if (!p) return;
+        setFlyerForm(prev => ({
+          ...prev,
+          agentName: prev.agentName || p.name || '',
+          agentEmail: prev.agentEmail || p.email || '',
+          agentPhone: prev.agentPhone || p.phone || '',
+          brokerage: prev.brokerage || p.brokerage || '',
+          logoUrl: prev.logoUrl || p.logo_url || '',
+        }));
+      } catch (e) {
+        console.warn('agent/get failed', e);
+      }
+    };
+    if (flyerOpen && !loadedProfileRef.current) {
+      loadedProfileRef.current = true;
+      loadProfile();
+    }
+  }, [flyerOpen]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -324,11 +369,11 @@ export default function ChatPage() {
     if (!sentOnce) setSentOnce(true);
 
     const system = [
-      `You are ListGenie, a real-estate listing assistant.`,
-      `Write MLS-friendly listings that avoid fair-housing risks and focus on property features.`,
-      `Use confident, tasteful language. Return polished prose.`,
-      `Also consider a printable flyer: short headline + quick bullets suitable for a one-page handout.`,
-      `Avoid asking follow-up questions unless info is clearly missing.`,
+      'You are ListGenie, a real-estate listing assistant.',
+      'Write MLS-friendly listings that avoid fair-housing risks and focus on property features.',
+      'Use confident, tasteful language. Return polished prose.',
+      'Also consider a printable flyer: short headline + quick bullets suitable for a one-page handout.',
+      'Avoid asking follow-up questions unless info is clearly missing.',
     ].join(' ');
 
     const body = {
@@ -371,13 +416,35 @@ export default function ChatPage() {
       const j = await r.json();
       if (!j?.ok) throw new Error(j?.error || 'Save failed');
       toast('Saved to Listings');
+    } catch (e) { console.error(e); toast('Save failed'); }
+  }
+
+  async function uploadLogoAndRemember() {
+    try {
+      if (!flyerForm.logoDataUrl) {
+        toast('Choose a logo file first'); 
+        return;
+      }
+      const r = await fetch('/api/agent/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dataUrl: flyerForm.logoDataUrl,
+          filename: 'logo',
+          remember: true, // also save to agent_profiles
+        }),
+      });
+      const j = await r.json();
+      if (!j?.ok) throw new Error(j?.error || 'Upload failed');
+      setFlyerForm(prev => ({ ...prev, logoUrl: j.url }));
+      toast('Logo saved to profile');
     } catch (e) {
-      console.error(e); toast('Save failed');
+      console.error(e);
+      toast('Upload failed');
     }
   }
 
-  /* ------------------------ flyer generation ------------------------ */
-
+  /* ------------------------ flyer generation (supports multiple templates) ------------------------ */
   async function handleFlyerPDF(text, opts = {}) {
     try {
       const mod = await import(/* webpackIgnore: true */ 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');
@@ -412,11 +479,12 @@ export default function ChatPage() {
       // Optional brand header (subtle)
       let topY = M;
       if (showBrandHeader) {
-        doc.setFillColor(15, 18, 24); doc.rect(0, 0, W, 88, 'F');
-        doc.setDrawColor(124, 92, 255); doc.setLineWidth(1); doc.line(0, 88, W, 88);
+        const headerH = 88;
+        doc.setFillColor(15, 18, 24); doc.rect(0, 0, W, headerH, 'F');
+        doc.setDrawColor(124, 92, 255); doc.setLineWidth(1); doc.line(0, headerH, W, headerH);
         doc.setTextColor('#E9ECF1'); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
         doc.text('ListGenie — Property Flyer', M, 54);
-        topY = 102;
+        topY = headerH + 14;
       }
 
       // Headline
@@ -517,7 +585,6 @@ export default function ChatPage() {
       }
 
       doc.save(template === 'openHouse' ? 'open-house-flyer.pdf' : 'listing-flyer.pdf');
-      toast('PDF downloaded');
     } catch (e) {
       console.error(e);
       toast('Could not generate PDF (network blocked?)');
@@ -525,7 +592,6 @@ export default function ChatPage() {
   }
 
   /* ------------------------ render ------------------------ */
-
   return (
     <div className="page">
       <SignedIn>
@@ -611,25 +677,55 @@ export default function ChatPage() {
           onClose={() => setFlyerOpen(false)}
           form={flyerForm}
           onFormChange={setFlyerForm}
-          template={flyerTemplate}
-          setTemplate={setFlyerTemplate}
+          templates={templates}
+          setTemplates={setTemplates}
+          rememberAgent={rememberAgent}
+          setRememberAgent={setRememberAgent}
           onSubmit={async () => {
+            const clean = coerceToReadableText(flyerDraftText);
+            const selected = templates.length ? templates : ['standard'];
+
+            // Persist profile if requested
+            if (rememberAgent) {
+              try {
+                await fetch('/api/agent/save', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: flyerForm.agentName || null,
+                    email: flyerForm.agentEmail || null,
+                    phone: flyerForm.agentPhone || null,
+                    brokerage: flyerForm.brokerage || null,
+                    logo_url: flyerForm.logoUrl || null,
+                  }),
+                });
+              } catch (e) { console.warn('agent/save failed', e); }
+            }
+
+            // Prefer uploaded logo; else use persisted URL (if resolves)
+            let resolvedLogo = flyerForm.logoDataUrl;
+            if (!resolvedLogo && flyerForm.logoUrl) {
+              resolvedLogo = await fetchImageAsDataURL(flyerForm.logoUrl);
+            }
+
+            for (const tpl of selected) {
+              await handleFlyerPDF(clean, {
+                agentName: flyerForm.agentName,
+                agentEmail: flyerForm.agentEmail,
+                agentPhone: flyerForm.agentPhone,
+                brokerage: flyerForm.brokerage,
+                logoDataUrl: resolvedLogo || '',
+                photoDataUrl: flyerForm.photoDataUrl,
+                template: tpl,
+                ohDate: flyerForm.ohDate,
+                ohTime: flyerForm.ohTime,
+                ohAddress: flyerForm.ohAddress,
+                ohUrl: flyerForm.ohUrl,
+                showBrandHeader: false,
+                showBrandFooter: true,
+              });
+            }
             setFlyerOpen(false);
-            await handleFlyerPDF(flyerDraftText, {
-              agentName: flyerForm.agentName,
-              agentEmail: flyerForm.agentEmail,
-              agentPhone: flyerForm.agentPhone,
-              brokerage: flyerForm.brokerage,
-              logoDataUrl: flyerForm.logoDataUrl,
-              photoDataUrl: flyerForm.photoDataUrl,
-              template: flyerTemplate,
-              ohDate: flyerForm.ohDate,
-              ohTime: flyerForm.ohTime,
-              ohAddress: flyerForm.ohAddress,
-              ohUrl: flyerForm.ohUrl,
-              showBrandHeader: false,
-              showBrandFooter: true,
-            });
           }}
         />
       </SignedIn>
