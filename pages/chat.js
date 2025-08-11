@@ -1,7 +1,6 @@
 // pages/chat.js
 import { useEffect, useRef, useState } from 'react';
 import { useUser, SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
-import ProGate from '@/components/ProGate';
 import useUserPlan from '@/lib/useUserPlan';
 
 const EXAMPLES = [
@@ -141,6 +140,19 @@ async function fetchImageAsDataURL(url) {
     });
   } catch { return null; }
 }
+
+const Gate = ({ show }) => {
+  if (!show) return null;
+  return (
+    <div className="gate">
+      <div className="gate-title">Upgrade to Pro</div>
+      <p className="gate-body">
+        Your trial/plan doesn’t allow more generations. Upgrade to Pro to continue.
+      </p>
+      <a className="btn primary" href="/api/stripe/create-checkout-session">Upgrade</a>
+    </div>
+  );
+};
 
 /* ---------- page ---------- */
 export default function ChatPage() {
@@ -405,7 +417,8 @@ export default function ChatPage() {
             </button>
           </form>
 
-          {gated && <ProGate />}
+          {/* was: {gated && <ProGate />} */}
+<Gate show={gated} />
         </div>
       </SignedIn>
 
@@ -417,6 +430,10 @@ export default function ChatPage() {
       </SignedOut>
 
       <style jsx>{`
+        .gate{margin-top:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);border-radius:12px;padding:16px}
+.gate-title{font-weight:700;margin-bottom:6px}
+.gate-body{color:#b9c0cc;margin:0 0 10px}
+.btn.primary{display:inline-block;text-decoration:none}
         .page{min-height:100vh;background:radial-gradient(1200px 500px at 50% -180px,rgba(124,92,255,.2),transparent 70%),#0b0d11;color:#e9ecf1}
         .header{max-width:900px;margin:0 auto;padding:16px 16px 0;display:flex;justify-content:space-between;align-items:center}
         h1{margin:0;font-size:24px}
