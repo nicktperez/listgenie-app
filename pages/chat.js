@@ -1,650 +1,414 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import ProGate from "@/components/ProGate";
-import ListingRender from "@/components/ListingRender";
+// pages/chat.js
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useUser, SignedIn, SignedOut, SignInButton } from '@clerk/nextjs';
+import ProGate from '@/components/ProGate';
+import useUserPlan from '@/lib/useUserPlan';
 
-/* -------------------------- tiny UI widgets -------------------------- */
-
-function TypingDots({ label = "Thinking" }) {
-  return (
-    <>
-      <div className="tg-wrap" title={label}>
-        <div className="dot" />
-        <div className="dot" />
-        <div className="dot" />
-        <span className="tg-label">{label}</span>
-      </div>
-
-      <style jsx>{`
-        .tg-wrap {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 4px 10px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-        }
-        .dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.9);
-          opacity: 0.4;
-          animation: bounce 1.2s infinite ease-in-out;
-        }
-        .dot:nth-child(1) { animation-delay: 0s; }
-        .dot:nth-child(2) { animation-delay: 0.15s; }
-        .dot:nth-child(3) { animation-delay: 0.30s; }
-        .tg-label {
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.85);
-          letter-spacing: .2px;
-        }
-        @keyframes bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: .35; }
-          40% { transform: translateY(-4px); opacity: .95; }
-        }
-      `}</style>
-    </>
-  );
-}
-
-/* -------------------------- helpers / transformers -------------------------- */
-
-const TONES = [
-  { key: "mls", label: "MLS-ready", hint: "Use clean, compliant MLS phrasing." },
-  { key: "social", label: "Social caption", hint: "Craft a short, scroll-stopping caption." },
-  { key: "luxury", label: "Luxury tone", hint: "Elevate language for a higher-end audience." },
-  { key: "concise", label: "Concise", hint: "Keep it tight, punchy, and skimmable." },
+const EXAMPLES = [
+  '3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks.',
+  'Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops.',
+  'Country property: 5 acres, 4-stall barn, seasonal creek, updated HVAC, and fenced garden.',
 ];
 
-// compact toasts
-function useToast() {
-  const [toast, setToast] = useState(null); // {msg, type:'ok'|'err'}
-  const show = (msg, type = "ok") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 2200);
-  };
-  const ui = toast ? (
-    <div
-      style={{
-        position: "fixed",
-        right: 16,
-        bottom: 16,
-        padding: "10px 14px",
-        borderRadius: 10,
-        background: toast.type === "ok" ? "rgba(56,176,0,.18)" : "rgba(255,99,99,.18)",
-        border: `1px solid ${toast.type === "ok" ? "rgba(56,176,0,.55)" : "rgba(255,99,99,.55)"}`,
-        backdropFilter: "blur(6px)",
-        zIndex: 1000,
-      }}
-    >
-      {toast.msg}
-    </div>
-  ) : null;
-  return [ui, show];
+const TONE_OPTIONS = ['MLS-ready', 'Social caption', 'Luxury tone', 'Concise'];
+
+/** Small helper: trims model output into readable text if JSON-ish comes back */
+function coerceToReadableText(s) {
+  if (!s) return '';
+  try {
+    const maybe = JSON.parse(s);
+    if (maybe && typeof maybe === 'object') {
+      if (maybe.body) return String(maybe.body);
+      if (maybe.mls && maybe.mls.body) return String(maybe.mls.body);
+      if (maybe.message && maybe.message.content) return String(maybe.message.content);
+    }
+  } catch {
+    /* ignore */
+  }
+  return String(s);
 }
 
-// normalize/pretty text from structured content
-function coerceToReadableText(content) {
-  if (typeof content === "string") {
-    try {
-      const maybe = JSON.parse(content);
-      return coerceToReadableText(maybe);
-    } catch {
-      return content;
-    }
-  }
-  if (content && typeof content === "object") {
-    const parts = [];
-    if (content.headline) parts.push(content.headline, "");
-    if (content.mls?.body) parts.push(content.mls.body.trim(), "");
-    if (Array.isArray(content.mls?.bullets) && content.mls.bullets.length) {
-      for (const b of content.mls.bullets) {
-        if (typeof b === "string") parts.push(`- ${b}`);
-        else if (b && typeof b === "object") {
-          const text = b.text || b.label || "";
-          if (text) parts.push(`- ${text}`);
-        }
-      }
-      parts.push("");
-    }
-    if (Array.isArray(content.variants) && content.variants.length) {
-      for (const v of content.variants) {
-        const label = v?.label || "Variant";
-        const text = v?.text || v?.body || "";
-        if (text) parts.push(`${label}: ${text}`);
-      }
-      parts.push("");
-    }
-    if (!parts.join("\n").trim()) {
-      try { return JSON.stringify(content, null, 2); } catch { return String(content); }
-    }
-    return parts.join("\n");
-  }
-  return String(content ?? "");
-}
-
-// --- helpers for questions-style payloads ---
-function parseMaybeJSON(x) {
-  if (typeof x === "string") {
-    try { return JSON.parse(x); } catch { return x; }
-  }
-  return x;
-}
-function isQuestionsPayload(obj) {
-  return obj && typeof obj === "object" && obj.type === "questions" && Array.isArray(obj.questions);
-}
-function formatQuestionsList(obj) {
+/** Wrap long text into lines that fit a given width for PDF */
+function wrapText(doc, text, maxWidth) {
+  const words = text.split(/\s+/);
   const lines = [];
-  lines.push("I need a bit more information to complete your listing. Could you provide:");
-  lines.push("");
-  for (const q of obj.questions) lines.push(`- ${q}`);
-  if (Array.isArray(obj.missing) && obj.missing.length) {
-    lines.push("");
-    lines.push(`Missing fields: ${obj.missing.join(", ")}`);
+  let line = '';
+  for (const w of words) {
+    const test = line ? `${line} ${w}` : w;
+    const width = doc.getTextWidth(test);
+    if (width > maxWidth && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
   }
-  return lines.join("\n");
+  if (line) lines.push(line);
+  return lines;
 }
-function buildAnswerTemplate(obj) {
-  if (Array.isArray(obj.missing) && obj.missing.length) {
-    return obj.missing.map(k => `${labelize(k)}: `).join("\n");
-  }
-  if (Array.isArray(obj.questions) && obj.questions.length) {
-    return obj.questions.map(q => `${q} `).join("\n");
-  }
-  return "";
-}
-function labelize(key) {
-  return String(key || "")
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, c => c.toUpperCase());
-}
-
-/* -------------------------- Chat page -------------------------- */
 
 export default function ChatPage() {
-  // plan + trial
-  const [plan, setPlan] = useState("trial"); // 'trial' | 'pro' | 'expired'
-  const [trialEnd, setTrialEnd] = useState(null);
-  const [loadingPlan, setLoadingPlan] = useState(true);
+  const { user } = useUser();
+  const { plan, isPro, trialStatus } = useUserPlan(); // plan: 'pro' | 'trial' | 'expired'
+  const [tone, setTone] = useState(TONE_OPTIONS[0]);
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState([]); // {role:'user'|'assistant', text:string, at:number}
+  const [thinking, setThinking] = useState(false);
+  const [sentOnce, setSentOnce] = useState(false);
+  const scrollRef = useRef(null);
 
-  // chat state
-  const [input, setInput] = useState("");
-  const [tone, setTone] = useState("mls");
-  const [sending, setSending] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: "system",
-      content:
-        "Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.",
-    },
-  ]);
-  const streamRef = useRef(null);
-  const listRef = useRef(null);
-  const [Toast, showToast] = useToast();
+  const canGenerate = isPro || trialStatus === 'active';
 
-  // get plan
   useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const r = await fetch("/api/user/plan");
-        const j = await r.json();
-        if (alive) {
-          setPlan(j?.plan || "trial");
-          setTrialEnd(j?.trial_end_date || null);
-        }
-      } catch (_) {
-        // ignore; default trial
-      } finally {
-        if (alive) setLoadingPlan(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, []);
+    // Scroll to bottom on new message
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, thinking]);
 
-  // auto-scroll to latest
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
-  }, [messages]);
+  async function handleSend(e) {
+    e?.preventDefault?.();
+    const trimmed = input.trim();
+    if (!trimmed) return;
 
-  const trialDaysLeft = useMemo(() => {
-    if (!trialEnd) return null;
-    const ms = new Date(trialEnd).getTime() - Date.now();
-    return Math.max(0, Math.ceil(ms / (24 * 60 * 60 * 1000)));
-  }, [trialEnd]);
+    // Add user message
+    const now = Date.now();
+    setMessages(prev => [...prev, { role: 'user', text: trimmed, at: now }]);
+    setInput('');
+    setThinking(true);
+    if (!sentOnce) setSentOnce(true);
 
-  const headerBadge = useMemo(() => {
-    if (loadingPlan) return null;
-    if (plan === "pro") return <span className="badge" style={{ marginLeft: 10 }}>Pro</span>;
-    if (plan === "trial")
-      return <span className="badge" style={{ marginLeft: 10 }}>Trial{trialDaysLeft != null ? ` • ${trialDaysLeft}d left` : ""}</span>;
-    return <span className="badge" style={{ marginLeft: 10 }}>Expired</span>;
-  }, [plan, loadingPlan, trialDaysLeft]);
+    // Build prompt
+    const sys = [
+      `You are ListGenie, a real-estate listing assistant.`,
+      `Write MLS-friendly listings that avoid fair-housing risks and keep the focus on property features.`,
+      `When appropriate, keep adjectives tasteful. Use active, confident language.`,
+      `Return polished prose and flow in a readable format.`,
+      `Also keep in mind a printable flyer: short headline + quick bullets the agent could place onto a one-page handout.`,
+      `Do NOT ask follow-up questions unless information is clearly missing.`,
+    ].join(' ');
 
-  const disabled = !input.trim() || sending || plan === "expired";
-
-  const baseSystem = `You are ListGenie.ai — a real-estate listing specialist.
-Write polished, MLS-ready listings and short social variants.
-Respect fair housing, avoid superlatives that imply discrimination, and focus on property facts and benefits.`;
-
-  const toneNote = (() => {
-    switch (tone) {
-      case "social":  return "Create a short social caption (1–2 sentences) with a hook and a soft CTA. Keep emojis tasteful.";
-      case "luxury":  return "Elevate the language for a luxury audience. Warm, refined, and specific — avoid cliché realtor jargon.";
-      case "concise": return "Be concise (120–180 words). Prioritize top features; remove fluff.";
-      default:        return "Produce an MLS-ready description that’s clear, factual, and compelling.";
-    }
-  })();
-
-  const applyQuick = (q) => setInput((s) => (s ? `${s}\n\n${q}` : q));
-
-  const saveListing = async (aiText, prompt) => {
-    try {
-      const title = (prompt || "").split("\n")[0].slice(0, 80) || "Generated listing";
-      const payload = { tone, prompt, output: aiText, created_at: new Date().toISOString() };
-      const r = await fetch("/api/listings/save", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, payload }),
-      });
-      const j = await r.json();
-      if (!r.ok || !j?.ok) throw new Error(j?.error || "Save failed");
-      showToast("Saved to Listings");
-    } catch (e) {
-      showToast(e.message || "Save failed", "err");
-    }
-  };
-
-  const send = async () => {
-    if (disabled) return;
-
-    const userMsg = { role: "user", content: input.trim(), ts: Date.now() };
-    setMessages((m) => [...m, userMsg, { role: "assistant", content: "", streaming: true, ts: Date.now() }]);
-    setInput("");
-    setSending(true);
+    const body = {
+      system: sys,
+      tone,                         // e.g., 'MLS-ready'
+      messages: [
+        ...messages.map(m => ({ role: m.role, content: m.text })),
+        { role: 'user', content: trimmed },
+      ],
+    };
 
     try {
-      const hist = messages
-        .slice(-6)
-        .filter((x) => x.role === "user" || x.role === "assistant")
-        .map((x) => ({ role: x.role, content: (x.content || "").slice(0, 2000) }));
-
-      const sys = `${baseSystem}\n\nTone guidance: ${toneNote}`;
-      const assembledMessages = [{ role: "system", content: sys }, ...hist, { role: "user", content: userMsg.content }];
-
-      const body = {
-        input: userMsg.content, system: sys, tone, history: hist, // legacy
-        messages: assembledMessages, // chat-style
-      };
-
-      const r = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      if (!r.ok) {
-        const txt = await r.text().catch(() => "");
-        let msg = txt;
-        try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
-        throw new Error(msg || `HTTP ${r.status}`);
+      if (!res.ok) {
+        const err = await res.text().catch(() => 'Server error');
+        throw new Error(err || 'Server error');
       }
 
-      const ctype = r.headers.get("content-type") || "";
+      // Expect either { message: string } or streaming text
+      let data;
+      try { data = await res.json(); } catch { /* ignore */ }
+      const text = coerceToReadableText(data?.message || data || '');
 
-      // JSON mode (non-stream)
-      if (ctype.includes("application/json")) {
-        const txt = await r.text();
-        let j = {};
-        try { j = JSON.parse(txt || "{}"); } catch {}
-        const raw = j?.message?.content ?? j?.content ?? j?.text ?? j;
-        const contentObj = parseMaybeJSON(raw);
-
-        if (isQuestionsPayload(contentObj)) {
-          const prettyQ = formatQuestionsList(contentObj);
-          setMessages((m) => {
-            const next = [...m];
-            next[next.length - 1] = {
-              role: "assistant",
-              content: prettyQ,
-              qFollowup: contentObj,
-              streaming: false,
-              ts: Date.now(),
-            };
-            return next;
-          });
-        } else {
-          const pretty = coerceToReadableText(contentObj);
-          setMessages((m) => {
-            const next = [...m];
-            next[next.length - 1] = { role: "assistant", content: pretty, streaming: false, ts: Date.now() };
-            return next;
-          });
-        }
-        return;
-      }
-
-      // Streaming text mode
-      if (!r.body || !r.body.getReader) {
-        const txt = await r.text().catch(() => "");
-        let msg = txt;
-        try { const j = JSON.parse(txt); if (j?.error) msg = j.error; } catch {}
-        throw new Error(msg || "Server did not return a stream");
-      }
-
-      const reader = r.body.getReader();
-      streamRef.current = reader;
-
-      let acc = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = new TextDecoder().decode(value);
-        acc += chunk;
-        setMessages((m) => {
-          const last = m[m.length - 1];
-          if (!last || last.role !== "assistant") return m;
-          const next = [...m];
-          next[next.length - 1] = { ...last, content: acc, streaming: true };
-          return next;
-        });
-      }
-
-      setMessages((m) => {
-        const next = [...m];
-        const last = next[next.length - 1];
-        next[next.length - 1] = { ...last, streaming: false };
-        return next;
-      });
-    } catch (e) {
-      setMessages((m) => [...m, { role: "assistant", content: `⚠️ ${e.message || "Failed to generate."}` }]);
+      setMessages(prev => [...prev, { role: 'assistant', text, at: Date.now(), tone }]);
+    } catch (err) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: 'assistant', text: 'Sorry—there was a server error.', at: Date.now() }]);
     } finally {
-      setSending(false);
-      streamRef.current = null;
+      setThinking(false);
     }
-  };
+  }
 
-  const stop = async () => {
-    try { streamRef.current?.cancel(); } catch {}
-    setSending(false);
-    setMessages((m) => {
-      const next = [...m];
-      const last = next[next.length - 1];
-      if (last?.role === "assistant") next[next.length - 1] = { ...last, streaming: false };
-      return next;
-    });
-  };
+  function setExample(s) {
+    setInput(s);
+    // keep examples until first submit
+  }
 
-  const lastUserPrompt = useMemo(
-    () => [...messages].reverse().find((x) => x.role === "user")?.content || "",
-    [messages]
-  );
+  async function handleCopy(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Copied!');
+    } catch {
+      toast('Copy failed');
+    }
+  }
 
-  /* -------------------------- UI -------------------------- */
+  async function handleSave(text) {
+    try {
+      const title = makeTitleFrom(text);
+      const payload = { tone, text };
+      const res = await fetch('/api/listings/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, payload }),
+      });
+      const j = await res.json();
+      if (!j?.ok) throw new Error(j?.error || 'Save failed');
+      toast('Saved to Listings');
+    } catch (e) {
+      console.error(e);
+      toast('Save failed');
+    }
+  }
+
+  function makeTitleFrom(t) {
+    const first = (t || '').split('\n').map(s => s.trim()).filter(Boolean)[0] || 'Listing';
+    return first.length > 70 ? `${first.slice(0, 67)}…` : first;
+  }
+
+  async function handleFlyerPDF(text) {
+    try {
+      const { jsPDF } = await import('jspdf'); // lazy-load
+      const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+      const marginX = 48;
+      const maxW = 515;
+
+      // Header
+      doc.setFillColor(15, 18, 24);
+      doc.roundedRect(0, 0, 612, 100, 0, 0, 'F');
+      doc.setTextColor('#E9ECF1');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.text('ListGenie — Property Flyer', marginX, 60);
+
+      // Headline (first line)
+      const lines = String(text || '').split('\n').map(s => s.trim()).filter(Boolean);
+      const headline = (lines[0] || 'Property').replace(/^\W+/, '');
+
+      doc.setTextColor('#000000');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text(headline, marginX, 130);
+
+      // Body
+      const bodyText = lines.slice(1).join(' ');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(12);
+
+      const wrapped = wrapText(doc, bodyText, maxW);
+      let y = 160;
+      const step = 18;
+      wrapped.forEach(line => {
+        doc.text(line, marginX, y);
+        y += step;
+      });
+
+      // Footer note
+      doc.setDrawColor(230);
+      doc.line(marginX, 700, 612 - marginX, 700);
+      doc.setFontSize(10);
+      doc.setTextColor('#6b7280');
+      doc.text('Generated with ListGenie.ai', marginX, 718);
+
+      doc.save('listing-flyer.pdf');
+      toast('PDF downloaded');
+    } catch (e) {
+      console.error(e);
+      toast('PDF module not available. Run: npm i jspdf');
+    }
+  }
+
+  function toast(s) {
+    // quick inline toast
+    const el = document.createElement('div');
+    el.textContent = s;
+    el.style.cssText = `
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(22,22,24,.9); color: #fff; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.12); font-size: 12px; z-index: 9999;
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1700);
+  }
+
+  const gated = !canGenerate;
 
   return (
-    <div className="chat-wrap">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-        <div className="chat-title">ListGenie.ai Chat</div>
-        {headerBadge}
-      </div>
-      <div className="chat-sub" style={{ marginBottom: 14 }}>
-        Generate polished real estate listings plus social variants.
-      </div>
+    <div className="page">
+      <SignedIn>
+        <Header planLabel={isPro ? 'Pro' : trialStatus === 'active' ? 'Trial' : 'Free'} />
+        <div className="content">
+          {/* TONE */}
+          <div className="tone-row">
+            {TONE_OPTIONS.map(t => (
+              <button
+                key={t}
+                className={`tone ${t === tone ? 'on' : ''}`}
+                onClick={() => setTone(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
 
-      {/* tone chips */}
-      <div className="card" style={{ padding: 10, marginBottom: 10 }}>
-        <div className="chat-sub" style={{ marginBottom: 6 }}>Tone</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {TONES.map((t) => (
-            <button
-              key={t.key}
-              className="btn"
-              onClick={() => setTone(t.key)}
-              style={{ padding: "6px 10px", background: tone === t.key ? "rgba(255,255,255,.08)" : undefined }}
-              title={t.hint}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* subtle shimmer while sending */}
-      {sending && (
-        <div className="lg-shimmer" aria-hidden>
-          <style jsx>{`
-            .lg-shimmer {
-              position: relative;
-              height: 3px;
-              border-radius: 2px;
-              margin: 6px 0 10px;
-              background: rgba(255, 255, 255, 0.08);
-              overflow: hidden;
-            }
-            .lg-shimmer::before {
-              content: "";
-              position: absolute;
-              left: -40%;
-              top: 0; bottom: 0;
-              width: 40%;
-              background: linear-gradient(
-                90deg,
-                rgba(255,255,255,0) 0%,
-                rgba(255,255,255,0.55) 50%,
-                rgba(255,255,255,0) 100%
-              );
-              animation: slide 1.1s linear infinite;
-            }
-            @keyframes slide {
-              0% { left: -40%; }
-              100% { left: 100%; }
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* compact suggestion pills — disappear after the first user message */}
-      {!messages.some(m => m.role === "user") && (
-        <div className="examples">
-          {[
-            {
-              label: "3bd Fair Oaks w/ upgrades",
-              value:
-                "3 bed, 2 bath, 1,850 sqft home in Fair Oaks with remodeled kitchen, quartz counters, and a large backyard near parks."
-            },
-            {
-              label: "Downtown 1bd loft caption",
-              value:
-                "Downtown condo listing: 1 bed loft, floor-to-ceiling windows, balcony with skyline view, walkable to coffee shops."
-            },
-            {
-              label: "Acreage + barn highlights",
-              value:
-                "Country property: 5 acres, 4 stall barn, seasonal creek, updated HVAC, fenced garden."
-            }
-          ].map((ex, i) => (
-            <button
-              key={i}
-              onClick={() => setInput(ex.value)}
-              className="example-pill"
-              title={ex.value}
-            >
-              {ex.label}
-            </button>
-          ))}
-          <style jsx>{`
-            .examples {
-              display: flex;
-              flex-wrap: wrap;
-              gap: 6px;
-              margin-bottom: 10px;
-            }
-            .example-pill {
-              font-size: 0.8rem;
-              padding: 4px 8px;
-              background: rgba(255,255,255,0.06);
-              border-radius: 14px;
-              cursor: pointer;
-              border: 1px solid rgba(255,255,255,0.10);
-              max-width: 220px;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              transition: background .2s, border-color .2s;
-            }
-            .example-pill:hover {
-              background: rgba(255,255,255,0.12);
-              border-color: rgba(255,255,255,0.2);
-            }
-          `}</style>
-        </div>
-      )}
-
-      {/* messages */}
-      <div ref={listRef} className="card" style={{ padding: 12, height: "38vh", overflowY: "auto", marginBottom: 10 }}>
-        {messages.map((m, i) => {
-          if (m.role === "system") {
-            return (
-              <div key={i} className="card" style={{ padding: 10, marginBottom: 8 }}>
-                {m.content}
-              </div>
-            );
-          }
-          if (m.role === "user") {
-            return (
-              <div key={i} style={{ marginBottom: 8 }}>
-                <div className="badge" style={{ marginBottom: 6 }}>You</div>
-                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
-              </div>
-            );
-          }
-          // assistant
-          return (
-            <div key={i} style={{ marginBottom: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <div className="badge">ListGenie</div>
-                {m.streaming && <TypingDots label="Thinking" />}
-              </div>
-
-              {m.streaming ? (
-                <div className="textarea" style={{ whiteSpace: "pre-wrap" }}>{m.content}</div>
-              ) : m.qFollowup ? (
-                <div className="card fade-in" style={{ padding: 12 }}>
-                  <div className="chat-sub" style={{ marginBottom: 8 }}>
-                    I need a bit more information to complete your listing:
-                  </div>
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
-                    {m.qFollowup.questions.map((q, idx) => (
-                      <li key={idx} style={{ marginBottom: 6 }}>{q}</li>
-                    ))}
-                  </ul>
-                  {Array.isArray(m.qFollowup.missing) && m.qFollowup.missing.length ? (
-                    <div className="chat-sub" style={{ marginTop: 8 }}>
-                      Missing fields: {m.qFollowup.missing.join(", ")}
-                    </div>
-                  ) : null}
-                  <div style={{ display:"flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-                    <button className="btn" onClick={() => setInput(buildAnswerTemplate(m.qFollowup))}>
-                      Answer these
-                    </button>
-                    <button className="btn" onClick={() => navigator.clipboard.writeText(formatQuestionsList(m.qFollowup)).catch(()=>{})}>
-                      Copy questions
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="fade-in">
-                  <ListingRender
-                    title={(lastUserPrompt || "").split("\n")[0].slice(0, 80) || "Generated Listing"}
-                    content={m.content}
-                    meta={{ tone, created_at: new Date(m.ts || Date.now()).toISOString() }}
-                    onSave={(text) => saveListing(text, lastUserPrompt)}
-                  />
-                </div>
-              )}
+          {/* EXAMPLES (white text, smaller) */}
+          {!sentOnce && (
+            <div className="examples">
+              {EXAMPLES.map((ex, i) => (
+                <button
+                  key={i}
+                  className="example-chip"
+                  onClick={() => setExample(ex)}
+                  title="Use this example"
+                >
+                  {ex}
+                </button>
+              ))}
             </div>
-          );
-        })}
-        {!messages.length && <div className="chat-sub">No messages yet.</div>}
-        <style jsx>{`
-          .fade-in {
-            animation: fIn .28s ease-out both;
-          }
-          @keyframes fIn {
-            from { opacity: 0; transform: translateY(4px); }
-            to   { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
-      </div>
+          )}
 
-      {/* quick actions row */}
-      <div className="card" style={{ padding: 8, marginBottom: 10 }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          <button className="link" onClick={() => applyQuick("Please shorten to an MLS-friendly length and keep it factual.")}>
-            Shorter MLS
-          </button>
-          <button className="link" onClick={() => applyQuick("Create a short social caption version with a soft call-to-action.")}>
-            Social caption
-          </button>
-          <button className="link" onClick={() => applyQuick("Elevate the tone slightly for a luxury audience without sounding cliché.")}>
-            Luxury tone
-          </button>
-          <button className="link" onClick={() => applyQuick("What follow-up details should I collect from the seller to improve this?")}>
-            Ask follow-ups
-          </button>
+          {/* CHAT BOX */}
+          <div className="chat-wrap" ref={scrollRef}>
+            {/* Assistant instructions bubble (first) */}
+            {!sentOnce && (
+              <div className="bubble assistant">
+                Hi! Tell me about the property (beds, baths, sqft, neighborhood, upgrades, nearby amenities) and I’ll draft a compelling listing. You can also paste bullet points.
+              </div>
+            )}
+
+            {/* Messages */}
+            {messages.map((m, idx) => (
+              <MessageBubble
+                key={m.at || idx}
+                role={m.role}
+                text={m.text}
+                tone={m.tone}
+                onCopy={() => handleCopy(m.text)}
+                onSave={() => handleSave(m.text)}
+                onPDF={() => handleFlyerPDF(m.text)}
+              />
+            ))}
+
+            {/* Thinking indicator */}
+            {thinking && <Thinking />}
+          </div>
+
+          {/* INPUT */}
+          <form className="input-row" onSubmit={handleSend}>
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Describe the property and any highlights…"
+              rows={3}
+            />
+            <button className="send" type="submit" disabled={!input.trim() || thinking}>
+              {thinking ? 'Generating…' : 'Send'}
+            </button>
+          </form>
+
+          {/* GATE (if trial expired / not pro) */}
+          {gated && <ProGate />}
         </div>
-      </div>
+      </SignedIn>
 
-      {/* input */}
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-        <textarea
-          className="textarea"
-          placeholder="Describe the property and any highlights…"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          rows={4}                      // slightly bigger input
-          style={{ flex: 1, lineHeight: 1.35 }}
-        />
-        {sending ? (
-          <button className="btn" onClick={stop}>
-            <span style={{ marginRight: 8 }}>Stop</span>
-            <span style={{ display: "inline-flex", gap: 4 }}>
-              <span className="mini" />
-              <span className="mini" />
-              <span className="mini" />
-            </span>
-            <style jsx>{`
-              .mini {
-                width: 4px; height: 4px; border-radius: 50%;
-                background: currentColor; opacity: .5;
-                animation: mBounce 1s infinite ease-in-out;
-              }
-              .mini:nth-child(2) { animation-delay: .15s; }
-              .mini:nth-child(3) { animation-delay: .3s; }
-              @keyframes mBounce {
-                0%, 80%, 100% { transform: translateY(0); opacity: .45; }
-                40% { transform: translateY(-2px); opacity: 1; }
-              }
-            `}</style>
-          </button>
-        ) : (
-          <button className="btn" onClick={send} disabled={disabled}>Send</button>
-        )}
-      </div>
-
-      {/* gate if expired */}
-      {plan === "expired" && (
-        <div style={{ marginTop: 10 }}>
-          <ProGate />
+      <SignedOut>
+        <div className="signedout">
+          <p>You’ll need to sign in to use ListGenie.</p>
+          <SignInButton mode="modal">
+            <button className="btn primary">Sign in</button>
+          </SignInButton>
         </div>
-      )}
+      </SignedOut>
 
-      {Toast}
+      {/* Styles scoped to this page */}
+      <style jsx>{`
+        .page { min-height: 100vh; background: radial-gradient(1200px 500px at 50% -180px, rgba(124,92,255,.2), transparent 70%), #0b0d11; color: #e9ecf1; }
+        .content { max-width: 900px; margin: 0 auto; padding: 24px 16px 120px; }
+        .tone-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+        .tone { padding: 10px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: #dfe3f0; font-size: 14px;}
+        .tone.on { background: #7c5cff; border-color: #6b54f2; color: #fff; }
+
+        .examples { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 10px; }
+        .example-chip {
+          text-align: left; padding: 8px 10px; border-radius: 10px;
+          border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
+          color: #fff; opacity: 0.92; font-size: 13px;
+        }
+        .example-chip:hover { background: rgba(255,255,255,.1); }
+
+        .chat-wrap { border: 1px solid rgba(255,255,255,.12); background: rgba(14,17,23,.6); border-radius: 14px; padding: 10px; height: 520px; overflow-y: auto; }
+        .bubble { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.04); border-radius: 12px; padding: 12px; margin: 10px 6px; white-space: pre-wrap; line-height: 1.5; }
+        .assistant { background: rgba(124,92,255,.12); border-color: rgba(124,92,255,.35); }
+        .user { background: rgba(255,255,255,.05); }
+
+        .input-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; margin-top: 10px; align-items: center; }
+        textarea { width: 100%; resize: vertical; min-height: 64px; color: #e9ecf1; background: rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.12); border-radius: 12px; padding: 12px; }
+        .send { padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,.12); background: #7c5cff; color: #fff; }
+        .send:disabled { opacity: .6; cursor: not-allowed; }
+
+        .tools { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .tool { padding: 8px 10px; border-radius: 10px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color:#fff; font-size: 12px; }
+        .tool.primary { background: #7c5cff; border-color: #6b54f2; }
+
+        .signedout { max-width: 600px; margin: 80px auto; text-align: center; }
+        .btn.primary { padding: 10px 14px; border-radius: 10px; border:1px solid rgba(255,255,255,.12); background:#7c5cff; color:#fff; }
+      `}</style>
     </div>
   );
+}
+
+function Header({ planLabel }) {
+  return (
+    <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 0' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <h1 style={{ fontSize: 24, margin: 0 }}>ListGenie.ai Chat</h1>
+        <span style={{ fontSize: 12, padding:'6px 10px', borderRadius: 999, border:'1px solid rgba(255,255,255,.12)', background:'rgba(255,255,255,.05)'}}>{planLabel}</span>
+      </div>
+      <p style={{ margin:'6px 0 14px', color:'#b9c0cc' }}>Generate polished real estate listings plus social variants.</p>
+    </div>
+  );
+}
+
+function MessageBubble({ role, text, tone, onCopy, onSave, onPDF }) {
+  const isAssistant = role === 'assistant';
+  const readable = coerceToReadableText(text);
+
+  return (
+    <div className={`bubble ${isAssistant ? 'assistant' : 'user'}`}>
+      {readable}
+      {isAssistant && (
+        <div className="tools">
+          <button className="tool" onClick={onCopy}>Copy</button>
+          <button className="tool" onClick={onSave}>Save</button>
+          <button className="tool primary" onClick={onPDF}>Flyer (PDF)</button>
+        </div>
+      )}
+      <style jsx>{`
+        .tools { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .tool { padding: 8px 10px; border-radius: 10px; border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color:#fff; font-size: 12px; }
+        .tool.primary { background: #7c5cff; border-color: #6b54f2; }
+      `}</style>
+    </div>
+  );
+}
+
+function Thinking() {
+  return (
+    <div style={{
+      display:'inline-flex', alignItems:'center', gap:8, padding:'6px 10px',
+      border:'1px solid rgba(255,255,255,.12)', borderRadius: 999, background:'rgba(255,255,255,.05)', margin:'10px 6px'
+    }}>
+      <span style={{ fontSize: 12, color:'#b9c0cc' }}>
+        <Dots /> Thinking
+      </span>
+    </div>
+  );
+}
+
+function Dots() {
+  return (
+    <span style={{ display:'inline-flex', gap:4, marginRight:6 }}>
+      <Dot delay="0s" /><Dot delay=".15s" /><Dot delay=".3s" />
+      <style jsx>{`
+        @keyframes b { 0% { opacity:.2; transform: translateY(0) } 50% { opacity:1; transform: translateY(-2px) } 100% { opacity:.2; transform: translateY(0) } }
+        span :global(.dot) { width:6px; height:6px; border-radius:50%; background:#d1d5db; display:block; animation: b 1.2s infinite; }
+      `}</style>
+    </span>
+  );
+}
+function Dot({ delay }) {
+  return <i className="dot" style={{ animationDelay: delay }} />;
 }
