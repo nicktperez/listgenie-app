@@ -98,6 +98,13 @@ export default function ChatPage() {
   const [propertyPhotos, setPropertyPhotos] = useState([]);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
+  // New customization state variables
+  const [primaryColor, setPrimaryColor] = useState("#2d4a3e");
+  const [secondaryColor, setSecondaryColor] = useState("#8b9d83");
+  const [fontStyle, setFontStyle] = useState("modern");
+  const [showPrice, setShowPrice] = useState(true);
+  const [customPrice, setCustomPrice] = useState("$399,900");
+
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -589,6 +596,11 @@ export default function ChatPage() {
         officeAddress: officeAddress.trim(),
         agencyLogo: agencyLogo,
         propertyPhotos: propertyPhotos,
+        primaryColor,
+        secondaryColor,
+        fontStyle,
+        showPrice,
+        customPrice,
         showAdvancedOptions
       }
     };
@@ -1026,6 +1038,81 @@ export default function ChatPage() {
                     </label>
                   )}
                 </div>
+              </div>
+
+              {/* Design Customization */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Design Customization</h3>
+                <p className="flyer-section-description">
+                  Customize the look and feel of your flyer to match your brand.
+                </p>
+                
+                <div className="customization-grid">
+                  <div className="customization-item">
+                    <label className="customization-label">Primary Color</label>
+                    <input
+                      type="color"
+                      value={primaryColor}
+                      onChange={(e) => setPrimaryColor(e.target.value)}
+                      className="color-picker"
+                    />
+                    <span className="color-value">{primaryColor}</span>
+                  </div>
+                  
+                  <div className="customization-item">
+                    <label className="customization-label">Accent Color</label>
+                    <input
+                      type="color"
+                      value={secondaryColor}
+                      onChange={(e) => setSecondaryColor(e.target.value)}
+                      className="color-picker"
+                    />
+                    <span className="color-value">{secondaryColor}</span>
+                  </div>
+                  
+                  <div className="customization-item">
+                    <label className="customization-label">Font Style</label>
+                    <select
+                      value={fontStyle}
+                      onChange={(e) => setFontStyle(e.target.value)}
+                      className="font-select"
+                    >
+                      <option value="modern">Modern & Clean</option>
+                      <option value="elegant">Elegant Serif</option>
+                      <option value="playful">Playful & Fun</option>
+                      <option value="professional">Professional</option>
+                    </select>
+                  </div>
+                  
+                  <div className="customization-item">
+                    <label className="customization-label">Show Price</label>
+                    <div className="toggle-container">
+                      <input
+                        type="checkbox"
+                        checked={showPrice}
+                        onChange={(e) => setShowPrice(e.target.checked)}
+                        className="toggle-checkbox"
+                        id="show-price-toggle"
+                      />
+                      <label htmlFor="show-price-toggle" className="toggle-label">
+                        <span className="toggle-slider"></span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
+                {showPrice && (
+                  <div className="customization-item full-width">
+                    <label className="customization-label">Custom Price</label>
+                    <input
+                      type="text"
+                      value={customPrice}
+                      onChange={(e) => setCustomPrice(e.target.value)}
+                      placeholder="$399,900"
+                      className="price-input"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Property Photos */}
@@ -1677,6 +1764,13 @@ export default function ChatPage() {
     gap: 8px;
   }
 
+  .flyer-section-description {
+    color: #a0aec0;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
   .flyer-options {
     display: flex;
     flex-direction: column;
@@ -1751,6 +1845,122 @@ export default function ChatPage() {
 
   .flyer-input::placeholder {
     color: #a0aec0;
+  }
+
+  /* Customization Grid */
+  .customization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .customization-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .customization-item.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .customization-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: white;
+    margin-bottom: 4px;
+  }
+
+  .color-picker {
+    width: 60px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: none;
+  }
+
+  .color-value {
+    font-size: 0.8rem;
+    color: #a0aec0;
+    font-family: monospace;
+  }
+
+  .font-select {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .font-select:focus {
+    outline: none;
+    border-color: #667eea;
+  }
+
+  /* Toggle Switch */
+  .toggle-container {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+  }
+
+  .toggle-checkbox {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-label {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.2);
+    transition: 0.3s;
+    border-radius: 24px;
+  }
+
+  .toggle-label:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+  }
+
+  .toggle-checkbox:checked + .toggle-label {
+    background-color: #667eea;
+  }
+
+  .toggle-checkbox:checked + .toggle-label:before {
+    transform: translateX(26px);
+  }
+
+  .price-input {
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+
+  .price-input:focus {
+    outline: none;
+    border-color: #667eea;
   }
 
   .logo-upload-area {

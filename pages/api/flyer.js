@@ -14,7 +14,70 @@ export const config = {
 function createHtmlFlyer({ standardText, openHouseText, customization, pageType }) {
   const isOpenHouse = pageType === "openHouse";
   
-  // Create a beautiful HTML template matching the cozy open house flyer design
+  // Get customization values with defaults
+  const primaryColor = customization.primaryColor || "#2d4a3e";
+  const secondaryColor = customization.secondaryColor || "#8b9d83";
+  const fontStyle = customization.fontStyle || "modern";
+  const showPrice = customization.showPrice !== false; // Default to true
+  const customPrice = customization.customPrice || "$399,900";
+  
+  // Font family mapping
+  const getFontFamily = (style) => {
+    switch (style) {
+      case "elegant":
+        return "'Playfair Display', serif";
+      case "playful":
+        return "'Comic Sans MS', cursive";
+      case "professional":
+        return "'Georgia', serif";
+      case "modern":
+      default:
+        return "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    }
+  };
+  
+  // Generate CSS custom properties for dynamic colors
+  const generateDynamicCSS = () => {
+    // Create lighter/darker variations of the primary color
+    const primaryLight = adjustColor(primaryColor, 20);
+    const primaryDark = adjustColor(primaryColor, -20);
+    const secondaryLight = adjustColor(secondaryColor, 15);
+    
+    return `
+      :root {
+        --primary: ${primaryColor};
+        --primary-light: ${primaryLight};
+        --primary-dark: ${primaryDark};
+        --secondary: ${secondaryColor};
+        --secondary-light: ${secondaryLight};
+        --text-on-primary: ${getContrastColor(primaryColor)};
+        --text-on-secondary: ${getContrastColor(secondaryColor)};
+      }
+    `;
+  };
+  
+  // Helper function to adjust color brightness
+  const adjustColor = (color, percent) => {
+    const num = parseInt(color.replace("#", ""), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+  };
+  
+  // Helper function to determine text color based on background
+  const getContrastColor = (hexColor) => {
+    const r = parseInt(hexColor.slice(1, 3), 16);
+    const g = parseInt(hexColor.slice(3, 5), 16);
+    const b = parseInt(hexColor.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? "#000000" : "#ffffff";
+  };
+  
+  // Create a beautiful HTML template with dynamic customization
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -24,6 +87,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
     <title>${isOpenHouse ? 'Open House Flyer' : 'Property Flyer'}</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        ${generateDynamicCSS()}
+        
         * {
             margin: 0;
             padding: 0;
@@ -31,17 +96,17 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: ${getFontFamily(fontStyle)};
             line-height: 1.6;
-            color: #f8f9fa;
-            background: #2d4a3e;
+            color: var(--text-on-primary);
+            background: var(--primary);
             font-weight: 400;
         }
         
         .flyer-container {
             max-width: 900px;
             margin: 20px auto;
-            background: #2d4a3e;
+            background: var(--primary);
             box-shadow: 0 25px 50px rgba(0,0,0,0.3);
             border-radius: 0;
             overflow: hidden;
@@ -53,7 +118,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             position: relative;
             height: 350px;
             overflow: hidden;
-            background: #2d4a3e;
+            background: var(--primary);
         }
         
         .hero-image {
@@ -69,7 +134,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(45, 74, 62, 0.8) 0%, rgba(45, 74, 62, 0.6) 100%);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
         }
         
         /* Main Content Section - Two Column Layout */
@@ -78,13 +143,13 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             grid-template-columns: 1fr 2fr;
             gap: 0;
             min-height: 600px;
-            background: #2d4a3e;
+            background: var(--primary);
         }
         
         /* Left Column - Photos */
         .left-column {
             padding: 30px 20px;
-            background: #2d4a3e;
+            background: var(--primary);
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -94,7 +159,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             border-radius: 8px;
             overflow: hidden;
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            border: 2px solid #8b9d83;
+            border: 2px solid var(--secondary);
             transition: transform 0.3s ease;
         }
         
@@ -111,7 +176,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         /* Right Column - Content */
         .right-column {
             padding: 40px 35px;
-            background: #3a5a4a;
+            background: var(--primary-light);
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -119,10 +184,10 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         /* Typography and Content */
         .flyer-title {
-            font-family: 'Playfair Display', serif;
+            font-family: ${fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle)};
             font-size: 3.5rem;
             font-weight: 700;
-            color: #f8f9fa;
+            color: var(--text-on-primary);
             margin-bottom: 15px;
             line-height: 1.1;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
@@ -134,19 +199,20 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         .event-detail {
             font-size: 1.2rem;
-            color: #e9ecef;
+            color: var(--text-on-primary);
             margin-bottom: 8px;
             font-weight: 400;
         }
         
         .price-section {
             margin-bottom: 30px;
+            ${!showPrice ? 'display: none;' : ''}
         }
         
         .price-label {
             font-size: 1.1rem;
             font-weight: 600;
-            color: #e9ecef;
+            color: var(--text-on-primary);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 8px;
@@ -155,7 +221,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         .price-amount {
             font-size: 3rem;
             font-weight: 700;
-            color: #f8f9fa;
+            color: var(--text-on-primary);
             line-height: 1;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
@@ -167,7 +233,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         .section-title {
             font-size: 1.3rem;
             font-weight: 600;
-            color: #f8f9fa;
+            color: var(--text-on-primary);
             margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -175,7 +241,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         .property-description {
             font-size: 1.1rem;
-            color: #e9ecef;
+            color: var(--text-on-primary);
             line-height: 1.7;
             margin-bottom: 20px;
         }
@@ -193,7 +259,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             align-items: center;
             gap: 12px;
             font-size: 1.1rem;
-            color: #e9ecef;
+            color: var(--text-on-primary);
             margin-bottom: 12px;
             font-weight: 500;
         }
@@ -201,29 +267,29 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         .feature-icon {
             width: 20px;
             height: 20px;
-            background: #8b9d83;
+            background: var(--secondary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #2d4a3e;
+            color: var(--text-on-secondary);
             font-size: 0.8rem;
             font-weight: bold;
         }
         
         /* Open House Special Styling */
         .open-house-banner {
-            background: linear-gradient(135deg, #8b9d83 0%, #6b7c63 100%);
-            color: #2d4a3e;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+            color: var(--text-on-secondary);
             padding: 25px 30px;
             margin: 0 20px 30px 20px;
             border-radius: 12px;
             text-align: center;
-            box-shadow: 0 8px 25px rgba(139, 157, 131, 0.3);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
         
         .open-house-title {
-            font-family: 'Playfair Display', serif;
+            font-family: ${fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle)};
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 20px;
@@ -263,8 +329,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         .cta-button {
-            background: #2d4a3e;
-            color: #f8f9fa;
+            background: var(--primary);
+            color: var(--text-on-primary);
             padding: 15px 30px;
             border-radius: 50px;
             font-size: 1.1rem;
@@ -273,26 +339,26 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             display: inline-block;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            border: 2px solid #2d4a3e;
+            border: 2px solid var(--primary);
         }
         
         .cta-button:hover {
-            background: #f8f9fa;
-            color: #2d4a3e;
+            background: var(--text-on-primary);
+            color: var(--primary);
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         }
         
         /* Footer */
         .footer {
-            background: #2d4a3e;
-            color: #f8f9fa;
+            background: var(--primary);
+            color: var(--text-on-primary);
             padding: 30px 40px;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 25px;
             align-items: center;
-            border-top: 3px solid #8b9d83;
+            border-top: 3px solid var(--secondary);
         }
         
         .contact-item {
@@ -306,13 +372,13 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         .contact-icon {
             width: 35px;
             height: 35px;
-            background: #8b9d83;
+            background: var(--secondary);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.1rem;
-            color: #2d4a3e;
+            color: var(--text-on-secondary);
         }
         
         /* Responsive Design */
@@ -344,7 +410,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         @media print {
-            body { background: #2d4a3e; }
+            body { background: var(--primary); }
             .flyer-container { 
                 margin: 0; 
                 box-shadow: none;
@@ -360,7 +426,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         <div class="hero-section">
             ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
                 `<img src="${customization.propertyPhotos[0].data}" alt="Property Hero" class="hero-image">` : 
-                '<div class="hero-image" style="background: linear-gradient(135deg, #2d4a3e 0%, #3a5a4a 100%);"></div>'
+                '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);"></div>'
             }
             <div class="hero-overlay"></div>
         </div>
@@ -402,7 +468,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     `).join('') : 
                     Array(3).fill().map((_, index) => `
                         <div class="photo-item">
-                            <div style="height: 180px; background: #3a5a4a; display: flex; align-items: center; justify-content: center; color: #8b9d83; border: 2px solid #8b9d83;">Photo ${index + 1}</div>
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary);">Photo ${index + 1}</div>
                         </div>
                     `).join('')
                 }
@@ -420,10 +486,12 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 </div>
                 ` : ''}
                 
+                ${showPrice ? `
                 <div class="price-section">
                     <div class="price-label">Offered At</div>
-                    <div class="price-amount">$399,900</div>
+                    <div class="price-amount">${customPrice}</div>
                 </div>
+                ` : ''}
                 
                 <div class="about-section">
                     <div class="section-title">About This Property</div>
