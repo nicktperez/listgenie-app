@@ -19,16 +19,16 @@ async function createPdf({ standardText, openHouseText, customization }) {
     const helvetica = await doc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
     
-    // Helper function to create a beautiful, professional flyer page
+    // Helper function to create a beautiful, engaging flyer page
     const makePage = async (title, body, pageType = "standard") => {
       const page = doc.addPage([612, 792]); // Letter portrait
       const { width, height } = page.getSize();
       
-      // Professional color scheme matching the reference design
-      const primaryColor = rgb(0.2, 0.25, 0.15); // Dark olive green
-      const accentColor = rgb(0.9, 0.9, 0.9); // Light gray
+      // Fun, engaging color scheme
+      const primaryColor = rgb(0.1, 0.4, 0.2); // Rich green
+      const accentColor = rgb(0.95, 0.7, 0.1); // Warm gold
       const textColor = rgb(1, 1, 1); // White text
-      const darkTextColor = rgb(0.1, 0.1, 0.1); // Dark text for content
+      const darkTextColor = rgb(0.1, 0.1, 0.1); // Dark text
       
       // Background - clean white
       page.drawRectangle({
@@ -37,93 +37,99 @@ async function createPdf({ standardText, openHouseText, customization }) {
         color: rgb(1, 1, 1),
       });
       
-      // Subtle watermark pattern (optional)
-      for (let i = 0; i < 5; i++) {
-        page.drawText("ListGenie", {
-          x: 50 + (i * 120),
-          y: 50 + (i * 40),
-          size: 8,
-          font: helvetica,
-          color: rgb(0.95, 0.96, 0.95), // Very light watermark
-        });
-      }
-      
-      // Header section with large hero image area
-      const headerHeight = height * 0.4; // 40% of page height for hero image
-      
-      // Hero image background (placeholder if no photos)
-      if (customization.propertyPhotos && customization.propertyPhotos.length > 0) {
-        try {
-          const heroPhoto = customization.propertyPhotos[0];
-          const photoData = heroPhoto.data.includes(',') 
-            ? heroPhoto.data.split(',')[1] 
-            : heroPhoto.data;
-          
-          const heroImage = await doc.embedPng(Buffer.from(photoData, 'base64'));
-          const imageAspectRatio = heroImage.width / heroImage.height;
-          
-          let imageWidth = width;
-          let imageHeight = headerHeight;
-          
-          if (imageAspectRatio > 1) {
-            imageHeight = width / imageAspectRatio;
-          } else {
-            imageWidth = headerHeight * imageAspectRatio;
-          }
-          
-          // Center the image
-          const imageX = (width - imageWidth) / 2;
-          const imageY = height - imageHeight;
-          
-          page.drawImage(heroImage, {
-            x: imageX,
-            y: imageY,
-            width: imageWidth,
-            height: imageHeight,
-          });
-        } catch (e) {
-          console.log("Hero image failed, using placeholder:", e.message);
-        }
-      }
-      
-      // Content section below hero image
-      const contentStartY = height - headerHeight - 20;
-      const contentHeight = contentStartY - 80; // Leave space for footer
-      
-      // Main content background - dark olive green
+      // Top banner with gradient effect
+      const bannerHeight = 120;
       page.drawRectangle({
-        x: 0, y: 80,
-        width, height: contentHeight,
+        x: 0, y: height - bannerHeight,
+        width, height: bannerHeight,
         color: primaryColor,
       });
       
-      // Add subtle border accent
+      // Add gold accent stripe
       page.drawRectangle({
-        x: 0, y: 80,
-        width: 3, height: contentHeight,
-        color: rgb(0.9, 0.85, 0.7), // Gold accent
+        x: 0, y: height - bannerHeight,
+        width, height: 8,
+        color: accentColor,
       });
       
-      // Content layout - two columns
-      const leftColumnWidth = width * 0.35;
-      const rightColumnWidth = width * 0.65;
-      const leftColumnX = 20;
-      const rightColumnX = leftColumnX + leftColumnWidth + 20;
-      const contentY = contentStartY - 40;
+      // Add decorative corner elements
+      const cornerSize = 20;
+      page.drawRectangle({
+        x: 0, y: height - cornerSize,
+        width: cornerSize, height: cornerSize,
+        color: accentColor,
+      });
       
-      // Left column - additional photos
-      if (customization.propertyPhotos && customization.propertyPhotos.length > 1) {
-        const photoSize = 80;
-        let photoY = contentY;
+      page.drawRectangle({
+        x: width - cornerSize, y: height - cornerSize,
+        width: cornerSize, height: cornerSize,
+        color: accentColor,
+      });
+      
+      // Title in banner
+      page.drawText(title, {
+        x: 36,
+        y: height - 60,
+        size: 32,
+        font: helveticaBold,
+        color: textColor,
+      });
+      
+      // Agency name in banner
+      if (customization.agencyName) {
+        page.drawText(customization.agencyName, {
+          x: 36,
+          y: height - 85,
+          size: 16,
+          font: helvetica,
+          color: textColor,
+        });
+      }
+      
+      // Main content area
+      const contentStartY = height - bannerHeight - 20;
+      const contentHeight = contentStartY - 100; // Leave space for footer
+      
+      // Content background
+      page.drawRectangle({
+        x: 20, y: 100,
+        width: width - 40, height: contentHeight,
+        color: rgb(0.98, 0.98, 0.98), // Light gray background
+      });
+      
+      // Add border
+      page.drawRectangle({
+        x: 20, y: 100,
+        width: width - 40, height: contentHeight,
+        color: primaryColor,
+        borderWidth: 2,
+      });
+      
+      // Photo grid section
+      let photoY = contentStartY - 40;
+      const photoSize = 120;
+      const photosPerRow = 3;
+      let photoX = 40;
+      let photoCount = 0;
+      
+      if (customization.propertyPhotos && customization.propertyPhotos.length > 0) {
+        console.log(`Processing ${customization.propertyPhotos.length} photos...`);
         
-        for (let i = 1; i < Math.min(customization.propertyPhotos.length, 4); i++) {
+        for (let i = 0; i < Math.min(customization.propertyPhotos.length, 6); i++) {
           try {
             const photo = customization.propertyPhotos[i];
+            console.log(`Processing photo ${i + 1}:`, photo.name);
+            
+            // Handle both data URLs and base64 strings
             const photoData = photo.data.includes(',') 
               ? photo.data.split(',')[1] 
               : photo.data;
             
+            console.log(`Photo ${i + 1} data length:`, photoData?.length || 0);
+            
             const photoImage = await doc.embedPng(Buffer.from(photoData, 'base64'));
+            console.log(`Photo ${i + 1} embedded successfully, dimensions:`, photoImage.width, "x", photoImage.height);
+            
             const aspectRatio = photoImage.width / photoImage.height;
             
             let drawWidth = photoSize;
@@ -135,81 +141,133 @@ async function createPdf({ standardText, openHouseText, customization }) {
               drawWidth = photoSize * aspectRatio;
             }
             
+            // Center the photo in its grid cell
+            const cellX = photoX + (photoSize - drawWidth) / 2;
+            const cellY = photoY + (photoSize - drawHeight) / 2;
+            
             page.drawImage(photoImage, {
-              x: leftColumnX,
-              y: photoY,
+              x: cellX,
+              y: cellY,
               width: drawWidth,
               height: drawHeight,
             });
             
-            photoY -= photoSize + 15;
+            console.log(`Photo ${i + 1} drawn at (${cellX}, ${cellY})`);
+            
+            photoCount++;
+            photoX += photoSize + 20;
+            
+            if (photoCount % photosPerRow === 0) {
+              photoX = 40;
+              photoY -= photoSize + 20;
+            }
           } catch (e) {
-            console.log(`Additional photo ${i} failed:`, e.message);
+            console.log(`Photo ${i + 1} failed:`, e.message);
+            console.log(`Photo ${i + 1} error stack:`, e.stack);
           }
         }
-      }
-      
-      // Right column - content text
-      let textY = contentY;
-      
-      // Title
-      page.drawText(title, {
-        x: rightColumnX,
-        y: textY,
-        size: 24,
-        font: helveticaBold,
-        color: textColor,
-      });
-      textY -= 35;
-      
-      // Special formatting for Open House flyers
-      if (pageType === "openHouse") {
-        // Event details section
-        page.drawText("OPEN HOUSE EVENT", {
-          x: rightColumnX,
-          y: textY,
-          size: 16,
-          font: helveticaBold,
-          color: textColor,
-        });
-        textY -= 25;
         
-        // Add some sample event details (you can customize these)
-        const eventDetails = [
-          "Date: December 15th, 2024",
-          "Time: 2:00 PM - 5:00 PM",
-          "Location: Property Address"
-        ];
-        
-        for (const detail of eventDetails) {
-          page.drawText(detail, {
-            x: rightColumnX,
-            y: textY,
+        photoY -= 30; // Extra spacing after photos
+      } else {
+        console.log("No photos provided, using placeholder");
+        // Draw placeholder boxes
+        for (let i = 0; i < 6; i++) {
+          page.drawRectangle({
+            x: photoX,
+            y: photoY,
+            width: photoSize,
+            height: photoSize,
+            color: rgb(0.9, 0.9, 0.9),
+            borderColor: primaryColor,
+            borderWidth: 1,
+          });
+          
+          page.drawText("Photo", {
+            x: photoX + photoSize/2 - 20,
+            y: photoY + photoSize/2,
             size: 12,
             font: helvetica,
-            color: textColor,
+            color: rgb(0.6, 0.6, 0.6),
           });
-          textY -= 18;
+          
+          photoCount++;
+          photoX += photoSize + 20;
+          
+          if (photoCount % photosPerRow === 0) {
+            photoX = 40;
+            photoY -= photoSize + 20;
+          }
         }
-        
-        textY -= 15; // Extra spacing
+        photoY -= 30;
       }
       
-      // Agency name if provided
-      if (customization.agencyName) {
-        page.drawText(customization.agencyName, {
-          x: rightColumnX,
-          y: textY,
-          size: 14,
-          font: helvetica,
-          color: textColor,
+      // Content text section
+      const textStartY = photoY;
+      const textX = 40;
+      const textWidth = width - 80;
+      
+      // Special Open House formatting
+      if (pageType === "openHouse") {
+        // Event details box
+        const eventBoxY = textStartY - 60;
+        page.drawRectangle({
+          x: textX - 10,
+          y: eventBoxY - 20,
+          width: textWidth + 20,
+          height: 60,
+          color: accentColor,
         });
-        textY -= 25;
+        
+        page.drawText("OPEN HOUSE EVENT", {
+          x: textX,
+          y: eventBoxY,
+          size: 18,
+          font: helveticaBold,
+          color: darkTextColor,
+        });
+        
+        const eventDetails = [
+          "📅 Date: December 15th, 2024",
+          "⏰ Time: 2:00 PM - 5:00 PM",
+          "📍 Location: Property Address"
+        ];
+        
+        let eventY = eventBoxY - 25;
+        for (const detail of eventDetails) {
+          page.drawText(detail, {
+            x: textX,
+            y: eventY,
+            size: 12,
+            font: helveticaBold,
+            color: darkTextColor,
+          });
+          eventY -= 18;
+        }
+        
+        // Call to action
+        page.drawText("🎉 Don't miss this amazing opportunity!", {
+          x: textX,
+          y: eventY - 10,
+          size: 14,
+          font: helveticaBold,
+          color: primaryColor,
+        });
+        
+        textStartY = eventY - 40; // Adjust text start position
       }
+      
+      // Content background
+      page.drawRectangle({
+        x: textX - 10,
+        y: textStartY - 20,
+        width: textWidth + 20,
+        height: textStartY + 20,
+        color: primaryColor,
+      });
       
       // Content text with better formatting
       const contentText = body || "";
-      const maxLineLength = 60;
+      const maxLineLength = 70;
       const words = contentText.split(/\s+/);
       const lines = [];
       let currentLine = "";
@@ -227,11 +285,12 @@ async function createPdf({ standardText, openHouseText, customization }) {
       }
       
       // Draw content lines
+      let textY = textStartY;
       for (const line of lines) {
         if (textY < 120) break; // Don't overflow into footer
         
         page.drawText(line, {
-          x: rightColumnX,
+          x: textX,
           y: textY,
           size: 11,
           font: helvetica,
@@ -243,11 +302,18 @@ async function createPdf({ standardText, openHouseText, customization }) {
       // Footer section
       const footerY = 80;
       
-      // Footer background - dark olive green
+      // Footer background
       page.drawRectangle({
         x: 0, y: 0,
         width, height: footerY,
         color: primaryColor,
+      });
+      
+      // Gold accent stripe at top of footer
+      page.drawRectangle({
+        x: 0, y: footerY,
+        width, height: 4,
+        color: accentColor,
       });
       
       // Contact information
@@ -258,11 +324,11 @@ async function createPdf({ standardText, openHouseText, customization }) {
         page.drawText(`Contact: ${customization.agentEmail}`, {
           x: contactX,
           y: contactY,
-          size: 10,
-          font: helvetica,
+          size: 12,
+          font: helveticaBold,
           color: textColor,
         });
-        contactX += 150;
+        contactX += 200;
       }
       
       // QR code if website link provided
@@ -270,26 +336,26 @@ async function createPdf({ standardText, openHouseText, customization }) {
         try {
           const QRCode = await import('qrcode');
           const qrDataUrl = await QRCode.toDataURL(customization.websiteLink, {
-            width: 50,
+            width: 60,
             margin: 1,
             color: {
               dark: '#FFFFFF',
-              light: '#2A4026'
+              light: '#0A6628'
             }
           });
           
           const qrImage = await doc.embedPng(qrDataUrl.split(',')[1]);
           page.drawImage(qrImage, {
-            x: width - 70,
-            y: 15,
-            width: 50,
-            height: 50,
+            x: width - 80,
+            y: 10,
+            width: 60,
+            height: 60,
           });
           
           page.drawText("Scan for details", {
-            x: width - 70,
-            y: 10,
-            size: 8,
+            x: width - 80,
+            y: 5,
+            size: 10,
             font: helvetica,
             color: textColor,
           });
@@ -302,7 +368,7 @@ async function createPdf({ standardText, openHouseText, customization }) {
       page.drawText(`Page ${doc.getPageCount()}`, {
         x: width - 60,
         y: 25,
-        size: 8,
+        size: 10,
         font: helvetica,
         color: textColor,
       });
