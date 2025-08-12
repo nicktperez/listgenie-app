@@ -1,202 +1,240 @@
 // pages/usage.js
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
-
-function fmtNumber(n) {
-  if (n === null || n === undefined) return "—";
-  return new Intl.NumberFormat().format(n);
-}
-
-function fmtDate(s) {
-  try {
-    return new Date(s).toLocaleString();
-  } catch {
-    return s || "—";
-  }
-}
-
-function RoleBadge({ role }) {
-  const color =
-    role === "admin"
-      ? "bg-purple-100 text-purple-800 ring-purple-200"
-      : role === "pro"
-      ? "bg-green-100 text-green-800 ring-green-200"
-      : "bg-gray-100 text-gray-800 ring-gray-200";
-  return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 ${color}`}>
-      {role?.toUpperCase() || "UNKNOWN"}
-    </span>
-  );
-}
+import { useState, useEffect } from "react";
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { useUserPlan } from "@/hooks/useUserPlan";
+import NavBar from "@/components/NavBar";
 
 export default function UsagePage() {
-  const { isLoaded, user } = useUser();
+  return (
+    <div>
+      <NavBar />
+      <div className="chat-wrap">
+        <h1 className="chat-title" style={{ marginBottom: 8 }}>Usage Analytics</h1>
+        <p className="chat-sub" style={{ marginBottom: 16 }}>
+          Track your listing generation activity and usage patterns.
+        </p>
+
+        <SignedOut>
+          <div className="card" style={{ padding: 16 }}>
+            <div className="chat-sub" style={{ marginBottom: 8 }}>
+              Please sign in to view your usage analytics.
+            </div>
+            <SignInButton mode="modal">
+              <button className="btn">Sign in</button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+
+        <SignedIn>
+          <UsageAnalytics />
+        </SignedIn>
+      </div>
+    </div>
+  );
+}
+
+function UsageAnalytics() {
+  const { isPro, usageCount, usageLimit, plan, daysLeft, isTrial } = useUserPlan();
+  const [generations, setGenerations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState("");
-  const [data, setData] = useState({
-    role: "",
-    totals: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
-    rows: [],
-  });
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    let abort = false;
+    loadGenerations();
+  }, []);
 
-    async function run() {
+  const loadGenerations = async () => {
+    try {
       setLoading(true);
-      setErr("");
-      try {
-        const res = await fetch("/api/usage");
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(txt || `HTTP ${res.status}`);
-        }
-        const json = await res.json();
-        if (!abort) setData(json);
-      } catch (e) {
-        if (!abort) setErr(e.message || "Failed to load usage.");
-      } finally {
-        if (!abort) setLoading(false);
+      const res = await fetch("/api/user/generations");
+      const data = await res.json();
+      
+      if (res.ok) {
+        setGenerations(data.generations || []);
+      } else {
+        setError(data.error || "Failed to load generations");
       }
+    } catch (e) {
+      setError("Failed to load generations");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Only fetch when Clerk has loaded (prevents flicker)
-    if (isLoaded) run();
-    return () => {
-      abort = true;
-    };
-  }, [isLoaded]);
+  const getUsagePercentage = () => {
+    return Math.min((usageCount / usageLimit) * 100, 100);
+  };
 
-  const rows = useMemo(() => {
-    // Add total_tokens per row for display convenience
-    return (data?.rows || []).map((r) => ({
-      ...r,
-      total_tokens: (r.prompt_tokens || 0) + (r.completion_tokens || 0),
-    }));
-  }, [data]);
+  const getRecentActivity = () => {
+    const now = new Date();
+    const last7Days = generations.filter(g => {
+      const genDate = new Date(g.created_at);
+      const diffTime = Math.abs(now - genDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays <= 7;
+    });
+    
+    return last7Days.length;
+  };
+
+  const getMostActiveDay = () => {
+    if (generations.length === 0) return "No activity";
+    
+    const dayCounts = {};
+    generations.forEach(g => {
+      const date = new Date(g.created_at).toLocaleDateString();
+      dayCounts[date] = (dayCounts[date] || 0) + 1;
+    });
+    
+    const mostActive = Object.entries(dayCounts)
+      .sort(([,a], [,b]) => b - a)[0];
+    
+    return mostActive ? `${mostActive[0]} (${mostActive[1]} generations)` : "No activity";
+  };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10">
-      <h1 className="mb-2 text-3xl font-bold">Usage & Billing</h1>
-      <p className="mb-8 text-gray-600">
-        Track your token usage and recent chats. Upgrade to Pro for higher limits and faster models.
-      </p>
-
-      <SignedOut>
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-2 text-xl font-semibold">Sign in to view usage</h2>
-          <p className="mb-4 text-gray-600">
-            You need to be signed in to see your stats and history.
-          </p>
-          <SignInButton mode="modal">
-            <button className="rounded-md bg-black px-4 py-2 text-white">Sign In</button>
-          </SignInButton>
+    <div className="usage-container">
+      {/* Current Status */}
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <h3 style={{ marginBottom: 16 }}>Current Plan & Usage</h3>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4 }}>
+              {plan.toUpperCase()}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              {isTrial ? `${daysLeft} days remaining` : "Current plan"}
+            </div>
+          </div>
+          
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#86a2ff" }}>
+              {usageCount}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              Generations used
+            </div>
+          </div>
+          
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#7ce7c4" }}>
+              {usageLimit === 1000 ? "∞" : usageLimit}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              Monthly limit
+            </div>
+          </div>
         </div>
-      </SignedOut>
 
-      <SignedIn>
-        {/* Role + quick stats */}
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <RoleBadge role={data?.role} />
-            <div className="text-sm text-gray-500">
-              {user?.primaryEmailAddress?.emailAddress || user?.username || user?.id}
-            </div>
+        {/* Usage Bar */}
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: "14px" }}>Usage Progress</span>
+            <span style={{ fontSize: "14px", color: "var(--text-dim)" }}>
+              {getUsagePercentage().toFixed(1)}%
+            </span>
           </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <StatCard label="Total Tokens" value={fmtNumber(data?.totals?.total_tokens)} />
-            <StatCard label="Prompt Tokens" value={fmtNumber(data?.totals?.prompt_tokens)} />
-            <StatCard label="Completion Tokens" value={fmtNumber(data?.totals?.completion_tokens)} />
+          <div style={{ 
+            width: "100%", 
+            height: "8px", 
+            background: "rgba(255,255,255,0.1)", 
+            borderRadius: "4px",
+            overflow: "hidden"
+          }}>
+            <div style={{
+              width: `${getUsagePercentage()}%`,
+              height: "100%",
+              background: usageCount >= usageLimit ? "#ff6363" : "#86a2ff",
+              transition: "width 0.3s ease"
+            }} />
           </div>
         </div>
+      </div>
 
-        {/* Content states */}
-        {loading && (
-          <div className="rounded-xl border border-gray-200 bg-white p-6 text-gray-600 shadow-sm">
-            Loading usage…
-          </div>
-        )}
-
-        {!loading && err && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-red-800">
-            <div className="mb-1 font-semibold">Failed to load usage</div>
-            <div className="text-sm">{err}</div>
-          </div>
-        )}
-
-        {!loading && !err && rows.length === 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center text-gray-600 shadow-sm">
-            <div className="mb-2 text-lg font-semibold">No chats yet</div>
-            <div className="mb-4 text-sm">Your chat history will appear here after your first conversation.</div>
-            <a href="/chat" className="inline-flex items-center rounded-md bg-black px-4 py-2 text-white">
-              Start a chat
-            </a>
-          </div>
-        )}
-
-        {!loading && !err && rows.length > 0 && (
-          <div className="rounded-xl border border-gray-200 bg-white p-0 shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                  <tr>
-                    <Th>Date</Th>
-                    <Th>Model</Th>
-                    <Th className="text-right">Prompt</Th>
-                    <Th className="text-right">Completion</Th>
-                    <Th className="text-right">Total</Th>
-                    <Th>Prompt Excerpt</Th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {rows.map((r) => (
-                    <tr key={r.id} className="hover:bg-gray-50">
-                      <Td>{fmtDate(r.created_at)}</Td>
-                      <Td className="font-medium">{r.model || "—"}</Td>
-                      <Td className="text-right tabular-nums">{fmtNumber(r.prompt_tokens)}</Td>
-                      <Td className="text-right tabular-nums">{fmtNumber(r.completion_tokens)}</Td>
-                      <Td className="text-right font-semibold tabular-nums">{fmtNumber(r.total_tokens)}</Td>
-                      <Td className="max-w-xl truncate text-gray-600">
-                        {r.input ? String(r.input).slice(0, 160) : "—"}
-                      </Td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Analytics */}
+      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+        <h3 style={{ marginBottom: 16 }}>Activity Insights</h3>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#7ce7c4" }}>
+              {generations.length}
             </div>
-
-            {/* Optional footer */}
-            <div className="flex items-center justify-between border-t border-gray-100 p-4 text-xs text-gray-500">
-              <span>Showing {rows.length} {rows.length === 1 ? "entry" : "entries"}</span>
-              <a href="/chat" className="underline">Open chat</a>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              Total generations
             </div>
           </div>
+          
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#86a2ff" }}>
+              {getRecentActivity()}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              Last 7 days
+            </div>
+          </div>
+          
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "16px", fontWeight: "600", marginBottom: 4, color: "#ffa726" }}>
+              {getMostActiveDay()}
+            </div>
+            <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+              Most active day
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Generations */}
+      <div className="card" style={{ padding: 16 }}>
+        <h3 style={{ marginBottom: 16 }}>Recent Generations</h3>
+        
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "var(--text-dim)" }}>
+            Loading...
+          </div>
+        ) : error ? (
+          <div className="error" style={{ marginBottom: 16 }}>{error}</div>
+        ) : generations.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "20px", color: "var(--text-dim)" }}>
+            No generations yet. Start creating listings in the Chat section!
+          </div>
+        ) : (
+          <div style={{ maxHeight: "400px", overflowY: "auto" }}>
+            {generations.slice(0, 10).map((gen, index) => (
+              <div
+                key={gen.id || index}
+                style={{
+                  padding: 12,
+                  border: "1px solid var(--stroke)",
+                  borderRadius: 8,
+                  marginBottom: 12,
+                  background: "rgba(255,255,255,0.02)"
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontSize: "14px", color: "var(--text-dim)" }}>
+                    {new Date(gen.created_at).toLocaleDateString()}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                    {gen.model || "AI Model"}
+                  </div>
+                </div>
+                <div style={{ 
+                  fontSize: "14px", 
+                  lineHeight: "1.4",
+                  maxHeight: "80px",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}>
+                  {gen.prompt || "Property description"}
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-      </SignedIn>
+      </div>
     </div>
   );
-}
-
-function StatCard({ label, value }) {
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
-    </div>
-  );
-}
-
-function Th({ children, className = "" }) {
-  return (
-    <th className={`px-4 py-3 font-medium ${className}`}>
-      {children}
-    </th>
-  );
-}
-
-function Td({ children, className = "" }) {
-  return <td className={`px-4 py-3 ${className}`}>{children}</td>;
 }

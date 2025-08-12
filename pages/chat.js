@@ -70,7 +70,7 @@ async function copyToClipboard(text) {
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
-  const { isPro } = useUserPlan();
+  const { isPro, usageCount, usageLimit, usageRemaining, canGenerate, daysLeft, isTrial } = useUserPlan();
 
   // Input
   const [tone, setTone] = useState("mls");
@@ -88,7 +88,7 @@ export default function ChatPage() {
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
   const [flyerBusy, setFlyerBusy] = useState(false);
 
-  // Copy state (for “Copied!” UI)
+  // Copy state (for "Copied!" UI)
   const [copiedKey, setCopiedKey] = useState(null);
   async function handleCopy(key, text) {
     const ok = await copyToClipboard(text);
@@ -126,6 +126,12 @@ export default function ChatPage() {
     const trimmed = input.trim();
     if (!trimmed) return;
 
+    // Check if user can generate
+    if (!canGenerate) {
+      setError("You've reached your usage limit. Please upgrade to Pro for unlimited generations.");
+      return;
+    }
+
     // optimistic add
     setMessages((prev) => [
       ...prev,
@@ -137,6 +143,17 @@ export default function ChatPage() {
     setError("");
 
     try {
+      // Track usage first
+      const usageRes = await fetch("/api/user/track-usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generation" })
+      });
+
+      if (!usageRes.ok) {
+        throw new Error("Failed to track usage");
+      }
+
       // Call your chat route. This assumes your existing /api/chat supports streaming.
       const resp = await fetch("/api/chat", {
         method: "POST",
@@ -243,6 +260,28 @@ export default function ChatPage() {
       </header>
 
       <main className="container">
+        {/* Usage Display */}
+        <section className="usage-display">
+          <div className="usage-info">
+            <div className="usage-stats">
+              <span className="usage-count">{usageCount}/{usageLimit}</span>
+              <span className="usage-label">generations used</span>
+            </div>
+            {isTrial && (
+              <div className="trial-info">
+                <span className="trial-days">{daysLeft} days left in trial</span>
+                <a href="/upgrade" className="upgrade-link">Upgrade to Pro</a>
+              </div>
+            )}
+            {!isPro && !isTrial && (
+              <div className="upgrade-prompt">
+                <span>Upgrade to Pro for unlimited generations</span>
+                <a href="/upgrade" className="upgrade-link">Upgrade Now</a>
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className="controls">
           <div className="row1">
             <button className="flyer-btn" onClick={openFlyerModal}>
@@ -474,6 +513,59 @@ export default function ChatPage() {
   .container {
     max-width: 960px; margin: 0 auto; padding: 16px;
     display: grid; gap: 10px;
+  }
+
+  /* Usage Display */
+  .usage-display {
+    background: rgba(14,18,28,0.65);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .usage-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .usage-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .usage-count {
+    font-size: 18px;
+    font-weight: 700;
+    color: #86a2ff;
+  }
+  .usage-label {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .trial-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .trial-days {
+    font-weight: 600;
+    color: #7ce7c4;
+  }
+  .upgrade-link {
+    color: #86a2ff;
+    text-decoration: none;
+    border-bottom: 1px dashed #86a2ff;
+    transition: border-color 0.2s ease;
+  }
+  .upgrade-link:hover {
+    border-color: transparent;
+  }
+  .upgrade-prompt {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
   }
 
   /* Controls card */

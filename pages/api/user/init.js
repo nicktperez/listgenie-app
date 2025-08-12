@@ -2,8 +2,6 @@
 import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const TRIAL_DAYS = parseInt(process.env.TRIAL_DAYS || "14", 10);
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -13,81 +11,70 @@ export default async function handler(req, res) {
   try {
     const { userId } = getAuth(req);
     if (!userId) {
-      return res.status(401).json({ ok: false, error: "no_userId_from_clerk" });
+      return res.status(401).json({ ok: false, error: "Unauthenticated" });
     }
 
-    // Clerk user basics
-    const u = await clerkClient.users.getUser(userId);
-    const email =
-      u?.primaryEmailAddress?.emailAddress ||
-      u?.emailAddresses?.[0]?.emailAddress ||
-      null;
-    const name =
-      [u?.firstName, u?.lastName].filter(Boolean).join(" ") ||
-      u?.username ||
-      null;
+    // Get user details from Clerk
+    const user = await clerkClient.users.getUser(userId);
+    const email = user?.primaryEmailAddress?.emailAddress || 
+                  user?.emailAddresses?.[0]?.emailAddress || 
+                  null;
 
-    // Existing row for this Clerk ID?
-    const { data: existing, error: readErr } = await supabaseAdmin
+    // Check if user already exists
+    const { data: existingUser, error: checkError } = await supabaseAdmin
       .from("users")
-      .select("id, plan, trial_end_date, email")
+      .select("id, plan, trial_end_date")
       .eq("clerk_id", userId)
       .maybeSingle();
-    if (readErr) {
-      return res.status(500).json({ ok: false, error: "supabase_read_failed", detail: readErr.message });
+
+    if (checkError) {
+      console.error("Error checking existing user:", checkError);
+      return res.status(500).json({ ok: false, error: "Database error" });
     }
 
-    // Has this email had a trial before (to block repeat trials)?
-    let priorTrialExists = false;
-    if (email) {
-      const { data: prior, error: priorErr } = await supabaseAdmin
-        .from("users")
-        .select("id, trial_end_date")
-        .eq("email", email)
-        .limit(1);
-      if (priorErr) {
-        return res.status(500).json({ ok: false, error: "supabase_prior_check_failed", detail: priorErr.message });
-      }
-      priorTrialExists = Array.isArray(prior) && prior.length > 0 && !!prior[0].trial_end_date;
+    if (existingUser) {
+      // User exists, return current plan info
+      return res.status(200).json({
+        ok: true,
+        plan: existingUser.plan,
+        trial_end_date: existingUser.trial_end_date,
+        message: "User already initialized"
+      });
     }
 
-    const now = new Date();
-    const trialEndIso = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Create new user with trial plan
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
 
-    if (!existing) {
-      const row = {
+    const { data: newUser, error: createError } = await supabaseAdmin
+      .from("users")
+      .insert({
         clerk_id: userId,
-        email,
-        name,
-        plan: priorTrialExists ? "expired" : "trial",
-        trial_end_date: priorTrialExists ? now.toISOString() : trialEndIso,
-      };
-      const { error: insErr } = await supabaseAdmin.from("users").insert([row]);
-      if (insErr) {
-        return res.status(500).json({ ok: false, error: "supabase_insert_failed", detail: insErr.message });
-      }
-      return res.status(200).json({ ok: true, created: true, plan: row.plan, trial_end_date: row.trial_end_date });
+        email: email,
+        plan: "trial",
+        trial_end_date: trialEndDate.toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        usage_count: 0,
+        last_usage: null
+      })
+      .select()
+      .single();
+
+    if (createError) {
+      console.error("Error creating user:", createError);
+      return res.status(500).json({ ok: false, error: "Failed to create user" });
     }
 
-    // Update name/email, and if no trial_end_date set yet, assign one
-    const update = { email, name };
-    if (!existing.trial_end_date) {
-      if (priorTrialExists) {
-        update.plan = "expired";
-        update.trial_end_date = now.toISOString();
-      } else {
-        update.plan = "trial";
-        update.trial_end_date = trialEndIso;
-      }
-    }
-    const { error: updErr } = await supabaseAdmin.from("users").update(update).eq("clerk_id", userId);
-    if (updErr) {
-      return res.status(500).json({ ok: false, error: "supabase_update_failed", detail: updErr.message });
-    }
+    return res.status(200).json({
+      ok: true,
+      plan: newUser.plan,
+      trial_end_date: newUser.trial_end_date,
+      message: "User initialized successfully"
+    });
 
-    return res.status(200).json({ ok: true, created: false, plan: update.plan ?? existing.plan, trial_end_date: update.trial_end_date ?? existing.trial_end_date });
   } catch (e) {
-    console.error("/api/user/init fatal:", e);
-    return res.status(500).json({ ok: false, error: "server_error", detail: e?.message });
+    console.error("User init error:", e);
+    return res.status(500).json({ ok: false, error: "Server error" });
   }
 }

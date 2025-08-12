@@ -31,30 +31,49 @@ export default async function handler(req, res) {
           session?.metadata?.clerk_id ||
           session?.subscription?.metadata?.clerk_id ||
           null;
-
-        if (clerkId) {
-          await setPlan(clerkId, "pro");
-        }
-        break;
-      }
-
-      case "checkout.session.completed": {
-        const session = event.data.object;
-        const clerkId =
-          session?.metadata?.clerk_id ||
-          session?.subscription?.metadata?.clerk_id ||
-          null;
       
         const customerId = session?.customer || null;
       
         if (clerkId) {
-          // store customer id + set plan=pro
+          // Store customer id + set plan=pro
           const { error } = await supabaseAdmin
             .from("users")
-            .update({ plan: "pro", stripe_customer_id: customerId })
+            .update({ 
+              plan: "pro", 
+              stripe_customer_id: customerId,
+              updated_at: new Date().toISOString()
+            })
             .eq("clerk_id", clerkId);
       
-          if (error) console.error("Supabase update error:", error.message);
+          if (error) {
+            console.error("Supabase update error:", error.message);
+            // Try to create user if update fails
+            await createUserIfNotExists(clerkId, "pro", customerId);
+          }
+        }
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const sub = event.data.object;
+        const clerkId = sub?.metadata?.clerk_id || null;
+        const status = sub?.status;
+        
+        if (clerkId) {
+          let plan = "free";
+          if (status === "active" || status === "trialing") {
+            plan = "pro";
+          }
+          
+          const { error } = await supabaseAdmin
+            .from("users")
+            .update({ 
+              plan,
+              updated_at: new Date().toISOString()
+            })
+            .eq("clerk_id", clerkId);
+            
+          if (error) console.error("Subscription update error:", error.message);
         }
         break;
       }
@@ -63,7 +82,25 @@ export default async function handler(req, res) {
         const sub = event.data.object;
         const clerkId = sub?.metadata?.clerk_id || null;
         if (clerkId) {
-          await setPlan(clerkId, "free");
+          const { error } = await supabaseAdmin
+            .from("users")
+            .update({ 
+              plan: "free",
+              updated_at: new Date().toISOString()
+            })
+            .eq("clerk_id", clerkId);
+            
+          if (error) console.error("Subscription deletion error:", error.message);
+        }
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object;
+        const clerkId = invoice?.subscription?.metadata?.clerk_id || null;
+        if (clerkId) {
+          // Could implement retry logic or downgrade here
+          console.log(`Payment failed for user ${clerkId}`);
         }
         break;
       }
@@ -80,15 +117,24 @@ export default async function handler(req, res) {
   }
 }
 
-async function setPlan(clerkId, plan) {
-  const { error } = await supabaseAdmin
-    .from("users")
-    .update({ plan })
-    .eq("clerk_id", clerkId);
-
-  if (error) {
-    console.error("Supabase plan update failed:", error.message);
-  } else {
-    console.log(`Plan for ${clerkId} set to ${plan}`);
+async function createUserIfNotExists(clerkId, plan, stripeCustomerId) {
+  try {
+    const { error } = await supabaseAdmin
+      .from("users")
+      .insert({
+        clerk_id: clerkId,
+        plan,
+        stripe_customer_id: stripeCustomerId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      
+    if (error) {
+      console.error("Failed to create user:", error.message);
+    } else {
+      console.log(`Created new user ${clerkId} with plan ${plan}`);
+    }
+  } catch (e) {
+    console.error("Error in createUserIfNotExists:", e);
   }
 }
