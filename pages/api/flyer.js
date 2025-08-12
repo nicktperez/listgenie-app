@@ -202,7 +202,7 @@ async function createPdf({ standardText, openHouseText, customization }) {
       }
       
       // Content text section
-      const textStartY = photoY;
+      let textStartY = photoY;
       const textX = 40;
       const textWidth = width - 80;
       
