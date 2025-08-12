@@ -245,13 +245,6 @@ export default function ChatPage() {
             <div className="plan-badge">
               {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
             </div>
-            <button 
-              onClick={refreshPlan} 
-              className="refresh-plan-btn"
-              title="Refresh plan status"
-            >
-              🔄
-            </button>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
         </div>
@@ -377,49 +370,43 @@ export default function ChatPage() {
       </main>
 
       {flyerOpen && (
-        <div className="modal">
-          <div className="scrim" onClick={() => setFlyerOpen(false)} />
-          <div className="sheet">
-            <div className="sheet-head">
-              <div className="sheet-title">Generate Flyers</div>
-              <button className="x" onClick={() => setFlyerOpen(false)}>✕</button>
+        <div className="flyer-modal">
+          <div className="flyer-modal-content">
+            <div className="flyer-modal-header">
+              <h2 className="flyer-modal-title">Generate Flyers</h2>
+              <button className="flyer-modal-close" onClick={() => setFlyerOpen(false)}>✕</button>
             </div>
-
-            {!isPro ? (
-              <div className="sheet-body">
-                Flyers are a Pro feature. Upgrade to create Standard and Open House PDFs.
-              </div>
-            ) : (
-              <div className="sheet-body">
-                <p>Choose flyer types to generate from the latest assistant output.</p>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={flyerTypes.standard}
-                    onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
-                  />{" "}
-                  Standard Flyer
-                </label>
-                <label className="check">
-                  <input
-                    type="checkbox"
-                    checked={flyerTypes.openHouse}
-                    onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
-                  />{" "}
-                  Open House Flyer
-                </label>
-                <div className="actions">
-                  <button className="btn" onClick={() => setFlyerOpen(false)}>Cancel</button>
-                  <button
-                    className="btn primary"
-                    onClick={generateFlyers}
-                    disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
-                  >
-                    {flyerBusy ? "Generating…" : "Generate PDFs"}
-                  </button>
-                </div>
-              </div>
-            )}
+            <p className="flyer-modal-description">
+              Choose flyer types to generate from the latest assistant output.
+            </p>
+            <div className="flyer-options">
+              <label className="flyer-option">
+                <input
+                  type="checkbox"
+                  checked={flyerTypes.standard}
+                  onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
+                />{" "}
+                Standard Flyer
+              </label>
+              <label className="flyer-option">
+                <input
+                  type="checkbox"
+                  checked={flyerTypes.openHouse}
+                  onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
+                />{" "}
+                Open House Flyer
+              </label>
+            </div>
+            <div className="flyer-modal-actions">
+              <button className="flyer-modal-btn cancel" onClick={() => setFlyerOpen(false)}>Cancel</button>
+              <button
+                className="flyer-modal-btn generate"
+                onClick={generateFlyers}
+                disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
+              >
+                {flyerBusy ? "Generating…" : "Generate PDFs"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -507,10 +494,10 @@ export default function ChatPage() {
     border: 1px solid rgba(80, 90, 120, 0.3);
     border-radius: 8px;
     backdrop-filter: blur(10px);
-    margin: 8px 0;
+    margin: 8px auto;
+    width: fit-content;
     max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
+    display: block;
   }
 
   /* Main layout */
@@ -760,22 +747,6 @@ export default function ChatPage() {
   .thinking-label { font-size: 12px; color: var(--text-dim); }
   @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
 
-  /* Modal */
-  .modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; }
-  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,0.6); }
-  .sheet {
-    position: relative; z-index: 10; width: 100%; max-width: 480px;
-    background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; overflow: hidden;
-  }
-  .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid var(--stroke); }
-  .sheet-title { font-weight: 600; }
-  .sheet-body { padding: 12px; display: grid; gap: 10px; }
-  .check { display: flex; gap: 8px; align-items: center; }
-  .actions { display: flex; gap: 8px; justify-content: flex-end; padding-top: 8px; }
-  .btn { border: 1px solid var(--stroke); background: rgba(18,22,32,0.7); color: var(--text); border-radius: 10px; padding: 8px 12px; }
-  .btn.primary { border-color: rgba(16,185,129,0.5); background: var(--emerald-ghost); color: #c4f6e6; }
-  .x { border: 1px solid var(--stroke); background: rgba(18,22,32,0.7); color: var(--text); border-radius: 8px; padding: 4px 8px; }
-
   /* Tone pills styling */
   .tone-pill {
     border: 1px solid rgba(255,255,255,0.2);
@@ -988,24 +959,147 @@ export default function ChatPage() {
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
   
-  .refresh-plan-btn {
+  /* Clerk Modal Dark Theme Overrides */
+  .flyer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  
+  .flyer-modal-content {
+    background: linear-gradient(135deg, rgba(14, 18, 28, 0.95), rgba(10, 13, 20, 0.95));
+    border: 1px solid rgba(80, 90, 120, 0.4);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    position: relative;
+  }
+  
+  .flyer-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .flyer-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e6e9ef;
+    margin: 0;
+  }
+  
+  .flyer-modal-close {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #9aa4b2;
-    padding: 4px 8px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    font-size: 14px;
     transition: all 0.2s ease;
-    margin-left: 8px;
+    font-size: 16px;
   }
   
-  .refresh-plan-btn:hover {
-    background: rgba(30, 34, 46, 0.9) !important;
-    color: #e6e9ef !important;
+  .flyer-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #e6e9ef;
+    border-color: rgba(255, 255, 255, 0.3);
   }
   
-  /* Clerk Modal Dark Theme Overrides */
+  .flyer-modal-description {
+    color: #9aa4b2;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  
+  .flyer-options {
+    margin-bottom: 24px;
+  }
+  
+  .flyer-option {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+  
+  .flyer-option:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  
+  .flyer-option input[type="checkbox"] {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    accent-color: #6366f1;
+  }
+  
+  .flyer-option label {
+    color: #e6e9ef;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+  }
+  
+  .flyer-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+  
+  .flyer-modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 14px;
+  }
+  
+  .flyer-modal-btn.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9aa4b2;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .flyer-modal-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #e6e9ef;
+  }
+  
+  .flyer-modal-btn.generate {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+  
+  .flyer-modal-btn.generate:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
 `}</style>
     </div>
   );
