@@ -105,6 +105,27 @@ export default function ChatPage() {
   const [showPrice, setShowPrice] = useState(true);
   const [customPrice, setCustomPrice] = useState("$399,900");
   
+  // Load saved agency info from localStorage on component mount
+  useEffect(() => {
+    const savedAgencyInfo = localStorage.getItem('listgenie_agency_info');
+    if (savedAgencyInfo) {
+      try {
+        const parsed = JSON.parse(savedAgencyInfo);
+        if (parsed.agencyName) setAgencyName(parsed.agencyName);
+        if (parsed.agentEmail) setAgentEmail(parsed.agentEmail);
+        if (parsed.agentPhone) setAgentPhone(parsed.agentPhone);
+        if (parsed.websiteLink) setWebsiteLink(parsed.websiteLink);
+        if (parsed.officeAddress) setOfficeAddress(parsed.officeAddress);
+        if (parsed.primaryColor) setPrimaryColor(parsed.primaryColor);
+        if (parsed.secondaryColor) setSecondaryColor(parsed.secondaryColor);
+        if (parsed.fontStyle) setFontStyle(parsed.fontStyle);
+        if (parsed.backgroundPattern) setBackgroundPattern(parsed.backgroundPattern);
+      } catch (e) {
+        console.log('Error loading saved agency info:', e);
+      }
+    }
+  }, []);
+  
   // Open House specific fields
   const [openHouseDate, setOpenHouseDate] = useState("December 15th, 2024");
   const [openHouseTime, setOpenHouseTime] = useState("2:00 PM - 5:00 PM");
@@ -112,6 +133,9 @@ export default function ChatPage() {
   
   // Signature styling option
   const [useSignatureStyling, setUseSignatureStyling] = useState(false);
+  
+  // Background pattern option
+  const [backgroundPattern, setBackgroundPattern] = useState("none");
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -571,8 +595,27 @@ export default function ChatPage() {
     }
   }
 
+  // Function to save agency info to localStorage
+  const saveAgencyInfo = () => {
+    const agencyInfo = {
+      agencyName,
+      agentEmail,
+      agentPhone,
+      websiteLink,
+      officeAddress,
+      primaryColor,
+      secondaryColor,
+      fontStyle,
+      backgroundPattern
+    };
+    localStorage.setItem('listgenie_agency_info', JSON.stringify(agencyInfo));
+  };
+
   async function generateFlyers() {
     if (!isPro) { router.push("/upgrade"); return; }
+    
+    // Save agency info before generating flyers
+    saveAgencyInfo();
     
     // Find the most recent listing (assistant message with formatted content)
     const lastAssistant = [...messages].reverse().find((m) => 
@@ -613,6 +656,7 @@ export default function ChatPage() {
         openHouseTime,
         openHouseAddress,
         useSignatureStyling,
+        backgroundPattern,
         showAdvancedOptions
       }
     };
@@ -1161,8 +1205,23 @@ export default function ChatPage() {
                     <label htmlFor="signature-toggle" className="toggle-label">
                       <span className="toggle-slider"></span>
                     </label>
-                    <span className="toggle-description">Ultra-fancy text styling for luxury feel</span>
                   </div>
+                </div>
+                
+                <div className="customization-item full-width">
+                  <label className="customization-label">Background Pattern</label>
+                  <select
+                    value={backgroundPattern}
+                    onChange={(e) => setBackgroundPattern(e.target.value)}
+                    className="font-select"
+                  >
+                    <option value="none">Plain Background</option>
+                    <option value="checkerboard">Checkered Pattern</option>
+                    <option value="floral">Floral Design</option>
+                    <option value="geometric">Geometric Shapes</option>
+                    <option value="dots">Polka Dots</option>
+                    <option value="stripes">Subtle Stripes</option>
+                  </select>
                 </div>
               </div>
 
@@ -1244,6 +1303,20 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
+              </div>
+              
+              {/* Save Settings Button */}
+              <div className="flyer-section">
+                <button 
+                  onClick={saveAgencyInfo}
+                  className="save-settings-btn"
+                  type="button"
+                >
+                  💾 Save Settings for Next Time
+                </button>
+                <p className="flyer-section-description">
+                  Your agency information and preferences will be automatically filled in next time.
+                </p>
               </div>
             </div>
 
@@ -1918,6 +1991,25 @@ export default function ChatPage() {
     color: #f59e0b;
     background: rgba(245, 158, 11, 0.1);
     border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .save-settings-btn {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+    margin-bottom: 12px;
+  }
+
+  .save-settings-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
   }
 
   .flyer-option-icon {

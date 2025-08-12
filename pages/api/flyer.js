@@ -22,6 +22,9 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
   const customPrice = customization.customPrice || "$399,900";
   const useSignatureStyling = customization.useSignatureStyling || false;
   
+  // Background pattern option
+  const backgroundPattern = customization.backgroundPattern || "none";
+  
   // Open house details
   const openHouseDate = customization.openHouseDate || "December 15th, 2024";
   const openHouseTime = customization.openHouseTime || "2:00 PM - 5:00 PM";
@@ -42,12 +45,64 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
     }
   };
   
-  // Generate CSS custom properties for dynamic colors
+  // Generate CSS custom properties for dynamic colors and background patterns
   const generateDynamicCSS = () => {
     // Create lighter/darker variations of the primary color
     const primaryLight = adjustColor(primaryColor, 20);
     const primaryDark = adjustColor(primaryColor, -20);
     const secondaryLight = adjustColor(secondaryColor, 15);
+    
+    // Generate background pattern CSS
+    const getBackgroundPattern = () => {
+      switch (backgroundPattern) {
+        case "checkerboard":
+          return `
+            background-image: 
+              linear-gradient(45deg, var(--primary-light) 25%, transparent 25%),
+              linear-gradient(-45deg, var(--primary-light) 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, var(--primary-light) 75%),
+              linear-gradient(-45deg, transparent 75%, var(--primary-light) 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+          `;
+        case "floral":
+          return `
+            background-image: 
+              radial-gradient(circle at 20% 80%, var(--secondary) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, var(--secondary-light) 0%, transparent 50%),
+              radial-gradient(circle at 40% 40%, var(--primary-light) 0%, transparent 50%);
+            background-size: 60px 60px, 40px 40px, 80px 80px;
+            background-position: 0 0, 30px 30px, 15px 15px;
+          `;
+        case "geometric":
+          return `
+            background-image: 
+              linear-gradient(30deg, var(--primary-light) 12%, transparent 12.5%, transparent 87%, var(--primary-light) 87.5%, var(--primary-light)),
+              linear-gradient(150deg, var(--secondary) 12%, transparent 12.5%, transparent 87%, var(--secondary) 87.5%, var(--secondary)),
+              linear-gradient(30deg, var(--primary-light) 12%, transparent 12.5%, transparent 87%, var(--primary-light) 87.5%, var(--primary-light)),
+              linear-gradient(150deg, var(--secondary) 12%, transparent 12.5%, transparent 87%, var(--secondary) 87.5%, var(--secondary)),
+              linear-gradient(60deg, var(--secondary-light) 25%, transparent 25.5%, transparent 75%, var(--secondary-light) 75%, var(--secondary-light)),
+              linear-gradient(60deg, var(--secondary-light) 25%, transparent 25.5%, transparent 75%, var(--secondary-light) 75%, var(--secondary-light));
+            background-size: 40px 70px, 40px 70px, 40px 70px, 40px 70px, 70px 40px, 70px 40px;
+            background-position: 0 0, 0 0, 20px 35px, 20px 35px, 0 0, 35px 20px;
+          `;
+        case "dots":
+          return `
+            background-image: radial-gradient(circle, var(--secondary) 1px, transparent 1px);
+            background-size: 20px 20px;
+          `;
+        case "stripes":
+          return `
+            background-image: 
+              linear-gradient(45deg, var(--primary-light) 25%, transparent 25%),
+              linear-gradient(-45deg, var(--primary-light) 25%, transparent 25%);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+          `;
+        default:
+          return '';
+      }
+    };
     
     return `
       :root {
@@ -58,6 +113,10 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         --secondary-light: ${secondaryLight};
         --text-on-primary: ${getContrastColor(primaryColor)};
         --text-on-secondary: ${getContrastColor(secondaryColor)};
+      }
+      
+      .pattern-background {
+        ${getBackgroundPattern()}
       }
     `;
   };
@@ -119,6 +178,10 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             position: relative;
         }
         
+        .flyer-container.pattern-background {
+            ${backgroundPattern !== "none" ? `background: var(--primary);` : ''}
+        }
+        
         /* Hero Section with Large Image */
         .hero-section {
             position: relative;
@@ -161,6 +224,10 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             gap: 20px;
         }
         
+        .left-column.pattern-background {
+            ${backgroundPattern !== "none" ? `background: var(--primary);` : ''}
+        }
+        
         .photo-item {
             border-radius: 8px;
             overflow: hidden;
@@ -187,6 +254,10 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
+        }
+        
+        .right-column.pattern-background {
+            ${backgroundPattern !== "none" ? `background: var(--primary-light);` : ''}
         }
         
         /* Typography and Content */
@@ -441,7 +512,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
     </style>
 </head>
 <body>
-    <div class="flyer-container">
+    <div class="flyer-container ${backgroundPattern !== "none" ? 'pattern-background' : ''}">
         <!-- Hero Section with Large Image -->
         <div class="hero-section">
             ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
@@ -479,7 +550,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         <!-- Main Content Section -->
         <div class="main-content">
             <!-- Left Column - Photos -->
-            <div class="left-column">
+            <div class="left-column ${backgroundPattern !== "none" ? 'pattern-background' : ''}">
                 ${customization.propertyPhotos && customization.propertyPhotos.length > 1 ? 
                     customization.propertyPhotos.slice(1, 4).map((photo, index) => `
                         <div class="photo-item">
@@ -495,7 +566,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             </div>
             
             <!-- Right Column - Content -->
-            <div class="right-column">
+            <div class="right-column ${backgroundPattern !== "none" ? 'pattern-background' : ''}">
                 <h1 class="flyer-title">${isOpenHouse ? 'Open House' : 'Property Flyer'}</h1>
                 
                 ${isOpenHouse ? `
