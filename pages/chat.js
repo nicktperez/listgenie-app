@@ -166,23 +166,89 @@ export default function ChatPage() {
           const { done, value } = await reader.read();
           if (done) break;
           acc += decoder.decode(value, { stream: true });
-          const pretty = coerceToReadableText(acc);
+          
+          // Try to parse as JSON for structured responses
+          let displayContent = acc;
+          try {
+            const parsed = JSON.parse(acc);
+            if (parsed.parsed && parsed.parsed.type === "listing") {
+              const listing = parsed.parsed;
+              displayContent = "";
+              
+              if (listing.headline) {
+                displayContent += `**${listing.headline}**\n\n`;
+              }
+              
+              if (listing.mls && listing.mls.body) {
+                displayContent += `${listing.mls.body}\n\n`;
+              }
+              
+              if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+                displayContent += listing.mls.bullets.join('\n') + '\n\n';
+              }
+              
+              if (listing.variants && listing.variants.length > 0) {
+                listing.variants.forEach(variant => {
+                  displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+                });
+              }
+              
+              displayContent = displayContent.trim();
+            }
+          } catch (e) {
+            // If parsing fails, use the raw content
+            displayContent = coerceToReadableText(acc);
+          }
+          
           setMessages((prev) => {
             const copy = [...prev];
             const last = copy.length - 1;
-            copy[last] = { ...copy[last], content: acc, pretty };
+            copy[last] = { ...copy[last], content: acc, pretty: displayContent };
             return copy;
           });
         }
       } else {
         // Non-streaming fallback
         const data = await resp.json();
-        const text = coerceToReadableText(data);
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-          return copy;
-        });
+        
+        if (data.parsed && data.parsed.type === "listing") {
+          // Display the parsed listing content
+          const listing = data.parsed;
+          let displayContent = "";
+          
+          if (listing.headline) {
+            displayContent += `**${listing.headline}**\n\n`;
+          }
+          
+          if (listing.mls && listing.mls.body) {
+            displayContent += `${listing.mls.body}\n\n`;
+          }
+          
+          if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+            displayContent += listing.mls.bullets.join('\n') + '\n\n';
+          }
+          
+          if (listing.variants && listing.variants.length > 0) {
+            listing.variants.forEach(variant => {
+              displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+            });
+          }
+          
+          const text = displayContent.trim();
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+            return copy;
+          });
+        } else {
+          // Fallback to raw content if parsing fails
+          const text = coerceToReadableText(data.message?.content || data.content || data);
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+            return copy;
+          });
+        }
       }
     } catch (e) {
       setError(e?.message || "Failed to get response");
@@ -324,7 +390,9 @@ export default function ChatPage() {
                           ))}
                         </div>
                       ) : (
-                        <div className="prose prose-invert whitespace-pre-wrap leading-relaxed">{readable}</div>
+                        <div className="listing-content prose prose-invert whitespace-pre-wrap leading-relaxed">
+                          {readable}
+                        </div>
                       )}
                     </div>
                   ) : (
@@ -597,7 +665,36 @@ export default function ChatPage() {
   }
 
   /* Assistant extras */
-  .assistant-block { position: relative; }
+  .assistant-block {
+    display: grid;
+    gap: 12px;
+  }
+  
+  .listing-content {
+    line-height: 1.6;
+    color: #e6e9ef;
+  }
+  
+  .listing-content strong {
+    color: #fbbf24;
+    font-weight: 600;
+  }
+  
+  .listing-content h3 {
+    color: #fbbf24;
+    font-size: 18px;
+    font-weight: 700;
+    margin: 16px 0 8px 0;
+  }
+  
+  .listing-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+  
+  .listing-content li {
+    margin: 4px 0;
+  }
   .copy-all { position: absolute; top: -6px; right: -6px; }
   .copy-btn {
     border: 1px solid var(--stroke);
