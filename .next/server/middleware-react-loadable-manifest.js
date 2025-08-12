@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST='{"pages/openrouter.js -> ../components/OpenRouterModels":{"id":9130,"files":["static/chunks/130.ad2cdd8762d5e3f5.js"]}}';

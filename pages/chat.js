@@ -353,6 +353,31 @@ export default function ChatPage() {
     setAllQuestionsAndAnswers(prev => [...prev, ...questionsData.questions]);
   }
 
+  function handleCopyListing(listingText) {
+    navigator.clipboard.writeText(listingText).then(() => {
+      // Show a brief success message
+      const copyBtn = document.querySelector('.copy-btn');
+      if (copyBtn) {
+        const originalText = copyBtn.textContent;
+        copyBtn.textContent = '✅ Copied!';
+        copyBtn.style.background = '#10b981';
+        setTimeout(() => {
+          copyBtn.textContent = originalText;
+          copyBtn.style.background = '';
+        }, 2000);
+      }
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = listingText;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    });
+  }
+
   async function submitQuestionAnswers() {
     // Format answers into a natural language response with better context
     const answerText = questions.map((question, index) => {
@@ -612,12 +637,41 @@ export default function ChatPage() {
                   ) : (
                     <div className="assistant-message">
                       {message.pretty || message.content || "Generating..."}
+                      
+                      {/* Show action buttons after listings */}
+                      {message.pretty && message.pretty.includes('**') && (
+                        <div className="listing-actions">
+                          <button 
+                            className="copy-btn"
+                            onClick={() => handleCopyListing(message.pretty)}
+                            title="Copy listing to clipboard"
+                          >
+                            📋 Copy Listing
+                          </button>
+                          <button 
+                            className="flyer-btn-small"
+                            onClick={openFlyerModal}
+                            title="Generate flyers from this listing"
+                          >
+                            🎨 Create Flyers
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             ))}
-            {loading && <div className="loading">Generating...</div>}
+            {loading && (
+              <div className="loading">
+                <div className="loading-dots">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+                <div className="loading-text">Generating your listing...</div>
+              </div>
+            )}
             {error && <div className="error">{error}</div>}
           </section>
         )}
@@ -1324,6 +1378,15 @@ export default function ChatPage() {
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
   }
 
+  .error {
+    color: #f56565;
+    text-align: center;
+    padding: 20px;
+    background: rgba(245, 101, 101, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(245, 101, 101, 0.3);
+  }
+
   /* Questions Modal Styling */
   .questions-modal {
     position: fixed;
@@ -1341,155 +1404,154 @@ export default function ChatPage() {
   }
 
   .questions-modal-content {
-    background: linear-gradient(135deg, rgba(14, 18, 28, 0.95), rgba(10, 13, 20, 0.95));
-    border: 1px solid rgba(80, 90, 120, 0.4);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     padding: 24px;
-    max-width: 480px;
+    max-width: 500px;
     width: 100%;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
-    position: relative;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
   }
 
   .questions-modal-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    margin-bottom: 20px;
+    align-items: center;
+    margin-bottom: 16px;
   }
 
   .questions-modal-title {
     font-size: 20px;
-    font-weight: 700;
-    color: #e6e9ef;
+    font-weight: 600;
+    color: white;
     margin: 0;
   }
 
   .questions-modal-close {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #9aa4b2;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 20px;
     cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
     transition: all 0.2s ease;
-    font-size: 16px;
   }
 
   .questions-modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #e6e9ef;
-    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .questions-modal-description {
-    color: #9aa4b2;
-    margin-bottom: 24px;
+    color: #a0aec0;
+    margin-bottom: 20px;
     line-height: 1.5;
   }
 
   .question-progress {
-    color: #9aa4b2;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #a0aec0;
     font-size: 14px;
     margin-bottom: 20px;
     text-align: center;
   }
 
-  .current-question {
-    margin-bottom: 24px;
-  }
-
   .current-question h3 {
-    color: #fbbf24;
-    font-size: 18px;
-    font-weight: 700;
+    color: white;
     margin-bottom: 12px;
+    font-size: 16px;
+    line-height: 1.4;
   }
 
   .question-answer-input {
-    background: rgba(12, 16, 26, 0.88);
-    border: 1px solid rgba(86, 96, 120, 0.55);
-    color: var(--text);
-    border-radius: 12px;
-    padding: 12px;
-    min-height: 74px;
-    resize: vertical;
-    box-shadow: 0 4px 28px rgba(0, 0, 0, 0.28);
-    font-size: 14px;
-    line-height: 1.5;
     width: 100%;
-    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
+    resize: vertical;
+    transition: all 0.2s ease;
+  }
+
+  .question-answer-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   }
 
   .question-answer-input::placeholder {
-    color: rgba(200, 208, 220, 0.45);
+    color: #a0aec0;
   }
 
   .questions-modal-actions {
     display: flex;
     gap: 12px;
+    margin-top: 24px;
     justify-content: flex-end;
   }
 
   .questions-modal-btn {
     padding: 10px 20px;
+    border: none;
     border-radius: 8px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: none;
-    font-size: 14px;
   }
 
   .questions-modal-btn.cancel {
     background: rgba(255, 255, 255, 0.1);
-    color: #9aa4b2;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #a0aec0;
   }
 
   .questions-modal-btn.cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #e6e9ef;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
   }
 
   .questions-modal-btn.primary {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 
   .questions-modal-btn.primary:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   }
 
   .questions-modal-btn.secondary {
     background: rgba(255, 255, 255, 0.1);
-    color: #9aa4b2;
+    color: white;
     border: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .questions-modal-btn.secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #e6e9ef;
+    background: rgba(255, 255, 255, 0.2);
   }
 
   .questions-modal-btn.submit {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
 
   .questions-modal-btn.submit:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  }
+
+  .questions-modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
   }
 
   /* Chat Container */
@@ -1543,16 +1605,257 @@ export default function ChatPage() {
     padding: 20px;
   }
 
-  .error {
-    color: #f56565;
+  .loading-dots {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    justify-content: center;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    background: #667eea;
+    border-radius: 50%;
+    animation: bounce 1.4s ease-in-out infinite both;
+  }
+
+  .dot:nth-child(1) { animation-delay: -0.32s; }
+  .dot:nth-child(2) { animation-delay: -0.16s; }
+  .dot:nth-child(3) { animation-delay: 0s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% {
+      transform: scale(0);
+      opacity: 0.5;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .loading-text {
+    font-size: 14px;
+    color: #a0aec0;
     text-align: center;
-    padding: 20px;
-    background: rgba(245, 101, 101, 0.1);
+    font-style: italic;
+  }
+
+  .listing-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .copy-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid rgba(245, 101, 101, 0.3);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .copy-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  }
+
+  .flyer-btn-small {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .flyer-btn-small:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
   }
 
   /* Questions Modal Styling */
+  .questions-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .questions-modal-content {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .questions-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .questions-modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+  }
+
+  .questions-modal-close {
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .questions-modal-close:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .questions-modal-description {
+    color: #a0aec0;
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .question-progress {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #a0aec0;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .current-question h3 {
+    color: white;
+    margin-bottom: 12px;
+    font-size: 16px;
+    line-height: 1.4;
+  }
+
+  .question-answer-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    font-size: 14px;
+    resize: vertical;
+    transition: all 0.2s ease;
+  }
+
+  .question-answer-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .question-answer-input::placeholder {
+    color: #a0aec0;
+  }
+
+  .questions-modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: flex-end;
+  }
+
+  .questions-modal-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .questions-modal-btn.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #a0aec0;
+  }
+
+  .questions-modal-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .questions-modal-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .questions-modal-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  }
+
+  .questions-modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .questions-modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .questions-modal-btn.submit {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+  }
+
+  .questions-modal-btn.submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  }
+
+  .questions-modal-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+  }
 `}</style>
     </div>
   );

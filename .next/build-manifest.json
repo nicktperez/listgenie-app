@@ -1,16 +1,106 @@
 {
   "polyfillFiles": [
-    "static/chunks/polyfills.js"
+    "static/chunks/polyfills-42372ed130431b0a.js"
   ],
   "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/development/_buildManifest.js",
-    "static/development/_ssgManifest.js"
+    "static/66yn23gswX9Bvh9fzX1-n/_buildManifest.js",
+    "static/66yn23gswX9Bvh9fzX1-n/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
-    "/_app": []
+    "/": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/index-20bc9930fa1f4bf0.js"
+    ],
+    "/_app": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/css/d8ea9ec5284a7404.css",
+      "static/chunks/pages/_app-7ecd26428ac464ec.js"
+    ],
+    "/_error": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/_error-7a92967bea80186d.js"
+    ],
+    "/admin": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/admin-93bdc41ab18256fc.js"
+    ],
+    "/batch": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/batch-0c2b39c8a0975d18.js"
+    ],
+    "/chat": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/chat-c5223844ecc15fc3.js"
+    ],
+    "/dashboard": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/dashboard-253149ed365151d7.js"
+    ],
+    "/generate": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/generate-b8e5b82f0302b824.js"
+    ],
+    "/listings": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/listings-dc5493f909cecbd3.js"
+    ],
+    "/openrouter": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/openrouter-04b72ff078e5219f.js"
+    ],
+    "/sign-in": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/sign-in-3fbf6fae781a636a.js"
+    ],
+    "/sign-up": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/sign-up-17a6c0b0af007946.js"
+    ],
+    "/upgrade": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/upgrade-e14410d9b1f88009.js"
+    ],
+    "/upgrade/success": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/upgrade/success-f2dd627e9c88e784.js"
+    ],
+    "/usage": [
+      "static/chunks/webpack-c6a332d87be126b9.js",
+      "static/chunks/framework-64ad27b21261a9ce.js",
+      "static/chunks/main-88a462e37f931b8d.js",
+      "static/chunks/pages/usage-51b8a4f31729ece1.js"
+    ]
   },
   "ampFirstPages": []
 }
