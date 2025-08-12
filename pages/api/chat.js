@@ -46,10 +46,15 @@ ALWAYS return **ONLY JSON** with one of the two shapes below (no prose, no markd
   "disclaimer": "Equal Housing Opportunity."
 }
 
-Rules:
+CRITICAL RULES:
 - Use only the information provided or logically implied. Never invent numbers.
 - If square footage, beds, or baths are unknown, prefer QUESTIONS mode.
 - Avoid filler. Tight, specific, benefit-driven language.
+- NEVER ask for information that has already been provided, even if the answer was "N/A", "not sure", "unknown", or similar.
+- If a user answered "N/A", "not sure", "unknown", "don't know", "unsure", etc., treat it as "information not available" and work with what you have.
+- Make reasonable assumptions for missing details rather than asking again.
+- Only ask questions for truly critical missing information that cannot be reasonably inferred.
+- If you have enough information to create a compelling listing (even with some unknowns), generate the listing instead of asking more questions.
 `;
 
 export default async function handler(req, res) {

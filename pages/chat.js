@@ -339,10 +339,19 @@ export default function ChatPage() {
   }
 
   async function submitQuestionAnswers() {
-    // Format answers into a natural language response
+    // Format answers into a natural language response with better context
     const answerText = questions.map((question, index) => {
       const answer = questionAnswers[index] || '';
-      return `Q: ${question}\nA: ${answer}`;
+      // Add context about uncertain answers
+      let formattedAnswer = answer;
+      if (answer.toLowerCase().includes('na') || 
+          answer.toLowerCase().includes('not sure') || 
+          answer.toLowerCase().includes('unknown') || 
+          answer.toLowerCase().includes('unsure') ||
+          answer.toLowerCase().includes("don't know")) {
+        formattedAnswer = `${answer} (information not available)`;
+      }
+      return `Q: ${question}\nA: ${formattedAnswer}`;
     }).join('\n\n');
 
     // Add the answers to the chat
@@ -358,15 +367,19 @@ export default function ChatPage() {
     // Send the answers to get the final listing
     try {
       setLoading(true);
+      
+      // Build complete conversation context
+      const conversationContext = [
+        { role: "user", content: `Original request: ${input}` },
+        { role: "user", content: `Previous answers: ${answerText}` },
+        { role: "system", content: `IMPORTANT: The user has already provided these details. Do NOT ask for them again. If they answered "N/A", "not sure", "unknown", or similar, treat it as "information not available" and work with what you have. Create a listing using available information and reasonable assumptions for missing details.` }
+      ];
+
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "user", content: `Original request: ${input}` }, // Original input with context
-            { role: "user", content: `Additional details: ${answerText}` }, // New answers with context
-            { role: "system", content: `Remember: The user originally asked for: "${input}". Use this information along with their answers to create a complete listing.` } // System reminder
-          ],
+          messages: conversationContext,
           tone: tone
         }),
       });
