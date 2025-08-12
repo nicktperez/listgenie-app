@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
     const { data, error } = await supabaseAdmin
       .from("users")
-      .select("plan, trial_end_date, usage_count, last_usage, stripe_customer_id")
+      .select("plan, trial_end_date, stripe_customer_id")
       .eq("clerk_id", userId)
       .maybeSingle();
 
@@ -30,8 +30,6 @@ export default async function handler(req, res) {
       ok: true,
       plan,
       trial_end_date: data?.trial_end_date || null,
-      usage_count: data?.usage_count || 0,
-      last_usage: data?.last_usage || null,
       stripe_customer_id: data?.stripe_customer_id || null
     });
   } catch (e) {

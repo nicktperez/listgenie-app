@@ -54,9 +54,7 @@ export default async function handler(req, res) {
         plan: "trial",
         trial_end_date: trialEndDate.toISOString(),
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        usage_count: 0,
-        last_usage: null
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();

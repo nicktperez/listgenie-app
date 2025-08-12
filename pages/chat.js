@@ -242,11 +242,48 @@ export default function ChatPage() {
           <div className="brand-row">
             <div className="logo">LG</div>
             <div className="title">ListGenie.ai</div>
-            <div className={`plan ${isPro ? "pro" : isTrial ? "trial" : "expired"}`}>
+            <div className="plan-badge">
               {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
             </div>
+            <button 
+              onClick={refreshPlan} 
+              className="refresh-plan-btn"
+              title="Refresh plan status"
+            >
+              🔄
+            </button>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
+            
+            {/* Debug section - remove after fixing */}
+            <div className="debug-info" style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              padding: '8px 12px', 
+              borderRadius: '8px', 
+              fontSize: '12px', 
+              color: '#9aa4b2',
+              margin: '8px auto',
+              maxWidth: '400px',
+              textAlign: 'center'
+            }}>
+              Debug: Plan: {plan}, Trial: {isTrial ? 'Yes' : 'No'}, Pro: {isPro ? 'Yes' : 'No'}, Expired: {isExpired ? 'Yes' : 'No'}
+              {trialEnd && <div>Trial ends: {new Date(trialEnd).toLocaleDateString()}</div>}
+              <button 
+                onClick={refreshPlan} 
+                style={{ 
+                  background: 'rgba(255,255,255,0.1)', 
+                  border: '1px solid rgba(255,255,255,0.2)', 
+                  color: '#9aa4b2', 
+                  padding: '4px 8px', 
+                  borderRadius: '4px', 
+                  cursor: 'pointer', 
+                  fontSize: '11px', 
+                  marginTop: '4px'
+                }}
+              >
+                Refresh Plan
+              </button>
+            </div>
         </div>
       </header>
 
@@ -443,11 +480,13 @@ export default function ChatPage() {
 
   /* Top bar */
   .topbar {
-    position: sticky; top: 0; z-index: 20;
-    backdrop-filter: saturate(120%) blur(6px);
-    background: rgba(8,11,18,0.6);
-    border-bottom: 1px solid rgba(80,90,120,0.35);
-    padding: 6px 0 8px;
+    background: linear-gradient(135deg, rgba(14,18,28,0.95), rgba(10,13,20,0.95));
+    border: 1px solid rgba(80,90,120,0.3);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
 
   /* Brand block (stacked, centered) */
@@ -493,19 +532,18 @@ export default function ChatPage() {
 
   /* Premium tagline */
   .topbar .tagline {
+    font-size: 14px;
+    color: #9aa4b2;
     text-align: center;
-    color: rgba(220,230,245,0.72);
-    font-size: 14.5px;
-    letter-spacing: 0.35px;
-    margin-top: 2px;
-    max-width: 520px;
-    line-height: 1.35;
-    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.35));
     padding: 8px 16px;
-    background: rgba(14,18,28,0.4);
-    border: 1px solid rgba(80,90,120,0.2);
-    border-radius: 12px;
-    backdrop-filter: blur(8px);
+    background: rgba(20, 24, 36, 0.6);
+    border: 1px solid rgba(80, 90, 120, 0.3);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    margin: 8px 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   /* Main layout */
@@ -952,6 +990,36 @@ export default function ChatPage() {
       opacity: 1;
       transform: scale(1) translateY(0);
     }
+  }
+
+  .plan-badge {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  }
+  
+  .refresh-plan-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #9aa4b2;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+  }
+  
+  .refresh-plan-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #e6e9ef;
+    border-color: rgba(255, 255, 255, 0.3);
   }
 `}</style>
     </div>

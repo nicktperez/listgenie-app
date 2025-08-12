@@ -11,6 +11,27 @@ export default function useUserPlan() {
     isInitialized: false
   });
 
+  const refreshPlan = async () => {
+    try {
+      const r = await fetch("/api/user/plan");
+      const j = await r.json();
+      
+      const plan = j?.plan || "trial";
+      const trialEnd = j?.trial_end_date || null;
+      
+      setState(s => ({ 
+        ...s,
+        plan, 
+        trialEnd, 
+        isLoading: false
+      }));
+      
+      console.log("Plan refreshed:", { plan, trialEnd, response: j });
+    } catch (e) {
+      console.error("Error refreshing plan:", e);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     
@@ -72,6 +93,7 @@ export default function useUserPlan() {
     daysLeft, 
     isLoading,
     canGenerate,
-    isInitialized
+    isInitialized,
+    refreshPlan
   };
 }
