@@ -2,11 +2,11 @@
 // - Restored dark UI
 // - Streaming chat with readable output cleanup
 // - Variant detection & styled cards (MLS / Social / Luxury / Concise)
-// - Copy-to-clipboard buttons for each variant and full response
+// - Copy-to-clipboard buttons for each variant and full response (with “Copied!” state)
 // - Pro-gated flyer modal (Standard + Open House)
 // - Downloads PDF via /api/flyer
 
-import { useEffect, useRef, use, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import useUserPlan from "@/lib/useUserPlan";
 
@@ -46,9 +46,9 @@ function splitVariants(text) {
   if (!text) return null;
   const patterns = [
     { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
+    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
+    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
   ];
   const out = {}; let found = false;
   for (const { key, rx } of patterns) {
@@ -87,6 +87,16 @@ export default function ChatPage() {
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
   const [flyerBusy, setFlyerBusy] = useState(false);
+
+  // Copy state (for “Copied!” UI)
+  const [copiedKey, setCopiedKey] = useState(null);
+  async function handleCopy(key, text) {
+    const ok = await copyToClipboard(text);
+    if (ok) {
+      setCopiedKey(key);
+      setTimeout(() => setCopiedKey(null), 1500);
+    }
+  }
 
   const listRef = useRef(null);
   useEffect(() => {
@@ -270,9 +280,11 @@ export default function ChatPage() {
                       <div className="copy-all">
                         <button
                           className="copy-btn"
-                          onClick={async () => { await copyToClipboard(readable); }}
+                          onClick={() => handleCopy(`all-${i}`, readable)}
                           title="Copy full response"
-                        >Copy all</button>
+                        >
+                          {copiedKey === `all-${i}` ? "Copied!" : "Copy all"}
+                        </button>
                       </div>
 
                       {variants ? (
@@ -284,10 +296,14 @@ export default function ChatPage() {
                                 <button
                                   className="copy-btn sm"
                                   title={`Copy ${displayName(k)}`}
-                                  onClick={async () => { await copyToClipboard(v.trim()); }}
-                                >Copy</button>
+                                  onClick={() => handleCopy(`var-${i}-${k}`, v.trim())}
+                                >
+                                  {copiedKey === `var-${i}-${k}` ? "Copied!" : "Copy"}
+                                </button>
                               </div>
-                              <div className="variant-body prose prose-invert whitespace-pre-wrap leading-relaxed">{v.trim()}</div>
+                              <div className="variant-body prose prose-invert whitespace-pre-wrap leading-relaxed">
+                                {v.trim()}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -336,11 +352,29 @@ export default function ChatPage() {
             ) : (
               <div className="sheet-body">
                 <p>Choose flyer types to generate from the latest assistant output.</p>
-                <label className="check"><input type="checkbox" checked={flyerTypes.standard} onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))} /> Standard Flyer</label>
-                <label className="check"><input type="checkbox" checked={flyerTypes.openHouse} onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))} /> Open House Flyer</label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={flyerTypes.standard}
+                    onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
+                  />{" "}
+                  Standard Flyer
+                </label>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={flyerTypes.openHouse}
+                    onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
+                  />{" "}
+                  Open House Flyer
+                </label>
                 <div className="actions">
                   <button className="btn" onClick={() => setFlyerOpen(false)}>Cancel</button>
-                  <button className="btn primary" onClick={generateFlyers} disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}>
+                  <button
+                    className="btn primary"
+                    onClick={generateFlyers}
+                    disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
+                  >
                     {flyerBusy ? "Generating…" : "Generate PDFs"}
                   </button>
                 </div>
