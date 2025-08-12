@@ -211,10 +211,8 @@ export default function ChatPage() {
               console.log("Questions detected in streaming response"); // Debug log
               displayContent = "I need a bit more information to create your listing. Please answer the questions below.";
               
-              // Open questions modal when streaming is complete
-              if (done) {
-                openQuestionsModal(parsed.parsed);
-              }
+              // Open questions modal immediately when questions are detected
+              openQuestionsModal(parsed.parsed);
             }
           } catch (e) {
             // If parsing fails, use the raw content
