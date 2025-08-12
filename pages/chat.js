@@ -91,7 +91,9 @@ export default function ChatPage() {
   // New flyer customization state
   const [agencyName, setAgencyName] = useState("");
   const [agentEmail, setAgentEmail] = useState("");
+  const [agentPhone, setAgentPhone] = useState("");
   const [websiteLink, setWebsiteLink] = useState("");
+  const [officeAddress, setOfficeAddress] = useState("");
   const [agencyLogo, setAgencyLogo] = useState(null);
   const [propertyPhotos, setPropertyPhotos] = useState([]);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
@@ -582,7 +584,9 @@ export default function ChatPage() {
       customization: {
         agencyName: agencyName.trim(),
         agentEmail: agentEmail.trim(),
+        agentPhone: agentPhone.trim(),
         websiteLink: websiteLink.trim(),
+        officeAddress: officeAddress.trim(),
         agencyLogo: agencyLogo,
         propertyPhotos: propertyPhotos,
         showAdvancedOptions
@@ -613,7 +617,39 @@ export default function ChatPage() {
       const contentType = res.headers.get("content-type");
       console.log("Response content type:", contentType);
       
-      if (contentType?.includes("text/html")) {
+      if (contentType?.includes("application/json")) {
+        console.log("Processing JSON response with separate flyers...");
+        const data = await res.json();
+        console.log("Flyer generation response:", data);
+        
+        if (data.success && data.flyers) {
+          // Download each flyer type separately
+          const downloadedFiles = [];
+          for (const [flyerType, htmlContent] of Object.entries(data.flyers)) {
+            const filename = flyerType === 'standard' ? 'property-flyer.html' : 'open-house-flyer.html';
+            downloadedFiles.push(filename);
+            
+            // Create and download HTML file
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url; 
+            a.download = filename; 
+            document.body.appendChild(a); 
+            a.click();
+            URL.revokeObjectURL(url); 
+            a.remove();
+            
+            console.log(`Downloaded ${filename} successfully`);
+          }
+          
+          // Show success message
+          setError(null);
+          alert(`✅ Successfully generated and downloaded: ${downloadedFiles.join(', ')}`);
+        } else {
+          throw new Error(data.message || "Failed to generate flyers");
+        }
+      } else if (contentType?.includes("text/html")) {
         console.log("Processing HTML response...");
         const htmlText = await res.text();
         console.log("HTML content length:", htmlText.length);
@@ -928,12 +964,32 @@ export default function ChatPage() {
                     />
                   </div>
                   <div className="form-group">
+                    <label>Agent Phone</label>
+                    <input
+                      type="tel"
+                      placeholder="123-456-7890"
+                      value={agentPhone}
+                      onChange={(e) => setAgentPhone(e.target.value)}
+                      className="flyer-input"
+                    />
+                  </div>
+                  <div className="form-group">
                     <label>Website/Listing Link</label>
                     <input
                       type="url"
                       placeholder="https://yourlisting.com"
                       value={websiteLink}
                       onChange={(e) => setWebsiteLink(e.target.value)}
+                      className="flyer-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Office Address</label>
+                    <input
+                      type="text"
+                      placeholder="123 Main St, City, State ZIP"
+                      value={officeAddress}
+                      onChange={(e) => setOfficeAddress(e.target.value)}
                       className="flyer-input"
                     />
                   </div>

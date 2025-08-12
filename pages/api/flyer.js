@@ -394,7 +394,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="event-value">Property Address</div>
                 </div>
             </div>
-            <a href="#" class="cta-button">🎉 Don't Miss This Opportunity!</a>
+            <a href="mailto:${customization.agentEmail || 'hello@example.com'}?subject=Open House Inquiry&body=Hi, I'm interested in learning more about this property. Please contact me with additional details." class="cta-button">🎉 Don't Miss This Opportunity!</a>
         </div>
         ` : ''}
         
@@ -451,18 +451,38 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         <!-- Footer -->
         <div class="footer">
+            ${customization.agentPhone ? `
+            <div class="contact-item">
+                <div class="contact-icon">📞</div>
+                <span>${customization.agentPhone}</span>
+            </div>
+            ` : ''}
+            ${customization.websiteLink ? `
+            <div class="contact-item">
+                <div class="contact-icon">🌐</div>
+                <span>${customization.websiteLink}</span>
+            </div>
+            ` : ''}
+            ${customization.officeAddress ? `
+            <div class="contact-item">
+                <div class="contact-icon">📍</div>
+                <span>${customization.officeAddress}</span>
+            </div>
+            ` : ''}
+            ${!customization.agentPhone && !customization.websiteLink && !customization.officeAddress ? `
             <div class="contact-item">
                 <div class="contact-icon">📞</div>
                 <span>+123-456-7890</span>
             </div>
             <div class="contact-item">
                 <div class="contact-icon">🌐</div>
-                <span>${customization.websiteLink || 'www.reallygreatsite.com'}</span>
+                <span>www.reallygreatsite.com</span>
             </div>
             <div class="contact-item">
                 <div class="contact-icon">📍</div>
                 <span>123 Anywhere St., Any City</span>
             </div>
+            ` : ''}
         </div>
     </div>
 </body>
@@ -517,28 +537,28 @@ export default async function handler(req, res) {
 
     console.log("Starting HTML flyer generation...");
     
-    // Generate HTML content
-    let htmlContent = "";
+    // Generate separate HTML content for each flyer type
+    const generatedFlyers = {};
     
     if (standardText) {
       console.log("Creating standard flyer...");
-      htmlContent += createHtmlFlyer({ standardText, openHouseText: "", customization, pageType: "standard" });
+      generatedFlyers.standard = createHtmlFlyer({ standardText, openHouseText: "", customization, pageType: "standard" });
     }
     
     if (openHouseText) {
       console.log("Creating open house flyer...");
-      if (htmlContent) htmlContent += "<hr style='page-break-before: always;'>";
-      htmlContent += createHtmlFlyer({ standardText: "", openHouseText, customization, pageType: "openHouse" });
+      generatedFlyers.openHouse = createHtmlFlyer({ standardText: "", openHouseText, customization, pageType: "openHouse" });
     }
 
-    console.log("HTML flyer generated successfully");
+    console.log("HTML flyers generated successfully");
 
-    res.setHeader("Content-Type", "text/html");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="flyer${wantStandard && wantOpenHouse ? "-bundle" : ""}.html"`
-    );
-    return res.status(200).send(htmlContent);
+    // Return JSON with separate flyer content
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ 
+      success: true, 
+      flyers: generatedFlyers,
+      message: `Generated ${Object.keys(generatedFlyers).length} flyer(s) successfully`
+    });
   } catch (e) {
     console.error("/api/flyer error:", e);
     console.error("Error stack:", e.stack);
