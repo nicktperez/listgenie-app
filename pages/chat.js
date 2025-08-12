@@ -344,27 +344,28 @@ export default function ChatPage() {
       const answer = questionAnswers[index] || '';
       return `Q: ${question}\nA: ${answer}`;
     }).join('\n\n');
-    
+
     // Add the answers to the chat
     setMessages(prev => [
       ...prev,
       { role: "user", content: answerText },
       { role: "assistant", content: "", pretty: "" }
     ]);
-    
+
     // Close modal
     setQuestionsOpen(false);
-    
+
     // Send the answers to get the final listing
     try {
       setLoading(true);
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: [
-            { role: "user", content: input },
-            { role: "user", content: answerText }
+            { role: "user", content: `Original request: ${input}` }, // Original input with context
+            { role: "user", content: `Additional details: ${answerText}` }, // New answers with context
+            { role: "system", content: `Remember: The user originally asked for: "${input}". Use this information along with their answers to create a complete listing.` } // System reminder
           ],
           tone: tone
         }),
@@ -373,30 +374,44 @@ export default function ChatPage() {
       if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
 
       const data = await resp.json();
-      
-      if (data.parsed && data.parsed.type === "listing") {
+      console.log("Follow-up response:", data); // Debug log
+
+      if (data.parsed && data.parsed.type === "questions") {
+        // More questions needed - open modal again
+        console.log("More questions detected after answers"); // Debug log
+        openQuestionsModal(data.parsed);
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { 
+            role: "assistant", 
+            content: "I need a bit more information to create your listing. Please answer the questions below.", 
+            pretty: "I need a bit more information to create your listing. Please answer the questions below." 
+          };
+          return copy;
+        });
+      } else if (data.parsed && data.parsed.type === "listing") {
         // Display the parsed listing content
         const listing = data.parsed;
         let displayContent = "";
-        
+
         if (listing.headline) {
           displayContent += `**${listing.headline}**\n\n`;
         }
-        
+
         if (listing.mls && listing.mls.body) {
           displayContent += `${listing.mls.body}\n\n`;
         }
-        
+
         if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
           displayContent += listing.mls.bullets.join('\n') + '\n\n';
         }
-        
+
         if (listing.variants && listing.variants.length > 0) {
           listing.variants.forEach(variant => {
             displayContent += `**${variant.label}:** ${variant.text}\n\n`;
           });
         }
-        
+
         const text = displayContent.trim();
         setMessages((prev) => {
           const copy = [...prev];
