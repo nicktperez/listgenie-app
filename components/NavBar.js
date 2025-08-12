@@ -1,7 +1,7 @@
 // components/NavBar.js
 import React from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
-import { useUserPlan } from "@/hooks/useUserPlan";
+import useUserPlan from "@/hooks/useUserPlan";
 
 export default function NavBar() {
   const { isSignedIn } = useUser();

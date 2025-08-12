@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 
-export function useUserPlan() {
+export default function useUserPlan() {
   const { isSignedIn, user } = useUser();
   const [state, setState] = useState({
     plan: "trial",

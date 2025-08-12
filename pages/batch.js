@@ -1,7 +1,7 @@
 // pages/batch.js
 import { useState } from "react";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
-import { useUserPlan } from "@/hooks/useUserPlan";
+import useUserPlan from "@/hooks/useUserPlan";
 import NavBar from "@/components/NavBar";
 
 export default function BatchPage() {

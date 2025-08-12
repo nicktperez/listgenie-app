@@ -1,5 +1,5 @@
 import { SignedIn, SignedOut, SignInButton, useUser } from "@clerk/nextjs";
-import { useUserPlan } from "@/hooks/useUserPlan";
+import useUserPlan from "@/hooks/useUserPlan";
 import { useState } from "react";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "";

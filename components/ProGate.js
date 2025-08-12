@@ -1,6 +1,6 @@
 // components/ProGate.js
 import React from "react";
-import { useUserPlan } from "@/hooks/useUserPlan";
+import useUserPlan from "@/hooks/useUserPlan";
 
 export function ProOnly({ children }) {
   const { isPro, loading } = useUserPlan();
