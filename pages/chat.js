@@ -88,6 +88,12 @@ export default function ChatPage() {
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
   const [flyerBusy, setFlyerBusy] = useState(false);
 
+  // Questions modal
+  const [questionsOpen, setQuestionsOpen] = useState(false);
+  const [questions, setQuestions] = useState([]);
+  const [questionAnswers, setQuestionAnswers] = useState({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   // Copy state (for "Copied!" UI)
   const [copiedKey, setCopiedKey] = useState(null);
   async function handleCopy(key, text) {
@@ -240,6 +246,18 @@ export default function ChatPage() {
             copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
             return copy;
           });
+        } else if (data.parsed && data.parsed.type === "questions") {
+          // Open questions modal for follow-up questions
+          openQuestionsModal(data.parsed);
+          setMessages((prev) => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { 
+              role: "assistant", 
+              content: "I need a bit more information to create your listing. Please answer the questions below.", 
+              pretty: "I need a bit more information to create your listing. Please answer the questions below." 
+            };
+            return copy;
+          });
         } else {
           // Fallback to raw content if parsing fails
           const text = coerceToReadableText(data.message?.content || data.content || data);
@@ -260,6 +278,94 @@ export default function ChatPage() {
   function openFlyerModal() {
     if (!isPro) { router.push("/upgrade"); return; }
     setFlyerOpen(true);
+  }
+
+  function openQuestionsModal(questionsData) {
+    setQuestions(questionsData.questions || []);
+    setQuestionAnswers({});
+    setCurrentQuestionIndex(0);
+    setQuestionsOpen(true);
+  }
+
+  async function submitQuestionAnswers() {
+    // Format answers into a natural language response
+    const answerText = questions.map((question, index) => {
+      const answer = questionAnswers[index] || '';
+      return `Q: ${question}\nA: ${answer}`;
+    }).join('\n\n');
+    
+    // Add the answers to the chat
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: answerText },
+      { role: "assistant", content: "", pretty: "" }
+    ]);
+    
+    // Close modal
+    setQuestionsOpen(false);
+    
+    // Send the answers to get the final listing
+    try {
+      setLoading(true);
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          messages: [
+            { role: "user", content: input },
+            { role: "user", content: answerText }
+          ],
+          tone: tone
+        }),
+      });
+
+      if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
+
+      const data = await resp.json();
+      
+      if (data.parsed && data.parsed.type === "listing") {
+        // Display the parsed listing content
+        const listing = data.parsed;
+        let displayContent = "";
+        
+        if (listing.headline) {
+          displayContent += `**${listing.headline}**\n\n`;
+        }
+        
+        if (listing.mls && listing.mls.body) {
+          displayContent += `${listing.mls.body}\n\n`;
+        }
+        
+        if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+          displayContent += listing.mls.bullets.join('\n') + '\n\n';
+        }
+        
+        if (listing.variants && listing.variants.length > 0) {
+          listing.variants.forEach(variant => {
+            displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+          });
+        }
+        
+        const text = displayContent.trim();
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+          return copy;
+        });
+      } else {
+        // Fallback to raw content if parsing fails
+        const text = coerceToReadableText(data.message?.content || data.content || data);
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+          return copy;
+        });
+      }
+    } catch (e) {
+      setError(e?.message || "Failed to get response");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function generateFlyers() {
@@ -457,6 +563,73 @@ export default function ChatPage() {
               >
                 {flyerBusy ? "Generating…" : "Generate PDFs"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Questions Modal */}
+      {questionsOpen && (
+        <div className="questions-modal">
+          <div className="questions-modal-content">
+            <div className="questions-modal-header">
+              <h2 className="questions-modal-title">Additional Information Needed</h2>
+              <button className="questions-modal-close" onClick={() => setQuestionsOpen(false)}>✕</button>
+            </div>
+            <p className="questions-modal-description">
+              To create the best listing, I need a bit more information about the property.
+            </p>
+            
+            <div className="question-progress">
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </div>
+            
+            <div className="current-question">
+              <h3>{questions[currentQuestionIndex]}</h3>
+              <textarea
+                className="question-answer-input"
+                placeholder="Type your answer here..."
+                value={questionAnswers[currentQuestionIndex] || ""}
+                onChange={(e) => setQuestionAnswers(prev => ({
+                  ...prev,
+                  [currentQuestionIndex]: e.target.value
+                }))}
+                rows={3}
+              />
+            </div>
+            
+            <div className="questions-modal-actions">
+              <button 
+                className="questions-modal-btn cancel" 
+                onClick={() => setQuestionsOpen(false)}
+              >
+                Cancel
+              </button>
+              {currentQuestionIndex > 0 && (
+                <button 
+                  className="questions-modal-btn secondary" 
+                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                >
+                  Previous
+                </button>
+              )}
+              {currentQuestionIndex < questions.length - 1 ? (
+                <button 
+                  className="questions-modal-btn primary" 
+                  onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                  disabled={!questionAnswers[currentQuestionIndex]}
+                >
+                  Next
+                </button>
+              ) : (
+                <button 
+                  className="questions-modal-btn submit" 
+                  onClick={submitQuestionAnswers}
+                  disabled={!questionAnswers[currentQuestionIndex]}
+                >
+                  Submit All Answers
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -841,75 +1014,6 @@ export default function ChatPage() {
     color: #9aa4b2 !important;
   }
   
-  :global(.cl-modal .cl-formButtonPrimary) {
-    background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
-    border: none !important;
-    color: white !important;
-    border-radius: 12px !important;
-    font-weight: 600 !important;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
-  }
-  
-  :global(.cl-modal .cl-formButtonPrimary:hover) {
-    background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4) !important;
-  }
-  
-  :global(.cl-modal .cl-socialButtonsBlockButton) {
-    background: rgba(20, 24, 36, 0.8) !important;
-    border: 1px solid rgba(80, 90, 120, 0.4) !important;
-    color: #e6e9ef !important;
-    border-radius: 12px !important;
-    font-weight: 500 !important;
-  }
-  
-  :global(.cl-modal .cl-socialButtonsBlockButton:hover) {
-    background: rgba(30, 34, 46, 0.9) !important;
-    border-color: rgba(80, 90, 120, 0.6) !important;
-  }
-  
-  :global(.cl-modal .cl-dividerLine) {
-    background: rgba(80, 90, 120, 0.4) !important;
-  }
-  
-  :global(.cl-modal .cl-dividerText) {
-    color: #9aa4b2 !important;
-    background: rgba(10, 13, 20, 0.95) !important;
-  }
-  
-  :global(.cl-modal .cl-footerAction) {
-    color: #9aa4b2 !important;
-  }
-  
-  :global(.cl-modal .cl-footerActionLink) {
-    color: #86a2ff !important;
-    text-decoration: none !important;
-  }
-  
-  :global(.cl-modal .cl-footerActionLink:hover) {
-    color: #a5b4fc !important;
-    text-decoration: underline !important;
-  }
-  
-  :global(.cl-modal .cl-closeButton) {
-    color: #9aa4b2 !important;
-    background: rgba(20, 24, 36, 0.8) !important;
-    border: 1px solid rgba(80, 90, 120, 0.4) !important;
-    border-radius: 8px !important;
-  }
-  
-  :global(.cl-modal .cl-closeButton:hover) {
-    background: rgba(30, 34, 46, 0.9) !important;
-    color: #e6e9ef !important;
-  }
-  
-  /* Additional Clerk fixes */
-  :global(.cl-modal .cl-formFieldLabel) {
-    color: #e6e9ef !important;
-    font-weight: 500 !important;
-  }
-  
   :global(.cl-modal .cl-formFieldInput:focus) {
     box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
   }
@@ -1106,6 +1210,174 @@ export default function ChatPage() {
   }
   
   .flyer-modal-btn.generate:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Questions Modal Styling */
+  .questions-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .questions-modal-content {
+    background: linear-gradient(135deg, rgba(14, 18, 28, 0.95), rgba(10, 13, 20, 0.95));
+    border: 1px solid rgba(80, 90, 120, 0.4);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    position: relative;
+  }
+
+  .questions-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .questions-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #e6e9ef;
+    margin: 0;
+  }
+
+  .questions-modal-close {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #9aa4b2;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+  }
+
+  .questions-modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: #e6e9ef;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .questions-modal-description {
+    color: #9aa4b2;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .question-progress {
+    color: #9aa4b2;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .current-question {
+    margin-bottom: 24px;
+  }
+
+  .current-question h3 {
+    color: #fbbf24;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+
+  .question-answer-input {
+    background: rgba(12, 16, 26, 0.88);
+    border: 1px solid rgba(86, 96, 120, 0.55);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 74px;
+    resize: vertical;
+    box-shadow: 0 4px 28px rgba(0, 0, 0, 0.28);
+    font-size: 14px;
+    line-height: 1.5;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .question-answer-input::placeholder {
+    color: rgba(200, 208, 220, 0.45);
+  }
+
+  .questions-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .questions-modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 14px;
+  }
+
+  .questions-modal-btn.cancel {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9aa4b2;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .questions-modal-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #e6e9ef;
+  }
+
+  .questions-modal-btn.primary {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .questions-modal-btn.primary:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  }
+
+  .questions-modal-btn.secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9aa4b2;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .questions-modal-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #e6e9ef;
+  }
+
+  .questions-modal-btn.submit {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: white;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .questions-modal-btn.submit:hover {
     background: linear-gradient(135deg, #4f46e5, #4338ca);
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
