@@ -189,56 +189,55 @@ export default function ChatPage() {
           const { done, value } = await reader.read();
           if (done) break;
           acc += decoder.decode(value, { stream: true });
-          
-          // Try to parse as JSON for structured responses
-          let displayContent = acc;
-          console.log("Streaming response content:", acc); // Debug log
-          try {
-            const parsed = JSON.parse(acc);
-            console.log("Parsed streaming response:", parsed); // Debug log
-            if (parsed.parsed && parsed.parsed.type === "listing") {
-              const listing = parsed.parsed;
-              displayContent = "";
-              
-              if (listing.headline) {
-                displayContent += `**${listing.headline}**\n\n`;
-              }
-              
-              if (listing.mls && listing.mls.body) {
-                displayContent += `${listing.mls.body}\n\n`;
-              }
-              
-              if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-                displayContent += listing.mls.bullets.join('\n') + '\n\n';
-              }
-              
-              if (listing.variants && listing.variants.length > 0) {
-                listing.variants.forEach(variant => {
-                  displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-                });
-              }
-              
-              displayContent = displayContent.trim();
-            } else if (parsed.parsed && parsed.parsed.type === "questions") {
-              // Handle questions in streaming response
-              console.log("Questions detected in streaming response"); // Debug log
-              displayContent = "I need a bit more information to create your listing. Please answer the questions below.";
-              
-              // Open questions modal immediately when questions are detected
-              openQuestionsModal(parsed.parsed);
-            }
-          } catch (e) {
-            // If parsing fails, use the raw content
-            displayContent = coerceToReadableText(acc);
-          }
-          
-          setMessages((prev) => {
-            const copy = [...prev];
-            const last = copy.length - 1;
-            copy[last] = { ...copy[last], content: acc, pretty: displayContent };
-            return copy;
-          });
         }
+
+        // Try to parse as JSON for structured responses
+        let displayContent = acc;
+        console.log("Streaming response content:", acc); // Debug log
+        try {
+          const parsed = JSON.parse(acc);
+          console.log("Parsed streaming response:", parsed); // Debug log
+          if (parsed.parsed && parsed.parsed.type === "listing") {
+            const listing = parsed.parsed;
+            displayContent = "";
+            
+            if (listing.headline) {
+              displayContent += `**${listing.headline}**\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.body) {
+              displayContent += `${listing.mls.body}\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+            }
+            
+            if (listing.variants && listing.variants.length > 0) {
+              listing.variants.forEach(variant => {
+                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+              });
+            }
+            
+            displayContent = displayContent.trim();
+          } else if (parsed.parsed && parsed.parsed.type === "questions") {
+            // Handle questions in streaming response
+            console.log("Questions detected in streaming response"); // Debug log
+            displayContent = "I need a bit more information to create your listing. Please answer the questions below.";
+            
+            // Open questions modal immediately when questions are detected
+            openQuestionsModal(parsed.parsed);
+          }
+        } catch (e) {
+          // If parsing fails, use the raw content
+          displayContent = coerceToReadableText(acc);
+        }
+
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
+          return copy;
+        });
       } else {
         // Non-streaming fallback
         const data = await resp.json();
@@ -248,25 +247,25 @@ export default function ChatPage() {
           // Display the parsed listing content
           const listing = data.parsed;
           let displayContent = "";
-          
+
           if (listing.headline) {
             displayContent += `**${listing.headline}**\n\n`;
           }
-          
+
           if (listing.mls && listing.mls.body) {
             displayContent += `${listing.mls.body}\n\n`;
           }
-          
+
           if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
             displayContent += listing.mls.bullets.join('\n') + '\n\n';
           }
-          
+
           if (listing.variants && listing.variants.length > 0) {
             listing.variants.forEach(variant => {
               displayContent += `**${variant.label}:** ${variant.text}\n\n`;
             });
           }
-          
+
           const text = displayContent.trim();
           setMessages((prev) => {
             const copy = [...prev];
