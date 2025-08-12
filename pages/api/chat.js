@@ -55,6 +55,8 @@ CRITICAL RULES:
 - Make reasonable assumptions for missing details rather than asking again.
 - Only ask questions for truly critical missing information that cannot be reasonably inferred.
 - If you have enough information to create a compelling listing (even with some unknowns), generate the listing instead of asking more questions.
+- **ABSOLUTELY NO REDUNDANT QUESTIONS**: If the user has already answered a question (even with "N/A"), NEVER ask it again.
+- **PREFER LISTING GENERATION**: When in doubt, generate a listing with available information rather than asking more questions.
 `;
 
 export default async function handler(req, res) {

@@ -93,6 +93,9 @@ export default function ChatPage() {
   const [questions, setQuestions] = useState([]);
   const [questionAnswers, setQuestionAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  
+  // Track all Q&A history for better AI memory
+  const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
 
   // Copy state (for "Copied!" UI)
   const [copiedKey, setCopiedKey] = useState(null);
@@ -336,6 +339,9 @@ export default function ChatPage() {
     setQuestionAnswers({});
     setCurrentQuestionIndex(0);
     setQuestionsOpen(true);
+    
+    // Add new questions to the history
+    setAllQuestionsAndAnswers(prev => [...prev, ...questionsData.questions]);
   }
 
   async function submitQuestionAnswers() {
@@ -368,11 +374,11 @@ export default function ChatPage() {
     try {
       setLoading(true);
       
-      // Build complete conversation context
+      // Build complete conversation context with ALL previous Q&A
       const conversationContext = [
         { role: "user", content: `Original request: ${input}` },
-        { role: "user", content: `Previous answers: ${answerText}` },
-        { role: "system", content: `IMPORTANT: The user has already provided these details. Do NOT ask for them again. If they answered "N/A", "not sure", "unknown", or similar, treat it as "information not available" and work with what you have. Create a listing using available information and reasonable assumptions for missing details.` }
+        { role: "user", content: `Complete Q&A history: ${answerText}` },
+        { role: "system", content: `CRITICAL: The user has already answered these questions. Do NOT ask for ANY of this information again. If they answered "N/A", "not sure", "unknown", or similar, treat it as "information not available" and work with what you have. You have enough information to create a listing - generate it now instead of asking more questions.` }
       ];
 
       const resp = await fetch("/api/chat", {
@@ -506,7 +512,7 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="container">
+      <main className="chat-container">
         <section className="controls">
           <div className="row1">
             <button className="flyer-btn" onClick={openFlyerModal}>
@@ -527,70 +533,26 @@ export default function ChatPage() {
           </div>
         </section>
 
-        <section className="messages" ref={listRef}>
-          {messages.length === 0 && (
-            <div className="empty">Start by pasting a property description, or choose an example above.</div>
-          )}
-
-          {messages.map((m, i) => {
-            const isAssistant = m.role === "assistant";
-            const readable = coerceToReadableText(m.pretty ?? m.content);
-            const variants = isAssistant ? splitVariants(readable) : null;
-
-            return (
-              <div key={i} className={`row ${isAssistant ? "ai" : "you"}`}>
-                <div className="author">{isAssistant ? "ListGenie" : "You"}</div>
-                <div className="bubble">
-                  {isAssistant ? (
-                    <div className="assistant-block">
-                      {/* Global copy for full response */}
-                      <div className="copy-all">
-                        <button
-                          className="copy-btn"
-                          onClick={() => handleCopy(`all-${i}`, readable)}
-                          title="Copy full response"
-                        >
-                          {copiedKey === `all-${i}` ? "Copied!" : "Copy all"}
-                        </button>
-                      </div>
-
-                      {variants ? (
-                        <div className="variants">
-                          {Object.entries(variants).map(([k, v]) => (
-                            <div className={`variant ${k}`} key={k}>
-                              <div className="variant-head">
-                                <span className="variant-chip">{displayName(k)}</span>
-                                <button
-                                  className="copy-btn sm"
-                                  title={`Copy ${displayName(k)}`}
-                                  onClick={() => handleCopy(`var-${i}-${k}`, v.trim())}
-                                >
-                                  {copiedKey === `var-${i}-${k}` ? "Copied!" : "Copy"}
-                                </button>
-                              </div>
-                              <div className="variant-body prose prose-invert whitespace-pre-wrap leading-relaxed">
-                                {v.trim()}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="listing-content prose prose-invert whitespace-pre-wrap leading-relaxed">
-                          {readable}
-                        </div>
-                      )}
-                    </div>
+        {/* Only show chat area if there are messages */}
+        {messages.length > 0 && (
+          <section className="chat-area">
+            {messages.map((message, index) => (
+              <div key={index} className={`message ${message.role}`}>
+                <div className="message-content">
+                  {message.role === "user" ? (
+                    <span className="user-message">{message.content}</span>
                   ) : (
-                    <div className="whitespace-pre-wrap">{m.content}</div>
+                    <div className="assistant-message">
+                      {message.pretty || message.content || "Generating..."}
+                    </div>
                   )}
                 </div>
               </div>
-            );
-          })}
-
-          {loading && <ThinkingDots />}
-          {error && <div className="error">{error}</div>}
-        </section>
+            ))}
+            {loading && <div className="loading">Generating...</div>}
+            {error && <div className="error">{error}</div>}
+          </section>
+        )}
 
         <section className="composer">
           <textarea
@@ -1461,6 +1423,68 @@ export default function ChatPage() {
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
   }
+
+  /* Chat Container */
+  .chat-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .chat-area {
+    margin-bottom: 20px;
+    min-height: 200px;
+  }
+
+  .message {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    max-width: 80%;
+  }
+
+  .message.user {
+    margin-left: auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .message.assistant {
+    margin-right: auto;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .message-content {
+    line-height: 1.5;
+  }
+
+  .user-message {
+    font-weight: 500;
+  }
+
+  .assistant-message {
+    white-space: pre-wrap;
+  }
+
+  .loading {
+    text-align: center;
+    color: #a0aec0;
+    font-style: italic;
+    padding: 20px;
+  }
+
+  .error {
+    color: #f56565;
+    text-align: center;
+    padding: 20px;
+    background: rgba(245, 101, 101, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(245, 101, 101, 0.3);
+  }
+
+  /* Questions Modal Styling */
 `}</style>
     </div>
   );
