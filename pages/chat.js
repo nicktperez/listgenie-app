@@ -237,9 +237,9 @@ export default function ChatPage() {
 
   return (
     <div className="chat-page">
-      <header className="topbar">
-        <div className="brand brand--stack">
-          <div className="brand-row">
+      <header className="main-header">
+        <div className="header-content">
+          <div className="brand-section">
             <div className="logo">LG</div>
             <div className="title">ListGenie.ai</div>
             <div className="plan-badge">
@@ -436,36 +436,32 @@ export default function ChatPage() {
   }
 
   /* Top bar */
-  .topbar {
+  .main-header {
     background: linear-gradient(135deg, rgba(14,18,28,0.95), rgba(10,13,20,0.95));
     border: 1px solid rgba(80,90,120,0.3);
     border-radius: 16px;
-    padding: 16px 20px;
-    margin-bottom: 24px;
+    margin: 24px auto;
+    max-width: 800px;
     backdrop-filter: blur(20px);
     box-shadow: 0 8px 32px rgba(0,0,0,0.3);
   }
 
-  /* Brand block (stacked, centered) */
-  .brand {
-    max-width: 960px;
+  .header-content {
+    max-width: 600px;
     margin: 0 auto;
-    padding: 8px 16px;
+    padding: 20px;
+    text-align: center;
   }
-  .brand--stack {
-    display: grid;
-    grid-auto-rows: max-content;
-    justify-items: center;
-    row-gap: 6px;
-  }
-  .brand-row {
+
+  .brand-section {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
   }
-  
-  .topbar .logo {
+
+  .main-header .logo {
     width: 32px;
     height: 32px;
     background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -478,14 +474,14 @@ export default function ChatPage() {
     font-size: 14px;
   }
   
-  .topbar .title {
+  .main-header .title {
     font-weight: 700;
     font-size: 18px;
     color: #e6e9ef;
   }
   
   /* Premium tagline */
-  .topbar .tagline {
+  .main-header .tagline {
     font-size: 14px;
     color: #9aa4b2;
     text-align: center;
@@ -502,8 +498,9 @@ export default function ChatPage() {
 
   /* Main layout */
   .container {
-    max-width: 960px; margin: 0 auto; padding: 16px;
-    display: grid; gap: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
   }
 
   /* Usage Display */

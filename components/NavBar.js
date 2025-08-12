@@ -53,8 +53,6 @@ export default function NavBar() {
           <a href="/chat" className="link">Chat</a>
           <SignedIn>
             <a href="/listings" className="link">Listings</a>
-            <a href="/usage" className="link">Usage</a>
-            {isPro && <a href="/batch" className="link">Batch</a>}
           </SignedIn>
         </div>
 
