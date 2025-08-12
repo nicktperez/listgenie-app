@@ -13,7 +13,7 @@ export const config = {
 
 async function createPdf({ standardText, openHouseText, customization }) {
   try {
-    const { PDFDocument, StandardFonts, rgb, rgba } = await import("pdf-lib");
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
     
     const doc = await PDFDocument.create();
     const helvetica = await doc.embedFont(StandardFonts.Helvetica);
@@ -44,7 +44,7 @@ async function createPdf({ standardText, openHouseText, customization }) {
           y: 50 + (i * 40),
           size: 8,
           font: helvetica,
-          color: rgba(0.2, 0.25, 0.15, 0.03), // Very subtle watermark
+          color: rgb(0.95, 0.96, 0.95), // Very light watermark
         });
       }
       
@@ -311,11 +311,23 @@ async function createPdf({ standardText, openHouseText, customization }) {
     // Create pages based on selected types
     if (standardText) {
       console.log("Creating standard flyer page...");
-      await makePage("Property Flyer", standardText, "standard");
+      try {
+        await makePage("Property Flyer", standardText, "standard");
+        console.log("Standard flyer page created successfully");
+      } catch (pageError) {
+        console.error("Error creating standard flyer page:", pageError);
+        throw new Error(`Standard flyer page creation failed: ${pageError.message}`);
+      }
     }
     if (openHouseText) {
       console.log("Creating open house flyer page...");
-      await makePage("Open House", standardText, "openHouse");
+      try {
+        await makePage("Open House", openHouseText, "openHouse");
+        console.log("Open house flyer page created successfully");
+      } catch (pageError) {
+        console.error("Error creating open house flyer page:", pageError);
+        throw new Error(`Open house flyer page creation failed: ${pageError.message}`);
+      }
     }
 
     console.log("All pages created, saving PDF...");
