@@ -601,13 +601,23 @@ export default function ChatPage() {
         body: JSON.stringify(payload),
       });
       
+      console.log("Flyer API response status:", res.status);
+      console.log("Flyer API response headers:", Object.fromEntries(res.headers.entries()));
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `Flyer API error: ${res.status}`);
+        console.error("Flyer API error response:", errorData);
+        throw new Error(errorData.error || `Flyer API error: ${res.status} ${res.statusText}`);
       }
 
-      if (res.headers.get("content-type")?.includes("application/pdf")) {
+      const contentType = res.headers.get("content-type");
+      console.log("Response content type:", contentType);
+      
+      if (contentType?.includes("application/pdf")) {
+        console.log("Processing PDF response...");
         const blob = await res.blob();
+        console.log("PDF blob size:", blob.size);
+        
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url; 
@@ -616,9 +626,14 @@ export default function ChatPage() {
         a.click();
         URL.revokeObjectURL(url); 
         a.remove();
+        
+        console.log("PDF download initiated successfully");
       } else {
+        console.log("Processing JSON response...");
         // JSON with urls (alternate server behavior)
         const data = await res.json();
+        console.log("JSON response data:", data);
+        
         const urls = data?.urls || (data?.url ? [data.url] : []);
         for (const u of urls) {
           const a = document.createElement("a");
@@ -775,6 +790,14 @@ export default function ChatPage() {
             </div>
             
             <div className="flyer-modal-body">
+              {/* Error Display */}
+              {error && (
+                <div className="flyer-error">
+                  <span className="error-icon">⚠️</span>
+                  <span className="error-text">{error}</span>
+                </div>
+              )}
+              
               {/* Flyer Type Selection */}
               <div className="flyer-section">
                 <h3 className="flyer-section-title">Flyer Types</h3>
@@ -1810,13 +1833,26 @@ export default function ChatPage() {
     font-size: 16px;
   }
 
-  .error {
-    color: #f56565;
-    text-align: center;
-    padding: 20px;
-    background: rgba(245, 101, 101, 0.1);
+  /* Error Display */
+  .flyer-error {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
     border-radius: 8px;
-    border: 1px solid rgba(245, 101, 101, 0.3);
+    margin-bottom: 20px;
+    color: #ef4444;
+  }
+
+  .error-icon {
+    font-size: 20px;
+  }
+
+  .error-text {
+    font-size: 14px;
+    font-weight: 500;
   }
 
   /* Questions Modal Styling */

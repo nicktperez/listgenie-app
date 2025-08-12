@@ -42,7 +42,21 @@ async function createPdf({ standardText, openHouseText, customization }) {
       // Agency logo if provided
       if (customization.agencyLogo) {
         try {
-          const logoImage = await doc.embedPng(customization.agencyLogo.split(',')[1]);
+          console.log("Processing agency logo...");
+          console.log("Logo data type:", typeof customization.agencyLogo);
+          console.log("Logo data length:", customization.agencyLogo?.length || 0);
+          console.log("Logo data starts with:", customization.agencyLogo?.substring(0, 50));
+          
+          // Handle both data URLs and base64 strings
+          const logoData = customization.agencyLogo.includes(',') 
+            ? customization.agencyLogo.split(',')[1] 
+            : customization.agencyLogo;
+          
+          console.log("Processed logo data length:", logoData?.length || 0);
+          
+          const logoImage = await doc.embedPng(Buffer.from(logoData, 'base64'));
+          console.log("Logo embedded successfully, dimensions:", logoImage.width, "x", logoImage.height);
+          
           const logoWidth = 80;
           const logoHeight = (logoImage.height * logoWidth) / logoImage.width;
           page.drawImage(logoImage, {
@@ -51,8 +65,10 @@ async function createPdf({ standardText, openHouseText, customization }) {
             width: logoWidth,
             height: logoHeight,
           });
+          console.log("Logo drawn to page");
         } catch (e) {
-          console.log("Logo embedding failed, continuing without logo");
+          console.log("Logo embedding failed, continuing without logo:", e.message);
+          console.log("Logo error stack:", e.stack);
         }
       }
       
@@ -86,7 +102,21 @@ async function createPdf({ standardText, openHouseText, customization }) {
         for (let i = 0; i < Math.min(customization.propertyPhotos.length, 8); i++) {
           try {
             const photo = customization.propertyPhotos[i];
-            const photoImage = await doc.embedPng(photo.data.split(',')[1]);
+            console.log(`Processing photo ${i + 1}/${customization.propertyPhotos.length}...`);
+            console.log("Photo data type:", typeof photo.data);
+            console.log("Photo data length:", photo.data?.length || 0);
+            console.log("Photo data starts with:", photo.data?.substring(0, 50));
+            
+            // Handle both data URLs and base64 strings
+            const photoData = photo.data.includes(',') 
+              ? photo.data.split(',')[1] 
+              : photo.data;
+            
+            console.log("Processed photo data length:", photoData?.length || 0);
+            
+            const photoImage = await doc.embedPng(Buffer.from(photoData, 'base64'));
+            console.log(`Photo ${i + 1} embedded successfully, dimensions:`, photoImage.width, "x", photoImage.height);
+            
             const aspectRatio = photoImage.width / photoImage.height;
             
             let drawWidth = photoSize;
@@ -105,13 +135,16 @@ async function createPdf({ standardText, openHouseText, customization }) {
               height: drawHeight,
             });
             
+            console.log(`Photo ${i + 1} drawn to page at (${photoX}, ${photoY})`);
+            
             photoX += photoSize + 12;
             if ((i + 1) % photosPerRow === 0) {
               photoX = 36;
               photoY -= photoSize + 12;
             }
           } catch (e) {
-            console.log(`Photo ${i} embedding failed, continuing without photo`);
+            console.log(`Photo ${i + 1} embedding failed, continuing without photo:`, e.message);
+            console.log(`Photo ${i + 1} error stack:`, e.stack);
           }
         }
         
@@ -230,13 +263,18 @@ async function createPdf({ standardText, openHouseText, customization }) {
 
     // Create pages based on selected types
     if (standardText) {
+      console.log("Creating standard flyer page...");
       await makePage("Property Flyer", standardText, "standard");
     }
     if (openHouseText) {
+      console.log("Creating open house flyer page...");
       await makePage("Open House Flyer", openHouseText, "openHouse");
     }
 
+    console.log("All pages created, saving PDF...");
     const pdfBytes = await doc.save();
+    console.log("PDF saved successfully, size:", pdfBytes.length);
+    
     return Buffer.from(pdfBytes);
   } catch (error) {
     console.error("Error in createPdf:", error);
@@ -271,9 +309,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("Flyer API request body received"); // Debug log
+    console.log("Flyer API request received");
+    console.log("Request body keys:", Object.keys(req.body || {}));
     
     const { flyers = [], content, customization = {} } = req.body || {};
+    console.log("Flyers requested:", flyers);
+    console.log("Customization keys:", Object.keys(customization));
+    
     if (!flyers.length) {
       return res.status(400).json({ ok: false, error: "No flyers requested" });
     }
@@ -284,9 +326,10 @@ export default async function handler(req, res) {
 
     const wantStandard = flyers.includes("standard");
     const wantOpenHouse = flyers.includes("openHouse");
+    console.log("Will generate standard:", wantStandard, "openHouse:", wantOpenHouse);
 
     const baseText = pickBestText(content || {});
-    console.log("Base text for flyer:", baseText.substring(0, 100) + "..."); // Debug log
+    console.log("Base text length:", baseText?.length || 0);
     
     if (!baseText.trim()) {
       return res.status(400).json({ ok: false, error: "No valid content found to generate flyer from" });
@@ -294,7 +337,7 @@ export default async function handler(req, res) {
 
     // Clean the text to remove emojis and special characters that can't be encoded in PDFs
     const cleanedText = cleanTextForPdf(baseText);
-    console.log("Cleaned text for flyer:", cleanedText.substring(0, 100) + "..."); // Debug log
+    console.log("Cleaned text length:", cleanedText?.length || 0);
     
     if (!cleanedText.trim()) {
       return res.status(400).json({ ok: false, error: "No valid content remaining after cleaning for PDF generation" });
@@ -303,7 +346,9 @@ export default async function handler(req, res) {
     const standardText = wantStandard ? cleanedText : "";
     const openHouseText = wantOpenHouse ? cleanedText : "";
 
+    console.log("Starting PDF generation...");
     const pdf = await createPdf({ standardText, openHouseText, customization });
+    console.log("PDF generated successfully, size:", pdf.length);
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -313,6 +358,7 @@ export default async function handler(req, res) {
     return res.status(200).send(pdf);
   } catch (e) {
     console.error("/api/flyer error:", e);
+    console.error("Error stack:", e.stack);
     return res.status(500).json({ ok: false, error: `Failed to generate PDF: ${e.message}` });
   }
 }
