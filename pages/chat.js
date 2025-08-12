@@ -247,32 +247,19 @@ export default function ChatPage() {
             </div>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
+          <div className="plan-status">
+            {isTrial ? (
+              <span className="trial-status">{daysLeft} days left in trial</span>
+            ) : !isPro ? (
+              <span className="expired-status">Trial expired</span>
+            ) : (
+              <span className="pro-status">Pro Plan Active</span>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="container">
-        {/* Usage Display */}
-        <section className="usage-display">
-          <div className="usage-info">
-            {isTrial ? (
-              <div className="trial-info">
-                <span className="trial-days">{daysLeft} days left in trial</span>
-                <a href="/upgrade" className="upgrade-link">Upgrade to Pro</a>
-              </div>
-            ) : !isPro ? (
-              <div className="upgrade-prompt">
-                <span>Trial expired. Upgrade to Pro to continue using ListGenie.</span>
-                <a href="/upgrade" className="upgrade-link">Upgrade Now</a>
-              </div>
-            ) : (
-              <div className="pro-status">
-                <span className="pro-badge">Pro Plan Active</span>
-                <span className="pro-features">Unlimited generations & all features</span>
-              </div>
-            )}
-          </div>
-        </section>
-
         <section className="controls">
           <div className="row1">
             <button className="flyer-btn" onClick={openFlyerModal}>
@@ -495,75 +482,44 @@ export default function ChatPage() {
     max-width: 400px;
     display: block;
   }
+  
+  .plan-status {
+    text-align: center;
+    margin-top: 8px;
+  }
+  
+  .plan-status span {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .trial-status {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.2));
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+  
+  .expired-status {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  .pro-status {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
 
   /* Main layout */
   .container {
     max-width: 800px;
     margin: 0 auto;
     padding: 0 20px;
-  }
-
-  /* Usage Display */
-  .usage-display {
-    background: rgba(14,18,28,0.65);
-    border: 1px solid var(--stroke);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 16px;
-  }
-  .usage-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    align-items: center;
-    text-align: center;
-  }
-  .trial-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
-    color: var(--text-dim);
-  }
-  .trial-days {
-    font-weight: 600;
-    color: #7ce7c4;
-  }
-  .upgrade-link {
-    color: #86a2ff;
-    text-decoration: none;
-    border-bottom: 1px dashed #86a2ff;
-    transition: border-color 0.2s ease;
-    padding: 4px 0;
-  }
-  .upgrade-link:hover {
-    border-color: transparent;
-  }
-  .upgrade-prompt {
-    font-size: 13px;
-    color: var(--text-dim);
-    text-align: center;
-    line-height: 1.4;
-  }
-  .pro-status {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text-dim);
-  }
-  .pro-badge {
-    font-weight: 600;
-    color: #7ce7c4;
-    background: rgba(16,185,129,0.14);
-    padding: 6px 12px;
-    border-radius: 999px;
-    border: 1px solid rgba(16,185,129,0.3);
-  }
-  .pro-features {
-    font-size: 12px;
-    color: rgba(220,230,245,0.72);
   }
 
   /* Controls card */
