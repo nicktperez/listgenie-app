@@ -613,7 +613,24 @@ export default function ChatPage() {
       const contentType = res.headers.get("content-type");
       console.log("Response content type:", contentType);
       
-      if (contentType?.includes("application/pdf")) {
+      if (contentType?.includes("text/html")) {
+        console.log("Processing HTML response...");
+        const htmlText = await res.text();
+        console.log("HTML content length:", htmlText.length);
+        
+        // Create and download HTML file
+        const blob = new Blob([htmlText], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; 
+        a.download = "flyer.html"; 
+        document.body.appendChild(a); 
+        a.click();
+        URL.revokeObjectURL(url); 
+        a.remove();
+        
+        console.log("HTML flyer download initiated successfully");
+      } else if (contentType?.includes("application/pdf")) {
         console.log("Processing PDF response...");
         const blob = await res.blob();
         console.log("PDF blob size:", blob.size);
@@ -1010,7 +1027,7 @@ export default function ChatPage() {
                 ) : (
                   <>
                     <span className="generate-icon">✨</span>
-                    Generate Beautiful PDFs
+                    Generate Beautiful HTML Flyers
                   </>
                 )}
               </button>

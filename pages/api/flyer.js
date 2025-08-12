@@ -1,430 +1,280 @@
 // pages/api/flyer.js
-// Generates beautiful, professional PDF flyers with agency branding, photos, and QR codes
+// Generates beautiful, professional HTML flyers with agency branding, photos, and QR codes
 
 import { NextApiRequest, NextApiResponse } from "next";
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "50mb", // Increased from 10mb to handle large image uploads
+      sizeLimit: "50mb", // Increased for photos
     },
   },
 };
 
-async function createPdf({ standardText, openHouseText, customization }) {
-  try {
-    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
-    
-    const doc = await PDFDocument.create();
-    const helvetica = await doc.embedFont(StandardFonts.Helvetica);
-    const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
-    
-    // Helper function to create a beautiful, engaging flyer page
-    const makePage = async (title, body, pageType = "standard") => {
-      const page = doc.addPage([612, 792]); // Letter portrait
-      const { width, height } = page.getSize();
-      
-      // Fun, engaging color scheme
-      const primaryColor = rgb(0.1, 0.4, 0.2); // Rich green
-      const accentColor = rgb(0.95, 0.7, 0.1); // Warm gold
-      const textColor = rgb(1, 1, 1); // White text
-      const darkTextColor = rgb(0.1, 0.1, 0.1); // Dark text
-      
-      // Background - clean white
-      page.drawRectangle({
-        x: 0, y: 0,
-        width, height,
-        color: rgb(1, 1, 1),
-      });
-      
-      // Top banner with gradient effect
-      const bannerHeight = 120;
-      page.drawRectangle({
-        x: 0, y: height - bannerHeight,
-        width, height: bannerHeight,
-        color: primaryColor,
-      });
-      
-      // Add gold accent stripe
-      page.drawRectangle({
-        x: 0, y: height - bannerHeight,
-        width, height: 8,
-        color: accentColor,
-      });
-      
-      // Add decorative corner elements
-      const cornerSize = 20;
-      page.drawRectangle({
-        x: 0, y: height - cornerSize,
-        width: cornerSize, height: cornerSize,
-        color: accentColor,
-      });
-      
-      page.drawRectangle({
-        x: width - cornerSize, y: height - cornerSize,
-        width: cornerSize, height: cornerSize,
-        color: accentColor,
-      });
-      
-      // Title in banner
-      page.drawText(title, {
-        x: 36,
-        y: height - 60,
-        size: 32,
-        font: helveticaBold,
-        color: textColor,
-      });
-      
-      // Agency name in banner
-      if (customization.agencyName) {
-        page.drawText(customization.agencyName, {
-          x: 36,
-          y: height - 85,
-          size: 16,
-          font: helvetica,
-          color: textColor,
-        });
-      }
-      
-      // Main content area
-      const contentStartY = height - bannerHeight - 20;
-      const contentHeight = contentStartY - 100; // Leave space for footer
-      
-      // Content background
-      page.drawRectangle({
-        x: 20, y: 100,
-        width: width - 40, height: contentHeight,
-        color: rgb(0.98, 0.98, 0.98), // Light gray background
-      });
-      
-      // Add border
-      page.drawRectangle({
-        x: 20, y: 100,
-        width: width - 40, height: contentHeight,
-        color: primaryColor,
-        borderWidth: 2,
-      });
-      
-      // Photo grid section
-      let photoY = contentStartY - 40;
-      const photoSize = 120;
-      const photosPerRow = 3;
-      let photoX = 40;
-      let photoCount = 0;
-      
-      if (customization.propertyPhotos && customization.propertyPhotos.length > 0) {
-        console.log(`Processing ${customization.propertyPhotos.length} photos...`);
-        
-        for (let i = 0; i < Math.min(customization.propertyPhotos.length, 6); i++) {
-          try {
-            const photo = customization.propertyPhotos[i];
-            console.log(`Processing photo ${i + 1}:`, photo.name);
-            
-            // Handle both data URLs and base64 strings
-            const photoData = photo.data.includes(',') 
-              ? photo.data.split(',')[1] 
-              : photo.data;
-            
-            console.log(`Photo ${i + 1} data length:`, photoData?.length || 0);
-            
-            const photoImage = await doc.embedPng(Buffer.from(photoData, 'base64'));
-            console.log(`Photo ${i + 1} embedded successfully, dimensions:`, photoImage.width, "x", photoImage.height);
-            
-            const aspectRatio = photoImage.width / photoImage.height;
-            
-            let drawWidth = photoSize;
-            let drawHeight = photoSize;
-            
-            if (aspectRatio > 1) {
-              drawHeight = photoSize / aspectRatio;
-            } else {
-              drawWidth = photoSize * aspectRatio;
-            }
-            
-            // Center the photo in its grid cell
-            const cellX = photoX + (photoSize - drawWidth) / 2;
-            const cellY = photoY + (photoSize - drawHeight) / 2;
-            
-            page.drawImage(photoImage, {
-              x: cellX,
-              y: cellY,
-              width: drawWidth,
-              height: drawHeight,
-            });
-            
-            console.log(`Photo ${i + 1} drawn at (${cellX}, ${cellY})`);
-            
-            photoCount++;
-            photoX += photoSize + 20;
-            
-            if (photoCount % photosPerRow === 0) {
-              photoX = 40;
-              photoY -= photoSize + 20;
-            }
-          } catch (e) {
-            console.log(`Photo ${i + 1} failed:`, e.message);
-            console.log(`Photo ${i + 1} error stack:`, e.stack);
-          }
-        }
-        
-        photoY -= 30; // Extra spacing after photos
-      } else {
-        console.log("No photos provided, using placeholder");
-        // Draw placeholder boxes
-        for (let i = 0; i < 6; i++) {
-          page.drawRectangle({
-            x: photoX,
-            y: photoY,
-            width: photoSize,
-            height: photoSize,
-            color: rgb(0.9, 0.9, 0.9),
-            borderColor: primaryColor,
-            borderWidth: 1,
-          });
-          
-          page.drawText("Photo", {
-            x: photoX + photoSize/2 - 20,
-            y: photoY + photoSize/2,
-            size: 12,
-            font: helvetica,
-            color: rgb(0.6, 0.6, 0.6),
-          });
-          
-          photoCount++;
-          photoX += photoSize + 20;
-          
-          if (photoCount % photosPerRow === 0) {
-            photoX = 40;
-            photoY -= photoSize + 20;
-          }
-        }
-        photoY -= 30;
-      }
-      
-      // Content text section
-      let textStartY = photoY;
-      const textX = 40;
-      const textWidth = width - 80;
-      
-      // Special Open House formatting
-      if (pageType === "openHouse") {
-        // Event details box
-        const eventBoxY = textStartY - 60;
-        page.drawRectangle({
-          x: textX - 10,
-          y: eventBoxY - 20,
-          width: textWidth + 20,
-          height: 60,
-          color: accentColor,
-        });
-        
-        page.drawText("OPEN HOUSE EVENT", {
-          x: textX,
-          y: eventBoxY,
-          size: 18,
-          font: helveticaBold,
-          color: darkTextColor,
-        });
-        
-        const eventDetails = [
-          "📅 Date: December 15th, 2024",
-          "⏰ Time: 2:00 PM - 5:00 PM",
-          "📍 Location: Property Address"
-        ];
-        
-        let eventY = eventBoxY - 25;
-        for (const detail of eventDetails) {
-          page.drawText(detail, {
-            x: textX,
-            y: eventY,
-            size: 12,
-            font: helveticaBold,
-            color: darkTextColor,
-          });
-          eventY -= 18;
-        }
-        
-        // Call to action
-        page.drawText("🎉 Don't miss this amazing opportunity!", {
-          x: textX,
-          y: eventY - 10,
-          size: 14,
-          font: helveticaBold,
-          color: primaryColor,
-        });
-        
-        textStartY = eventY - 40; // Adjust text start position
-      }
-      
-      // Content background
-      page.drawRectangle({
-        x: textX - 10,
-        y: textStartY - 20,
-        width: textWidth + 20,
-        height: textStartY + 20,
-        color: primaryColor,
-      });
-      
-      // Content text with better formatting
-      const contentText = body || "";
-      const maxLineLength = 70;
-      const words = contentText.split(/\s+/);
-      const lines = [];
-      let currentLine = "";
-      
-      for (const word of words) {
-        if ((currentLine + " " + word).length > maxLineLength) {
-          lines.push(currentLine.trim());
-          currentLine = word;
-        } else {
-          currentLine += (currentLine ? " " : "") + word;
-        }
-      }
-      if (currentLine.trim()) {
-        lines.push(currentLine.trim());
-      }
-      
-      // Draw content lines
-      let textY = textStartY;
-      for (const line of lines) {
-        if (textY < 120) break; // Don't overflow into footer
-        
-        page.drawText(line, {
-          x: textX,
-          y: textY,
-          size: 11,
-          font: helvetica,
-          color: textColor,
-        });
-        textY -= 16;
-      }
-      
-      // Footer section
-      const footerY = 80;
-      
-      // Footer background
-      page.drawRectangle({
-        x: 0, y: 0,
-        width, height: footerY,
-        color: primaryColor,
-      });
-      
-      // Gold accent stripe at top of footer
-      page.drawRectangle({
-        x: 0, y: footerY,
-        width, height: 4,
-        color: accentColor,
-      });
-      
-      // Contact information
-      let contactX = 36;
-      const contactY = 50;
-      
-      if (customization.agentEmail) {
-        page.drawText(`Contact: ${customization.agentEmail}`, {
-          x: contactX,
-          y: contactY,
-          size: 12,
-          font: helveticaBold,
-          color: textColor,
-        });
-        contactX += 200;
-      }
-      
-      // QR code if website link provided
-      if (customization.websiteLink) {
-        try {
-          const QRCode = await import('qrcode');
-          const qrDataUrl = await QRCode.toDataURL(customization.websiteLink, {
-            width: 60,
-            margin: 1,
-            color: {
-              dark: '#FFFFFF',
-              light: '#0A6628'
-            }
-          });
-          
-          const qrImage = await doc.embedPng(qrDataUrl.split(',')[1]);
-          page.drawImage(qrImage, {
-            x: width - 80,
-            y: 10,
-            width: 60,
-            height: 60,
-          });
-          
-          page.drawText("Scan for details", {
-            x: width - 80,
-            y: 5,
-            size: 10,
-            font: helvetica,
-            color: textColor,
-          });
-        } catch (e) {
-          console.log("QR code generation failed:", e.message);
-        }
-      }
-      
-      // Page number
-      page.drawText(`Page ${doc.getPageCount()}`, {
-        x: width - 60,
-        y: 25,
-        size: 10,
-        font: helvetica,
-        color: textColor,
-      });
-    };
-
-    // Create pages based on selected types
-    if (standardText) {
-      console.log("Creating standard flyer page...");
-      try {
-        await makePage("Property Flyer", standardText, "standard");
-        console.log("Standard flyer page created successfully");
-      } catch (pageError) {
-        console.error("Error creating standard flyer page:", pageError);
-        throw new Error(`Standard flyer page creation failed: ${pageError.message}`);
-      }
-    }
-    if (openHouseText) {
-      console.log("Creating open house flyer page...");
-      try {
-        await makePage("Open House", openHouseText, "openHouse");
-        console.log("Open house flyer page created successfully");
-      } catch (pageError) {
-        console.error("Error creating open house flyer page:", pageError);
-        throw new Error(`Open house flyer page creation failed: ${pageError.message}`);
-      }
-    }
-
-    console.log("All pages created, saving PDF...");
-    const pdfBytes = await doc.save();
-    console.log("PDF saved successfully, size:", pdfBytes.length);
-    
-    return Buffer.from(pdfBytes);
-  } catch (error) {
-    console.error("Error in createPdf:", error);
-    throw new Error(`PDF generation failed: ${error.message}`);
-  }
-}
-
-function cleanTextForPdf(text) {
-  if (!text) return "";
+function createHtmlFlyer({ standardText, openHouseText, customization, pageType }) {
+  const isOpenHouse = pageType === "openHouse";
   
-  return text
-    // Remove emojis and special Unicode characters
-    .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
-    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
-    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map Symbols
-    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional Indicator Symbols
-    .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Misc Symbols
-    .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
-    // Remove other problematic characters
-    .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
-    // Clean up extra whitespace
-    .replace(/\s+/g, ' ')
-    // Remove any remaining problematic characters that might cause encoding issues
-    .replace(/[^\w\s\-.,!?;:'"()]/g, '') // Only allow safe characters
-    .trim();
+  // Create a beautiful HTML template
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${isOpenHouse ? 'Open House Flyer' : 'Property Flyer'}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        
+        .flyer-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0a6628 0%, #0d8a35 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .agency-name {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .open-house-banner {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+            padding: 25px;
+            margin: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .open-house-title {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .event-detail {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .cta {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #0a6628;
+        }
+        
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+        
+        .photo-item {
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .photo-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .content-section {
+            padding: 40px;
+            background: white;
+        }
+        
+        .content-title {
+            font-size: 2rem;
+            color: #0a6628;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #ffd700;
+            padding-bottom: 10px;
+        }
+        
+        .content-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #0a6628 0%, #0d8a35 100%);
+            color: white;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .contact-info {
+            font-size: 1.1rem;
+        }
+        
+        .qr-section {
+            text-align: center;
+        }
+        
+        .qr-code {
+            width: 80px;
+            height: 80px;
+            background: white;
+            border-radius: 10px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #333;
+        }
+        
+        .qr-text {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        @media print {
+            body { background: white; }
+            .flyer-container { 
+                margin: 0; 
+                box-shadow: none;
+                border-radius: 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .title { font-size: 2rem; }
+            .photo-grid { grid-template-columns: 1fr; }
+            .footer { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="flyer-container">
+        <div class="header">
+            <h1 class="title">${isOpenHouse ? '🏠 Open House' : '🏡 Property Flyer'}</h1>
+            ${customization.agencyName ? `<p class="agency-name">${customization.agencyName}</p>` : ''}
+        </div>
+        
+        ${isOpenHouse ? `
+        <div class="open-house-banner">
+            <h2 class="open-house-title">🎉 OPEN HOUSE EVENT</h2>
+            <div class="event-details">
+                <div class="event-detail">
+                    <span>📅</span>
+                    <span>Date: December 15th, 2024</span>
+                </div>
+                <div class="event-detail">
+                    <span>⏰</span>
+                    <span>Time: 2:00 PM - 5:00 PM</span>
+                </div>
+                <div class="event-detail">
+                    <span>📍</span>
+                    <span>Location: Property Address</span>
+                </div>
+            </div>
+            <p class="cta">🎉 Don't miss this amazing opportunity!</p>
+        </div>
+        ` : ''}
+        
+        ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? `
+        <div class="photo-grid">
+            ${customization.propertyPhotos.map((photo, index) => `
+                <div class="photo-item">
+                    <img src="${photo.data}" alt="Property Photo ${index + 1}" />
+                </div>
+            `).join('')}
+        </div>
+        ` : ''}
+        
+        <div class="content-section">
+            <h2 class="content-title">${isOpenHouse ? 'Property Details' : 'About This Property'}</h2>
+            <div class="content-text">
+                ${standardText || openHouseText || 'No content provided'}
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="contact-info">
+                ${customization.agentEmail ? `<p>📧 Contact: ${customization.agentEmail}</p>` : ''}
+                ${customization.websiteLink ? `<p>🌐 Website: ${customization.websiteLink}</p>` : ''}
+            </div>
+            <div class="qr-section">
+                ${customization.websiteLink ? `
+                <div class="qr-code">
+                    QR Code
+                </div>
+                <p class="qr-text">Scan for details</p>
+                ` : ''}
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+  return html;
 }
 
 export default async function handler(req, res) {
@@ -460,31 +310,45 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "No valid content found to generate flyer from" });
     }
 
-    // Clean the text to remove emojis and special characters that can't be encoded in PDFs
-    const cleanedText = cleanTextForPdf(baseText);
+    // Clean the text but keep emojis and special characters
+    const cleanedText = baseText.trim();
     console.log("Cleaned text length:", cleanedText?.length || 0);
     
     if (!cleanedText.trim()) {
-      return res.status(400).json({ ok: false, error: "No valid content remaining after cleaning for PDF generation" });
+      return res.status(400).json({ ok: false, error: "No valid content remaining after cleaning for flyer generation" });
     }
 
     const standardText = wantStandard ? cleanedText : "";
     const openHouseText = wantOpenHouse ? cleanedText : "";
 
-    console.log("Starting PDF generation...");
-    const pdf = await createPdf({ standardText, openHouseText, customization });
-    console.log("PDF generated successfully, size:", pdf.length);
+    console.log("Starting HTML flyer generation...");
+    
+    // Generate HTML content
+    let htmlContent = "";
+    
+    if (standardText) {
+      console.log("Creating standard flyer...");
+      htmlContent += createHtmlFlyer({ standardText, openHouseText: "", customization, pageType: "standard" });
+    }
+    
+    if (openHouseText) {
+      console.log("Creating open house flyer...");
+      if (htmlContent) htmlContent += "<hr style='page-break-before: always;'>";
+      htmlContent += createHtmlFlyer({ standardText: "", openHouseText, customization, pageType: "openHouse" });
+    }
 
-    res.setHeader("Content-Type", "application/pdf");
+    console.log("HTML flyer generated successfully");
+
+    res.setHeader("Content-Type", "text/html");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="flyer${wantStandard && wantOpenHouse ? "-bundle" : ""}.pdf"`
+      `attachment; filename="flyer${wantStandard && wantOpenHouse ? "-bundle" : ""}.html"`
     );
-    return res.status(200).send(pdf);
+    return res.status(200).send(htmlContent);
   } catch (e) {
     console.error("/api/flyer error:", e);
     console.error("Error stack:", e.stack);
-    return res.status(500).json({ ok: false, error: `Failed to generate PDF: ${e.message}` });
+    return res.status(500).json({ ok: false, error: `Failed to generate flyer: ${e.message}` });
   }
 }
 
