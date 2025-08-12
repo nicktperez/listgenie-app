@@ -796,6 +796,163 @@ export default function ChatPage() {
     position: relative;
     z-index: 1;
   }
+
+  /* Clerk Modal Styling Fixes */
+  :global(.cl-modal) {
+    background: rgba(10, 13, 20, 0.95) !important;
+    backdrop-filter: blur(20px) !important;
+  }
+  
+  :global(.cl-modal .cl-card) {
+    background: linear-gradient(135deg, rgba(14, 18, 28, 0.95), rgba(10, 13, 20, 0.95)) !important;
+    border: 1px solid rgba(80, 90, 120, 0.3) !important;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  :global(.cl-modal .cl-cardHeader) {
+    background: transparent !important;
+  }
+  
+  :global(.cl-modal .cl-cardHeaderTitle) {
+    color: #e6e9ef !important;
+  }
+  
+  :global(.cl-modal .cl-cardHeaderSubtitle) {
+    color: #9aa4b2 !important;
+  }
+  
+  :global(.cl-modal .cl-formField) {
+    background: rgba(20, 24, 36, 0.8) !important;
+    border: 1px solid rgba(80, 90, 120, 0.4) !important;
+    border-radius: 12px !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldInput) {
+    background: transparent !important;
+    color: #e6e9ef !important;
+    border: none !important;
+    outline: none !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldInput::placeholder) {
+    color: #9aa4b2 !important;
+  }
+  
+  :global(.cl-modal .cl-formButtonPrimary) {
+    background: linear-gradient(135deg, #6366f1, #4f46e5) !important;
+    border: none !important;
+    color: white !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
+  }
+  
+  :global(.cl-modal .cl-formButtonPrimary:hover) {
+    background: linear-gradient(135deg, #4f46e5, #4338ca) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4) !important;
+  }
+  
+  :global(.cl-modal .cl-socialButtonsBlockButton) {
+    background: rgba(20, 24, 36, 0.8) !important;
+    border: 1px solid rgba(80, 90, 120, 0.4) !important;
+    color: #e6e9ef !important;
+    border-radius: 12px !important;
+    font-weight: 500 !important;
+  }
+  
+  :global(.cl-modal .cl-socialButtonsBlockButton:hover) {
+    background: rgba(30, 34, 46, 0.9) !important;
+    border-color: rgba(80, 90, 120, 0.6) !important;
+  }
+  
+  :global(.cl-modal .cl-dividerLine) {
+    background: rgba(80, 90, 120, 0.4) !important;
+  }
+  
+  :global(.cl-modal .cl-dividerText) {
+    color: #9aa4b2 !important;
+    background: rgba(10, 13, 20, 0.95) !important;
+  }
+  
+  :global(.cl-modal .cl-footerAction) {
+    color: #9aa4b2 !important;
+  }
+  
+  :global(.cl-modal .cl-footerActionLink) {
+    color: #86a2ff !important;
+    text-decoration: none !important;
+  }
+  
+  :global(.cl-modal .cl-footerActionLink:hover) {
+    color: #a5b4fc !important;
+    text-decoration: underline !important;
+  }
+  
+  :global(.cl-modal .cl-closeButton) {
+    color: #9aa4b2 !important;
+    background: rgba(20, 24, 36, 0.8) !important;
+    border: 1px solid rgba(80, 90, 120, 0.4) !important;
+    border-radius: 8px !important;
+  }
+  
+  :global(.cl-modal .cl-closeButton:hover) {
+    background: rgba(30, 34, 46, 0.9) !important;
+    color: #e6e9ef !important;
+  }
+  
+  /* Additional Clerk fixes */
+  :global(.cl-modal .cl-formFieldLabel) {
+    color: #e6e9ef !important;
+    font-weight: 500 !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldInput:focus) {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3) !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldInput:focus-within) {
+    border-color: rgba(99, 102, 241, 0.6) !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldError) {
+    color: #f87171 !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin-top: 8px !important;
+  }
+  
+  :global(.cl-modal .cl-formFieldSuccess) {
+    color: #34d399 !important;
+    background: rgba(52, 211, 153, 0.1) !important;
+    border: 1px solid rgba(52, 211, 153, 0.3) !important;
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin-top: 8px !important;
+  }
+  
+  /* Clerk backdrop and animations */
+  :global(.cl-modalBackdrop) {
+    background: rgba(0, 0, 0, 0.7) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+  
+  :global(.cl-modalContent) {
+    animation: modalSlideIn 0.3s ease-out !important;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95) translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
 `}</style>
     </div>
   );
