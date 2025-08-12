@@ -17,6 +17,7 @@ async function createPdf({ standardText, openHouseText }) {
     const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
     
     const doc = await PDFDocument.create();
+    // Use Helvetica which has better encoding support
     const font = await doc.embedFont(StandardFonts.Helvetica);
 
     const makePage = (title, body) => {
@@ -92,6 +93,26 @@ function pickBestText(contentObj) {
   return vals.join("\n\n");
 }
 
+function cleanTextForPdf(text) {
+  if (!text) return "";
+  
+  return text
+    // Remove emojis and special Unicode characters
+    .replace(/[\u{1F600}-\u{1F64F}]/gu, '') // Emoticons
+    .replace(/[\u{1F300}-\u{1F5FF}]/gu, '') // Misc Symbols and Pictographs
+    .replace(/[\u{1F680}-\u{1F6FF}]/gu, '') // Transport and Map Symbols
+    .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '') // Regional Indicator Symbols
+    .replace(/[\u{2600}-\u{26FF}]/gu, '')   // Misc Symbols
+    .replace(/[\u{2700}-\u{27BF}]/gu, '')   // Dingbats
+    // Remove other problematic characters
+    .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII characters
+    // Clean up extra whitespace
+    .replace(/\s+/g, ' ')
+    // Remove any remaining problematic characters that might cause encoding issues
+    .replace(/[^\w\s\-.,!?;:'"()]/g, '') // Only allow safe characters
+    .trim();
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -120,8 +141,16 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "No valid content found to generate flyer from" });
     }
 
-    const standardText = wantStandard ? baseText : "";
-    const openHouseText = wantOpenHouse ? baseText : "";
+    // Clean the text to remove emojis and special characters that can't be encoded in PDFs
+    const cleanedText = cleanTextForPdf(baseText);
+    console.log("Cleaned text for flyer:", cleanedText.substring(0, 100) + "..."); // Debug log
+    
+    if (!cleanedText.trim()) {
+      return res.status(400).json({ ok: false, error: "No valid content remaining after cleaning for PDF generation" });
+    }
+
+    const standardText = wantStandard ? cleanedText : "";
+    const openHouseText = wantOpenHouse ? cleanedText : "";
 
     const pdf = await createPdf({ standardText, openHouseText });
 
