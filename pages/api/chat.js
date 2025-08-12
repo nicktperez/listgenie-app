@@ -59,6 +59,8 @@ CRITICAL RULES:
 - **PREFER LISTING GENERATION**: When in doubt, generate a listing with available information rather than asking more questions.
 - **NEVER REPEAT QUESTIONS**: If the user has provided ANY information about a topic, consider that topic covered and move on.
 - **GENERATE LISTINGS**: Your default behavior should be to generate listings, not ask questions.
+- **HANDLE EDIT REQUESTS**: If the user asks to modify or add details to a listing, use the existing information and make the requested changes. Do not ask for information that was already provided.
+- **CONTEXT AWARENESS**: Always consider the full conversation context when responding to follow-up requests.
 `;
 
 export default async function handler(req, res) {

@@ -133,33 +133,43 @@ export default function ChatPage() {
 
   async function handleSend() {
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed || loading) return;
 
-    // Check if user can generate
-    if (!canGenerate) {
-      setError("Your trial has expired. Please upgrade to Pro to continue using ListGenie.");
-      return;
-    }
+    // Store the original input before clearing it
+    const originalInput = input;
 
-    // optimistic add
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: trimmed },
-      { role: "assistant", content: "", pretty: "" }, // placeholder for stream
-    ]);
+    // Add user message to chat
+    setMessages(prev => [...prev, { role: "user", content: trimmed }]);
     setInput("");
-    setLoading(true);
-    setError("");
+    setError(null);
 
     try {
-      // Call your chat route. This assumes your existing /api/chat supports streaming.
+      setLoading(true);
+      
+      // Build conversation context with full history
+      const conversationContext = [
+        // Include the original request and any previous Q&A
+        ...(allQuestionsAndAnswers.length > 0 ? [
+          { role: "user", content: `Original request: ${originalInput}` },
+          { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
+        ] : []),
+        // Include the previous listing if it exists
+        ...(messages.length > 0 ? [
+          { role: "assistant", content: `Previous listing: ${messages[messages.length - 1].content || messages[messages.length - 1].pretty || ''}` }
+        ] : []),
+        // Current message
+        { role: "user", content: trimmed },
+        // System instruction for edit requests
+        { role: "system", content: `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.` }
+      ];
+
+      console.log("Sending this context to AI:", conversationContext); // Debug log
+
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          messages: [
-            { role: "user", content: trimmed }
-          ],
+        body: JSON.stringify({
+          messages: conversationContext,
           tone: tone
         }),
       });
