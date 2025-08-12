@@ -254,36 +254,6 @@ export default function ChatPage() {
             </button>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
-            
-            {/* Debug section - remove after fixing */}
-            <div className="debug-info" style={{ 
-              background: 'rgba(255,255,255,0.05)', 
-              padding: '8px 12px', 
-              borderRadius: '8px', 
-              fontSize: '12px', 
-              color: '#9aa4b2',
-              margin: '8px auto',
-              maxWidth: '400px',
-              textAlign: 'center'
-            }}>
-              Debug: Plan: {plan}, Trial: {isTrial ? 'Yes' : 'No'}, Pro: {isPro ? 'Yes' : 'No'}, Expired: {isExpired ? 'Yes' : 'No'}
-              {trialEnd && <div>Trial ends: {new Date(trialEnd).toLocaleDateString()}</div>}
-              <button 
-                onClick={refreshPlan} 
-                style={{ 
-                  background: 'rgba(255,255,255,0.1)', 
-                  border: '1px solid rgba(255,255,255,0.2)', 
-                  color: '#9aa4b2', 
-                  padding: '4px 8px', 
-                  borderRadius: '4px', 
-                  cursor: 'pointer', 
-                  fontSize: '11px', 
-                  marginTop: '4px'
-                }}
-              >
-                Refresh Plan
-              </button>
-            </div>
         </div>
       </header>
 
@@ -629,20 +599,37 @@ export default function ChatPage() {
     border-bottom: 1px solid rgba(255,255,255,0.08);
   }
   .flyer-btn {
-    border: 1px solid var(--stroke); 
-    background: var(--emerald-ghost); 
-    color: #c4f6e6;
-    padding: 8px 12px; 
-    border-radius: 999px; 
-    font-size: 13px;
-    font-weight: 500;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.15));
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  }
+  
+  .flyer-btn:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.25));
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #c7d2fe;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  }
+  
+  .flyer-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
   }
   
   .tone-separator {
     width: 1px;
     height: 24px;
-    background: rgba(255,255,255,0.15);
-    margin: 0 4px;
+    background: linear-gradient(180deg, transparent, rgba(80, 90, 120, 0.4), transparent);
+    margin: 0 16px;
   }
 
   /* Examples section */
@@ -1014,21 +1001,11 @@ export default function ChatPage() {
   }
   
   .refresh-plan-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #e6e9ef;
-    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(30, 34, 46, 0.9) !important;
+    color: #e6e9ef !important;
   }
   
-  .debug-info {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    color: #9aa4b2;
-    margin: 8px auto;
-    max-width: 400px;
-    text-align: center;
-  }
+  /* Clerk Modal Dark Theme Overrides */
 `}</style>
     </div>
   );
