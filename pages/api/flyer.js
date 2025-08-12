@@ -14,7 +14,7 @@ export const config = {
 function createHtmlFlyer({ standardText, openHouseText, customization, pageType }) {
   const isOpenHouse = pageType === "openHouse";
   
-  // Create a beautiful HTML template
+  // Create a beautiful HTML template matching the Studio Shodwe design
   const html = `
 <!DOCTYPE html>
 <html lang="en">
@@ -22,6 +22,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${isOpenHouse ? 'Open House Flyer' : 'Property Flyer'}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -30,106 +31,184 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: #f5f5f5;
+            color: #1a202c;
+            background: #f7fafc;
+            font-weight: 400;
         }
         
         .flyer-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 20px auto;
             background: white;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border-radius: 15px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            border-radius: 0;
             overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #0a6628 0%, #0d8a35 100%);
-            color: white;
-            padding: 40px;
-            text-align: center;
             position: relative;
         }
         
-        .header::after {
-            content: '';
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            height: 400px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+        }
+        
+        .hero-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+        }
+        
+        .hero-overlay {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 0;
             right: 0;
-            height: 8px;
-            background: linear-gradient(90deg, #ffd700 0%, #ffed4e 100%);
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(45, 55, 72, 0.8) 0%, rgba(74, 85, 104, 0.6) 100%);
         }
         
-        .title {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        .logo-section {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         
-        .agency-name {
-            font-size: 1.5rem;
-            opacity: 0.9;
-            font-weight: 300;
-        }
-        
-        .open-house-banner {
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            color: #333;
-            padding: 25px;
-            margin: 30px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        
-        .open-house-title {
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        
-        .event-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .event-detail {
+        .logo-text {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2d3748;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+        }
+        
+        .logo-icon {
+            font-size: 1.5rem;
+        }
+        
+        /* Main Content Section */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            min-height: 500px;
+        }
+        
+        .left-column {
+            padding: 50px 40px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .right-column {
+            padding: 50px 40px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        /* Typography and Content */
+        .listing-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #2d3748;
+            margin-bottom: 20px;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+        
+        .listing-subtitle {
             font-size: 1.1rem;
+            color: #718096;
+            margin-bottom: 30px;
+            font-weight: 400;
+            line-height: 1.6;
+        }
+        
+        .price-box {
+            background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(246, 173, 85, 0.3);
+        }
+        
+        .price-label {
+            font-size: 0.9rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+            opacity: 0.9;
         }
         
-        .cta {
-            font-size: 1.3rem;
+        .price-amount {
+            font-size: 2.8rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+        
+        .features-list {
+            list-style: none;
+            margin-top: 20px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            color: #2d3748;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+        
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            background: #48bb78;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8rem;
             font-weight: bold;
-            color: #0a6628;
         }
         
+        /* Photo Grid */
         .photo-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr;
             gap: 20px;
-            padding: 30px;
-            background: #f8f9fa;
+            margin-bottom: 20px;
         }
         
         .photo-item {
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            border: 3px solid #f6ad55;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
         
         .photo-item:hover {
             transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
         }
         
         .photo-item img {
@@ -138,61 +217,130 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             object-fit: cover;
         }
         
-        .content-section {
-            padding: 40px;
-            background: white;
-        }
-        
-        .content-title {
-            font-size: 2rem;
-            color: #0a6628;
-            margin-bottom: 20px;
-            border-bottom: 3px solid #ffd700;
-            padding-bottom: 10px;
-        }
-        
-        .content-text {
-            font-size: 1.1rem;
-            line-height: 1.8;
-            color: #555;
-            margin-bottom: 20px;
-        }
-        
+        /* Footer */
         .footer {
-            background: linear-gradient(135deg, #0a6628 0%, #0d8a35 100%);
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
             color: white;
-            padding: 30px;
-            display: flex;
-            justify-content: space-between;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
         }
         
-        .contact-info {
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
             font-size: 1.1rem;
+            font-weight: 500;
         }
         
-        .qr-section {
-            text-align: center;
-        }
-        
-        .qr-code {
-            width: 80px;
-            height: 80px;
-            background: white;
-            border-radius: 10px;
-            margin: 0 auto 10px;
+        .contact-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.8rem;
-            color: #333;
+            font-size: 1.2rem;
         }
         
-        .qr-text {
+        /* Open House Special Styling */
+        .open-house-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            margin: 0 40px 40px 40px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .open-house-title {
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-bottom: 25px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .event-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .event-detail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .event-icon {
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        
+        .event-label {
             font-size: 0.9rem;
-            opacity: 0.9;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.8;
+        }
+        
+        .event-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        
+        .cta-button {
+            background: white;
+            color: #667eea;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .left-column, .right-column {
+                padding: 30px 25px;
+            }
+            
+            .hero-section {
+                height: 300px;
+            }
+            
+            .listing-title {
+                font-size: 2rem;
+            }
+            
+            .price-amount {
+                font-size: 2.2rem;
+            }
+            
+            .footer {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
         }
         
         @media print {
@@ -202,72 +350,118 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 box-shadow: none;
                 border-radius: 0;
             }
-        }
-        
-        @media (max-width: 768px) {
-            .title { font-size: 2rem; }
-            .photo-grid { grid-template-columns: 1fr; }
-            .footer { flex-direction: column; text-align: center; }
+            .hero-section { height: 300px; }
         }
     </style>
 </head>
 <body>
     <div class="flyer-container">
-        <div class="header">
-            <h1 class="title">${isOpenHouse ? '🏠 Open House' : '🏡 Property Flyer'}</h1>
-            ${customization.agencyName ? `<p class="agency-name">${customization.agencyName}</p>` : ''}
+        <!-- Hero Section with Large Image -->
+        <div class="hero-section">
+            ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
+                `<img src="${customization.propertyPhotos[0].data}" alt="Property Hero" class="hero-image">` : 
+                '<div class="hero-image" style="background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);"></div>'
+            }
+            <div class="hero-overlay"></div>
+            
+            <!-- Logo Section -->
+            <div class="logo-section">
+                <div class="logo-text">
+                    <span class="logo-icon">🏠</span>
+                    ${customization.agencyName || 'STUDIO SHODWE'}
+                </div>
+            </div>
         </div>
         
+        <!-- Open House Banner (if applicable) -->
         ${isOpenHouse ? `
         <div class="open-house-banner">
             <h2 class="open-house-title">🎉 OPEN HOUSE EVENT</h2>
             <div class="event-details">
                 <div class="event-detail">
-                    <span>📅</span>
-                    <span>Date: December 15th, 2024</span>
+                    <div class="event-icon">📅</div>
+                    <div class="event-label">Date</div>
+                    <div class="event-value">December 15th, 2024</div>
                 </div>
                 <div class="event-detail">
-                    <span>⏰</span>
-                    <span>Time: 2:00 PM - 5:00 PM</span>
+                    <div class="event-icon">⏰</div>
+                    <div class="event-label">Time</div>
+                    <div class="event-value">2:00 PM - 5:00 PM</div>
                 </div>
                 <div class="event-detail">
-                    <span>📍</span>
-                    <span>Location: Property Address</span>
+                    <div class="event-icon">📍</div>
+                    <div class="event-label">Location</div>
+                    <div class="event-value">Property Address</div>
                 </div>
             </div>
-            <p class="cta">🎉 Don't miss this amazing opportunity!</p>
+            <a href="#" class="cta-button">🎉 Don't Miss This Opportunity!</a>
         </div>
         ` : ''}
         
-        ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? `
-        <div class="photo-grid">
-            ${customization.propertyPhotos.map((photo, index) => `
-                <div class="photo-item">
-                    <img src="${photo.data}" alt="Property Photo ${index + 1}" />
+        <!-- Main Content Section -->
+        <div class="main-content">
+            <!-- Left Column - Text Content -->
+            <div class="left-column">
+                <h1 class="listing-title">NEW LISTING</h1>
+                <p class="listing-subtitle">Don't miss the opportunity to make this beautiful house your new home!</p>
+                
+                <div class="price-box">
+                    <div class="price-label">Price</div>
+                    <div class="price-amount">$850,000</div>
                 </div>
-            `).join('')}
-        </div>
-        ` : ''}
-        
-        <div class="content-section">
-            <h2 class="content-title">${isOpenHouse ? 'Property Details' : 'About This Property'}</h2>
-            <div class="content-text">
-                ${standardText || openHouseText || 'No content provided'}
+                
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>4 Bedrooms</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>3 Bathrooms</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Gourmet Kitchen</span>
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">✓</span>
+                        <span>Private Backyard</span>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Right Column - Photos -->
+            <div class="right-column">
+                <div class="photo-grid">
+                    ${customization.propertyPhotos && customization.propertyPhotos.length > 1 ? 
+                        customization.propertyPhotos.slice(1, 3).map((photo, index) => `
+                            <div class="photo-item">
+                                <img src="${photo.data}" alt="Property Photo ${index + 2}" />
+                            </div>
+                        `).join('') : 
+                        '<div class="photo-item"><div style="height: 200px; background: #e2e8f0; display: flex; align-items: center; justify-content: center; color: #718096;">Photo Placeholder</div></div>'
+                    }
+                </div>
+                
+                <div class="content-text" style="margin-top: 20px; color: #4a5568; line-height: 1.7;">
+                    ${standardText || openHouseText || 'Beautiful property with modern amenities and prime location. Contact us for more details!'}
+                </div>
             </div>
         </div>
         
+        <!-- Footer -->
         <div class="footer">
-            <div class="contact-info">
-                ${customization.agentEmail ? `<p>📧 Contact: ${customization.agentEmail}</p>` : ''}
-                ${customization.websiteLink ? `<p>🌐 Website: ${customization.websiteLink}</p>` : ''}
+            <div class="contact-item">
+                <div class="contact-icon">📞</div>
+                <span>+123-456-7890</span>
             </div>
-            <div class="qr-section">
-                ${customization.websiteLink ? `
-                <div class="qr-code">
-                    QR Code
-                </div>
-                <p class="qr-text">Scan for details</p>
-                ` : ''}
+            <div class="contact-item">
+                <div class="contact-icon">🌐</div>
+                <span>${customization.websiteLink || 'www.reallygreatsite.com'}</span>
+            </div>
+            <div class="contact-item">
+                <div class="contact-icon">📍</div>
+                <span>123 Anywhere St., Any City</span>
             </div>
         </div>
     </div>
