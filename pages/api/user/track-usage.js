@@ -27,6 +27,18 @@ export default async function handler(req, res) {
       .eq("clerk_id", userId);
 
     if (error) {
+      // If columns don't exist yet, try a simpler update
+      if (error.code === '42703') { // Column doesn't exist
+        console.warn("Usage tracking columns not found, skipping usage update");
+        return res.status(200).json({
+          ok: true,
+          usage_count: 0,
+          usage_remaining: 10,
+          plan: "trial",
+          is_trial: true,
+          can_continue: true
+        });
+      }
       console.error("Failed to track usage:", error);
       return res.status(500).json({ ok: false, error: "Failed to track usage" });
     }

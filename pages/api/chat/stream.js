@@ -136,6 +136,7 @@ export default async function handler(req, res) {
           created_at: new Date().toISOString()
         });
     } catch (e) {
+      // Don't fail the main request if logging fails
       console.error("Failed to log generation:", e);
     }
 

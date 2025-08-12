@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import useUserPlan from "@/lib/useUserPlan";
+import useUserPlan from "@/hooks/useUserPlan";
 
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
