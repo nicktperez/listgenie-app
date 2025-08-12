@@ -206,6 +206,27 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
         }
         
+        .agency-logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: 3px solid var(--secondary);
+        }
+        
+        .agency-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 8px;
+        }
+        
         /* Main Content Section - Two Column Layout */
         .main-content {
             display: grid;
@@ -451,6 +472,26 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             border-top: 3px solid var(--secondary);
         }
         
+        .footer-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            border: 2px solid var(--secondary);
+            grid-column: 1 / -1;
+            justify-self: center;
+            margin-bottom: 15px;
+        }
+        
+        .footer-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 6px;
+        }
+        
         .contact-item {
             display: flex;
             align-items: center;
@@ -517,9 +558,16 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         <div class="hero-section">
             ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
                 `<img src="${customization.propertyPhotos[0].data}" alt="Property Hero" class="hero-image">` : 
-                '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);"></div>'
+                '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600;">Property Photo</div>'
             }
             <div class="hero-overlay"></div>
+            
+            <!-- Agency Logo (top right corner) -->
+            ${customization.agencyLogo ? `
+            <div class="agency-logo">
+                <img src="${customization.agencyLogo.data}" alt="Agency Logo" />
+            </div>
+            ` : ''}
         </div>
         
         <!-- Open House Banner (if applicable) -->
@@ -613,6 +661,13 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         <!-- Footer -->
         <div class="footer">
+            <!-- Agency Logo in Footer -->
+            ${customization.agencyLogo ? `
+            <div class="footer-logo">
+                <img src="${customization.agencyLogo.data}" alt="Agency Logo" />
+            </div>
+            ` : ''}
+            
             ${customization.agentPhone ? `
             <div class="contact-item">
                 <div class="contact-icon">📞</div>

@@ -136,6 +136,9 @@ export default function ChatPage() {
   
   // Background pattern option
   const [backgroundPattern, setBackgroundPattern] = useState("none");
+  
+  // Save confirmation state
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -609,6 +612,10 @@ export default function ChatPage() {
       backgroundPattern
     };
     localStorage.setItem('listgenie_agency_info', JSON.stringify(agencyInfo));
+    
+    // Show confirmation
+    setShowSaveConfirmation(true);
+    setTimeout(() => setShowSaveConfirmation(false), 2000);
   };
 
   async function generateFlyers() {
@@ -1311,11 +1318,24 @@ export default function ChatPage() {
                   onClick={saveAgencyInfo}
                   className="save-settings-btn"
                   type="button"
+                  disabled={showSaveConfirmation}
                 >
-                  💾 Save Settings for Next Time
+                  {showSaveConfirmation ? (
+                    <>
+                      <span className="save-checkmark">✓</span>
+                      Settings Saved!
+                    </>
+                  ) : (
+                    <>
+                      💾 Save Settings for Next Time
+                    </>
+                  )}
                 </button>
                 <p className="flyer-section-description">
-                  Your agency information and preferences will be automatically filled in next time.
+                  {showSaveConfirmation 
+                    ? "Your settings have been saved successfully!" 
+                    : "Your agency information and preferences will be automatically filled in next time."
+                  }
                 </p>
               </div>
             </div>
@@ -2010,6 +2030,19 @@ export default function ChatPage() {
   .save-settings-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  }
+
+  .save-checkmark {
+    color: #10b981;
+    font-weight: bold;
+    margin-right: 8px;
+    animation: checkmarkPop 0.3s ease-out;
+  }
+
+  @keyframes checkmarkPop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
   }
 
   .flyer-option-icon {
