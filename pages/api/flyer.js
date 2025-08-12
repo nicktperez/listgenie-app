@@ -1,48 +1,143 @@
 // pages/api/flyer.js
-// Generates a simple PDF flyer (Standard and/or Open House) from the latest assistant output.
-// No external deps: uses pdf-lib to draw text. If both flyers selected, returns a single PDF with 2 pages.
+// Generates beautiful, professional PDF flyers with agency branding, photos, and QR codes
 
 import { NextApiRequest, NextApiResponse } from "next";
 
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "1mb",
+      sizeLimit: "10mb", // Increased for photos
     },
   },
 };
 
-async function createPdf({ standardText, openHouseText }) {
+async function createPdf({ standardText, openHouseText, customization }) {
   try {
-    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    const { PDFDocument, StandardFonts, rgb, rgba } = await import("pdf-lib");
     
     const doc = await PDFDocument.create();
-    // Use Helvetica which has better encoding support
-    const font = await doc.embedFont(StandardFonts.Helvetica);
-
-    const makePage = (title, body) => {
+    const helvetica = await doc.embedFont(StandardFonts.Helvetica);
+    const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
+    
+    // Helper function to create a beautiful page
+    const makePage = async (title, body, pageType = "standard") => {
       const page = doc.addPage([612, 792]); // Letter portrait
       const { width, height } = page.getSize();
-
-      // Header
+      
+      // Background gradient effect
+      const gradient = page.drawRectangle({
+        x: 0, y: 0,
+        width, height,
+        color: rgb(0.98, 0.98, 0.98),
+      });
+      
+      // Header section with gradient
+      const headerHeight = 120;
       page.drawRectangle({
-        x: 0, y: height - 72,
-        width, height: 72,
+        x: 0, y: height - headerHeight,
+        width, height: headerHeight,
         color: rgb(0.1, 0.12, 0.18),
       });
+      
+      // Agency logo if provided
+      if (customization.agencyLogo) {
+        try {
+          const logoImage = await doc.embedPng(customization.agencyLogo.split(',')[1]);
+          const logoWidth = 80;
+          const logoHeight = (logoImage.height * logoWidth) / logoImage.width;
+          page.drawImage(logoImage, {
+            x: 36,
+            y: height - 100,
+            width: logoWidth,
+            height: logoHeight,
+          });
+        } catch (e) {
+          console.log("Logo embedding failed, continuing without logo");
+        }
+      }
+      
+      // Title
       page.drawText(title, {
-        x: 36, y: height - 48,
-        size: 20, font, color: rgb(0.95, 0.97, 1),
+        x: customization.agencyLogo ? 140 : 36,
+        y: height - 60,
+        size: 28,
+        font: helveticaBold,
+        color: rgb(0.95, 0.97, 1),
       });
-
-      // Body text, wrap roughly at ~80 chars/line
-      const maxWidth = width - 72;
+      
+      // Agency name if provided
+      if (customization.agencyName) {
+        page.drawText(customization.agencyName, {
+          x: customization.agencyLogo ? 140 : 36,
+          y: height - 85,
+          size: 14,
+          font: helvetica,
+          color: rgb(0.8, 0.85, 0.9),
+        });
+      }
+      
+      // Property photos if provided
+      let photoY = height - 160;
+      if (customization.propertyPhotos && customization.propertyPhotos.length > 0) {
+        const photoSize = 120;
+        const photosPerRow = 4;
+        let photoX = 36;
+        
+        for (let i = 0; i < Math.min(customization.propertyPhotos.length, 8); i++) {
+          try {
+            const photo = customization.propertyPhotos[i];
+            const photoImage = await doc.embedPng(photo.data.split(',')[1]);
+            const aspectRatio = photoImage.width / photoImage.height;
+            
+            let drawWidth = photoSize;
+            let drawHeight = photoSize;
+            
+            if (aspectRatio > 1) {
+              drawHeight = photoSize / aspectRatio;
+            } else {
+              drawWidth = photoSize * aspectRatio;
+            }
+            
+            page.drawImage(photoImage, {
+              x: photoX,
+              y: photoY,
+              width: drawWidth,
+              height: drawHeight,
+            });
+            
+            photoX += photoSize + 12;
+            if ((i + 1) % photosPerRow === 0) {
+              photoX = 36;
+              photoY -= photoSize + 12;
+            }
+          } catch (e) {
+            console.log(`Photo ${i} embedding failed, continuing without photo`);
+          }
+        }
+        
+        photoY -= 20; // Add spacing after photos
+      }
+      
+      // Content section
+      const contentX = 36;
+      const contentWidth = width - 72;
+      const contentY = photoY;
+      
+      // Draw content background
+      page.drawRectangle({
+        x: contentX - 12,
+        y: contentY - 20,
+        width: contentWidth + 24,
+        height: contentY + 20,
+        color: rgb(1, 1, 1),
+      });
+      
+      // Content text with word wrapping
       const words = (body || "").replace(/\r/g, "").split(/\s+/);
       const lines = [];
       let line = "";
-      const approxCharW = 6; // rough for Helvetica 12pt
-      const maxChars = Math.floor(maxWidth / approxCharW);
-
+      const maxChars = 80;
+      
       for (const w of words) {
         if ((line + " " + w).trim().length > maxChars) {
           lines.push(line.trim());
@@ -52,24 +147,94 @@ async function createPdf({ standardText, openHouseText }) {
         }
       }
       if (line.trim()) lines.push(line.trim());
-
-      let y = height - 96;
+      
+      let textY = contentY;
       for (const l of lines) {
-        if (y < 72) {
-          // new page if overflow
-          y = height - 96;
-          const p = doc.addPage([612, 792]);
-          p.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
-          y -= 18;
-        } else {
-          page.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
-          y -= 18;
+        if (textY < 100) {
+          // New page if overflow
+          const newPage = doc.addPage([612, 792]);
+          newPage.drawRectangle({
+            x: 0, y: 0,
+            width, height,
+            color: rgb(0.98, 0.98, 0.98),
+          });
+          textY = height - 100;
+        }
+        
+        page.drawText(l, {
+          x: contentX,
+          y: textY,
+          size: 12,
+          font: helvetica,
+          color: rgb(0.1, 0.1, 0.12),
+        });
+        textY -= 18;
+      }
+      
+      // Footer section
+      const footerY = 80;
+      
+      // Contact information
+      if (customization.agentEmail) {
+        page.drawText(`Contact: ${customization.agentEmail}`, {
+          x: 36,
+          y: footerY,
+          size: 10,
+          font: helvetica,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+      }
+      
+      // QR code if website link provided
+      if (customization.websiteLink) {
+        try {
+          const QRCode = await import('qrcode');
+          const qrDataUrl = await QRCode.toDataURL(customization.websiteLink, {
+            width: 60,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          
+          const qrImage = await doc.embedPng(qrDataUrl.split(',')[1]);
+          page.drawImage(qrImage, {
+            x: width - 96,
+            y: footerY - 10,
+            width: 60,
+            height: 60,
+          });
+          
+          page.drawText("Scan for details", {
+            x: width - 96,
+            y: footerY - 25,
+            size: 8,
+            font: helvetica,
+            color: rgb(0.4, 0.4, 0.4),
+          });
+        } catch (e) {
+          console.log("QR code generation failed, continuing without QR code");
         }
       }
+      
+      // Page number
+      page.drawText(`Page ${doc.getPageCount()}`, {
+        x: width - 60,
+        y: 20,
+        size: 8,
+        font: helvetica,
+        color: rgb(0.6, 0.6, 0.6),
+      });
     };
 
-    if (standardText) makePage("Property Flyer", standardText);
-    if (openHouseText) makePage("Open House Flyer", openHouseText);
+    // Create pages based on selected types
+    if (standardText) {
+      await makePage("Property Flyer", standardText, "standard");
+    }
+    if (openHouseText) {
+      await makePage("Open House Flyer", openHouseText, "openHouse");
+    }
 
     const pdfBytes = await doc.save();
     return Buffer.from(pdfBytes);
@@ -77,20 +242,6 @@ async function createPdf({ standardText, openHouseText }) {
     console.error("Error in createPdf:", error);
     throw new Error(`PDF generation failed: ${error.message}`);
   }
-}
-
-function pickBestText(contentObj) {
-  // content can be:
-  //  - { mls: '...', social:'...', luxury:'...', concise:'...' }
-  //  - { single: '...' }
-  //  - string
-  if (!contentObj) return "";
-  if (typeof contentObj === "string") return contentObj;
-  if (contentObj.mls) return contentObj.mls;
-  if (contentObj.single) return contentObj.single;
-  // fallback: concatenate any values
-  const vals = Object.values(contentObj).filter(Boolean);
-  return vals.join("\n\n");
 }
 
 function cleanTextForPdf(text) {
@@ -120,9 +271,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log("Flyer API request body:", req.body); // Debug log
+    console.log("Flyer API request body received"); // Debug log
     
-    const { flyers = [], content } = req.body || {};
+    const { flyers = [], content, customization = {} } = req.body || {};
     if (!flyers.length) {
       return res.status(400).json({ ok: false, error: "No flyers requested" });
     }
@@ -152,7 +303,7 @@ export default async function handler(req, res) {
     const standardText = wantStandard ? cleanedText : "";
     const openHouseText = wantOpenHouse ? cleanedText : "";
 
-    const pdf = await createPdf({ standardText, openHouseText });
+    const pdf = await createPdf({ standardText, openHouseText, customization });
 
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
@@ -164,4 +315,18 @@ export default async function handler(req, res) {
     console.error("/api/flyer error:", e);
     return res.status(500).json({ ok: false, error: `Failed to generate PDF: ${e.message}` });
   }
+}
+
+function pickBestText(contentObj) {
+  // content can be:
+  //  - { mls: '...', social:'...', luxury:'...', concise:'...' }
+  //  - { single: '...' }
+  //  - string
+  if (!contentObj) return "";
+  if (typeof contentObj === "string") return contentObj;
+  if (contentObj.mls) return contentObj.mls;
+  if (contentObj.single) return contentObj.single;
+  // fallback: concatenate any values
+  const vals = Object.values(contentObj).filter(Boolean);
+  return vals.join("\n\n");
 }

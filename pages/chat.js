@@ -2,7 +2,7 @@
 // - Restored dark UI
 // - Streaming chat with readable output cleanup
 // - Variant detection & styled cards (MLS / Social / Luxury / Concise)
-// - Copy-to-clipboard buttons for each variant and full response (with “Copied!” state)
+// - Copy-to-clipboard buttons for each variant and full response (with "Copied!" state)
 // - Pro-gated flyer modal (Standard + Open House)
 // - Downloads PDF via /api/flyer
 
@@ -83,10 +83,18 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Flyers
+  // Flyer modal state
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
   const [flyerBusy, setFlyerBusy] = useState(false);
+  
+  // New flyer customization state
+  const [agencyName, setAgencyName] = useState("");
+  const [agentEmail, setAgentEmail] = useState("");
+  const [websiteLink, setWebsiteLink] = useState("");
+  const [agencyLogo, setAgencyLogo] = useState(null);
+  const [propertyPhotos, setPropertyPhotos] = useState([]);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -570,6 +578,15 @@ export default function ChatPage() {
         .filter(([_, v]) => v)
         .map(([k]) => k),
       content: { single: content },
+      // Add customization data
+      customization: {
+        agencyName: agencyName.trim(),
+        agentEmail: agentEmail.trim(),
+        websiteLink: websiteLink.trim(),
+        agencyLogo: agencyLogo,
+        propertyPhotos: propertyPhotos,
+        showAdvancedOptions
+      }
     };
 
     try {
@@ -618,6 +635,36 @@ export default function ChatPage() {
     } finally {
       setFlyerBusy(false);
     }
+  }
+
+  function handleLogoUpload(event) {
+    const file = event.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => setAgencyLogo(e.target.result);
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function handlePhotoUpload(event) {
+    const files = Array.from(event.target.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPropertyPhotos(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          data: e.target.result,
+          name: file.name
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function removePhoto(photoId) {
+    setPropertyPhotos(prev => prev.filter(photo => photo.id !== photoId));
   }
 
   return (
@@ -723,38 +770,167 @@ export default function ChatPage() {
         <div className="flyer-modal">
           <div className="flyer-modal-content">
             <div className="flyer-modal-header">
-              <h2 className="flyer-modal-title">Generate Flyers</h2>
+              <h2 className="flyer-modal-title">Create Beautiful Flyers</h2>
               <button className="flyer-modal-close" onClick={() => setFlyerOpen(false)}>✕</button>
             </div>
-            <p className="flyer-modal-description">
-              Choose flyer types to generate from the latest assistant output.
-            </p>
-            <div className="flyer-options">
-              <label className="flyer-option">
-                <input
-                  type="checkbox"
-                  checked={flyerTypes.standard}
-                  onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
-                />{" "}
-                Standard Flyer
-              </label>
-              <label className="flyer-option">
-                <input
-                  type="checkbox"
-                  checked={flyerTypes.openHouse}
-                  onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
-                />{" "}
-                Open House Flyer
-              </label>
+            
+            <div className="flyer-modal-body">
+              {/* Flyer Type Selection */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Flyer Types</h3>
+                <div className="flyer-options">
+                  <label className="flyer-option">
+                    <input
+                      type="checkbox"
+                      checked={flyerTypes.standard}
+                      onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
+                    />
+                    <span className="flyer-option-text">
+                      <span className="flyer-option-icon">📄</span>
+                      Standard Property Flyer
+                    </span>
+                  </label>
+                  <label className="flyer-option">
+                    <input
+                      type="checkbox"
+                      checked={flyerTypes.openHouse}
+                      onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
+                    />
+                    <span className="flyer-option-text">
+                      <span className="flyer-option-icon">🏠</span>
+                      Open House Flyer
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Agency Information */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Agency Information</h3>
+                <div className="flyer-form-grid">
+                  <div className="form-group">
+                    <label>Agency Name</label>
+                    <input
+                      type="text"
+                      placeholder="Your Agency Name"
+                      value={agencyName}
+                      onChange={(e) => setAgencyName(e.target.value)}
+                      className="flyer-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Agent Email</label>
+                    <input
+                      type="email"
+                      placeholder="your@email.com"
+                      value={agentEmail}
+                      onChange={(e) => setAgentEmail(e.target.value)}
+                      className="flyer-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Website/Listing Link</label>
+                    <input
+                      type="url"
+                      placeholder="https://yourlisting.com"
+                      value={websiteLink}
+                      onChange={(e) => setWebsiteLink(e.target.value)}
+                      className="flyer-input"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Logo Upload */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Agency Logo (Optional)</h3>
+                <div className="logo-upload-area">
+                  {agencyLogo ? (
+                    <div className="logo-preview">
+                      <img src={agencyLogo} alt="Agency Logo" />
+                      <button 
+                        className="remove-logo-btn"
+                        onClick={() => setAgencyLogo(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="logo-upload-label">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="logo-upload-input"
+                      />
+                      <div className="logo-upload-content">
+                        <span className="logo-upload-icon">📷</span>
+                        <span>Click to upload logo</span>
+                        <span className="logo-upload-hint">PNG, JPG up to 2MB</span>
+                      </div>
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Property Photos */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Property Photos (Optional)</h3>
+                <div className="photo-upload-area">
+                  <label className="photo-upload-label">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUpload}
+                      className="photo-upload-input"
+                    />
+                    <div className="photo-upload-content">
+                      <span className="photo-upload-icon">📸</span>
+                      <span>Add property photos</span>
+                      <span className="photo-upload-hint">Select multiple images</span>
+                    </div>
+                  </label>
+                  
+                  {propertyPhotos.length > 0 && (
+                    <div className="photo-grid">
+                      {propertyPhotos.map((photo) => (
+                        <div key={photo.id} className="photo-item">
+                          <img src={photo.data} alt="Property" />
+                          <button 
+                            className="remove-photo-btn"
+                            onClick={() => removePhoto(photo.id)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
             <div className="flyer-modal-actions">
-              <button className="flyer-modal-btn cancel" onClick={() => setFlyerOpen(false)}>Cancel</button>
+              <button className="flyer-modal-btn cancel" onClick={() => setFlyerOpen(false)}>
+                Cancel
+              </button>
               <button
                 className="flyer-modal-btn generate"
                 onClick={generateFlyers}
                 disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
               >
-                {flyerBusy ? "Generating…" : "Generate PDFs"}
+                {flyerBusy ? (
+                  <>
+                    <span className="loading-spinner"></span>
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <span className="generate-icon">✨</span>
+                    Generate Beautiful PDFs
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1266,7 +1442,7 @@ export default function ChatPage() {
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
   
-  /* Clerk Modal Dark Theme Overrides */
+  /* Flyer Modal Styling */
   .flyer-modal {
     position: fixed;
     top: 0;
@@ -1281,131 +1457,357 @@ export default function ChatPage() {
     z-index: 1000;
     padding: 20px;
   }
-  
+
   .flyer-modal-content {
-    background: linear-gradient(135deg, rgba(14, 18, 28, 0.95), rgba(10, 13, 20, 0.95));
-    border: 1px solid rgba(80, 90, 120, 0.4);
-    border-radius: 16px;
-    padding: 24px;
-    max-width: 480px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    max-width: 700px;
     width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(20px);
-    position: relative;
   }
-  
+
   .flyer-modal-header {
     display: flex;
-    align-items: center;
     justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
     margin-bottom: 20px;
   }
-  
+
   .flyer-modal-title {
-    font-size: 20px;
-    font-weight: 700;
-    color: #e6e9ef;
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
     margin: 0;
   }
-  
+
   .flyer-modal-close {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #9aa4b2;
-    width: 32px;
-    height: 32px;
+    background: none;
+    border: none;
+    color: #a0aec0;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
     border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .flyer-modal-close:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .flyer-modal-body {
+    padding: 0 24px 24px 24px;
+  }
+
+  .flyer-section {
+    margin-bottom: 28px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .flyer-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 16px 0;
     display: flex;
     align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 16px;
+    gap: 8px;
   }
-  
-  .flyer-modal-close:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #e6e9ef;
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-  
-  .flyer-modal-description {
-    color: #9aa4b2;
-    margin-bottom: 24px;
-    line-height: 1.5;
-  }
-  
+
   .flyer-options {
-    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
-  
+
   .flyer-option {
     display: flex;
     align-items: center;
-    margin-bottom: 16px;
+    gap: 12px;
+    cursor: pointer;
     padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     transition: all 0.2s ease;
   }
-  
+
   .flyer-option:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.1);
   }
-  
+
   .flyer-option input[type="checkbox"] {
-    margin-right: 12px;
     width: 18px;
     height: 18px;
-    accent-color: #6366f1;
+    accent-color: #667eea;
   }
-  
-  .flyer-option label {
-    color: #e6e9ef;
+
+  .flyer-option-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
     font-weight: 500;
-    cursor: pointer;
-    flex: 1;
   }
-  
+
+  .flyer-option-icon {
+    font-size: 20px;
+  }
+
+  .flyer-form-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group label {
+    color: #a0aec0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .flyer-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+
+  .flyer-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+
+  .flyer-input::placeholder {
+    color: #a0aec0;
+  }
+
+  .logo-upload-area {
+    display: flex;
+    justify-content: center;
+  }
+
+  .logo-upload-label {
+    cursor: pointer;
+    display: block;
+    width: 100%;
+  }
+
+  .logo-upload-input {
+    display: none;
+  }
+
+  .logo-upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 32px;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    color: #a0aec0;
+    transition: all 0.2s ease;
+  }
+
+  .logo-upload-content:hover {
+    border-color: #667eea;
+    color: white;
+  }
+
+  .logo-upload-icon {
+    font-size: 32px;
+  }
+
+  .logo-upload-hint {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .logo-preview {
+    position: relative;
+    display: inline-block;
+  }
+
+  .logo-preview img {
+    max-width: 120px;
+    max-height: 80px;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+
+  .remove-logo-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .photo-upload-area {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .photo-upload-label {
+    cursor: pointer;
+    display: block;
+    width: 100%;
+  }
+
+  .photo-upload-input {
+    display: none;
+  }
+
+  .photo-upload-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 24px;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    color: #a0aec0;
+    transition: all 0.2s ease;
+  }
+
+  .photo-upload-content:hover {
+    border-color: #667eea;
+    color: white;
+  }
+
+  .photo-upload-icon {
+    font-size: 24px;
+  }
+
+  .photo-upload-hint {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+
+  .photo-item {
+    position: relative;
+    display: inline-block;
+  }
+
+  .photo-item img {
+    width: 100px;
+    height: 80px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .remove-photo-btn {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .flyer-modal-actions {
     display: flex;
-    gap: 12px;
+    gap: 16px;
     justify-content: flex-end;
+    padding: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
   }
-  
+
   .flyer-modal-btn {
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: none;
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  
+
   .flyer-modal-btn.cancel {
     background: rgba(255, 255, 255, 0.1);
-    color: #9aa4b2;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #a0aec0;
   }
-  
+
   .flyer-modal-btn.cancel:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #e6e9ef;
-  }
-  
-  .flyer-modal-btn.generate {
-    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    background: rgba(255, 255, 255, 0.2);
     color: white;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   }
-  
-  .flyer-modal-btn.generate:hover {
-    background: linear-gradient(135deg, #4f46e5, #4338ca);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+
+  .flyer-modal-btn.generate {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .flyer-modal-btn.generate:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+  }
+
+  .flyer-modal-btn.generate:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .generate-icon {
+    font-size: 16px;
   }
 
   .error {
