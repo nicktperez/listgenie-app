@@ -655,8 +655,20 @@ export default function ChatPage() {
   function handleLogoUpload(event) {
     const file = event.target.files[0];
     if (file && file.type.startsWith('image/')) {
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        setError("Logo file is too large. Please use an image under 5MB.");
+        return;
+      }
+      
       const reader = new FileReader();
-      reader.onload = (e) => setAgencyLogo(e.target.result);
+      reader.onload = (e) => {
+        // Compress the image before storing
+        compressImage(e.target.result, 800, 600, 0.7).then(compressed => {
+          setAgencyLogo(compressed);
+          setError(null); // Clear any previous errors
+        });
+      };
       reader.readAsDataURL(file);
     }
   }
@@ -665,16 +677,63 @@ export default function ChatPage() {
     const files = Array.from(event.target.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     
+    // Check total file sizes
+    const totalSize = imageFiles.reduce((sum, file) => sum + file.size, 0);
+    if (totalSize > 20 * 1024 * 1024) { // 20MB total limit
+      setError("Total photo size is too large. Please use images under 20MB total.");
+      return;
+    }
+    
     imageFiles.forEach(file => {
+      if (file.size > 5 * 1024 * 1024) { // 5MB per photo limit
+        setError(`Photo "${file.name}" is too large. Please use images under 5MB each.`);
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (e) => {
-        setPropertyPhotos(prev => [...prev, {
-          id: Date.now() + Math.random(),
-          data: e.target.result,
-          name: file.name
-        }]);
+        // Compress each photo before storing
+        compressImage(e.target.result, 600, 400, 0.6).then(compressed => {
+          setPropertyPhotos(prev => [...prev, {
+            id: Date.now() + Math.random(),
+            data: compressed,
+            name: file.name
+          }]);
+          setError(null); // Clear any previous errors
+        });
       };
       reader.readAsDataURL(file);
+    });
+  }
+
+  // Image compression function
+  function compressImage(dataUrl, maxWidth, maxHeight, quality) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate new dimensions maintaining aspect ratio
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressedDataUrl);
+      };
+      img.src = dataUrl;
     });
   }
 

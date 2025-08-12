@@ -6,7 +6,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: "10mb", // Increased for photos
+      sizeLimit: "50mb", // Increased from 10mb to handle large image uploads
     },
   },
 };
