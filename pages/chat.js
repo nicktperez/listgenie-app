@@ -147,7 +147,12 @@ export default function ChatPage() {
       const resp = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: trimmed, tone }),
+        body: JSON.stringify({ 
+          messages: [
+            { role: "user", content: trimmed }
+          ],
+          tone: tone
+        }),
       });
 
       if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
@@ -662,40 +667,35 @@ export default function ChatPage() {
 
   /* Tone pills styling */
   .tone-pill {
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    padding: 8px 12px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.15));
+    border: 1px solid rgba(99, 102, 241, 0.3);
+    color: #a5b4fc;
+    padding: 10px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
   }
   
-  .tone-pill::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(16,185,129,0.1));
-    opacity: 0;
-    transition: opacity 0.2s ease;
-  }
-  
-  .tone-pill:hover::before {
-    opacity: 1;
+  .tone-pill:hover {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.25));
+    border-color: rgba(99, 102, 241, 0.5);
+    color: #c7d2fe;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
   }
   
   .tone-pill.active {
-    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(16,185,129,0.2));
-    border-color: rgba(99,102,241,0.4);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(79, 70, 229, 0.3));
+    border-color: rgba(99, 102, 241, 0.6);
     color: #d9dbff;
-    box-shadow: 0 0 0 1px rgba(99,102,241,0.2);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
   }
   
   .tone-pill span {
