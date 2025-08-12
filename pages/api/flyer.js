@@ -13,64 +13,69 @@ export const config = {
 };
 
 async function createPdf({ standardText, openHouseText }) {
-  const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+  try {
+    const { PDFDocument, StandardFonts, rgb } = await import("pdf-lib");
+    
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica);
 
-  const doc = await PDFDocument.create();
-  const font = await doc.embedFont(StandardFonts.Helvetica);
+    const makePage = (title, body) => {
+      const page = doc.addPage([612, 792]); // Letter portrait
+      const { width, height } = page.getSize();
 
-  const makePage = (title, body) => {
-    const page = doc.addPage([612, 792]); // Letter portrait
-    const { width, height } = page.getSize();
+      // Header
+      page.drawRectangle({
+        x: 0, y: height - 72,
+        width, height: 72,
+        color: rgb(0.1, 0.12, 0.18),
+      });
+      page.drawText(title, {
+        x: 36, y: height - 48,
+        size: 20, font, color: rgb(0.95, 0.97, 1),
+      });
 
-    // Header
-    page.drawRectangle({
-      x: 0, y: height - 72,
-      width, height: 72,
-      color: rgb(0.1, 0.12, 0.18),
-    });
-    page.drawText(title, {
-      x: 36, y: height - 48,
-      size: 20, font, color: rgb(0.95, 0.97, 1),
-    });
+      // Body text, wrap roughly at ~80 chars/line
+      const maxWidth = width - 72;
+      const words = (body || "").replace(/\r/g, "").split(/\s+/);
+      const lines = [];
+      let line = "";
+      const approxCharW = 6; // rough for Helvetica 12pt
+      const maxChars = Math.floor(maxWidth / approxCharW);
 
-    // Body text, wrap roughly at ~80 chars/line
-    const maxWidth = width - 72;
-    const words = (body || "").replace(/\r/g, "").split(/\s+/);
-    const lines = [];
-    let line = "";
-    const approxCharW = 6; // rough for Helvetica 12pt
-    const maxChars = Math.floor(maxWidth / approxCharW);
-
-    for (const w of words) {
-      if ((line + " " + w).trim().length > maxChars) {
-        lines.push(line.trim());
-        line = w;
-      } else {
-        line += " " + w;
+      for (const w of words) {
+        if ((line + " " + w).trim().length > maxChars) {
+          lines.push(line.trim());
+          line = w;
+        } else {
+          line += " " + w;
+        }
       }
-    }
-    if (line.trim()) lines.push(line.trim());
+      if (line.trim()) lines.push(line.trim());
 
-    let y = height - 96;
-    for (const l of lines) {
-      if (y < 72) {
-        // new page if overflow
-        y = height - 96;
-        const p = doc.addPage([612, 792]);
-        p.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
-        y -= 18;
-      } else {
-        page.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
-        y -= 18;
+      let y = height - 96;
+      for (const l of lines) {
+        if (y < 72) {
+          // new page if overflow
+          y = height - 96;
+          const p = doc.addPage([612, 792]);
+          p.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
+          y -= 18;
+        } else {
+          page.drawText(l, { x: 36, y, size: 12, font, color: rgb(0.1, 0.1, 0.12) });
+          y -= 18;
+        }
       }
-    }
-  };
+    };
 
-  if (standardText) makePage("Property Flyer", standardText);
-  if (openHouseText) makePage("Open House Flyer", openHouseText);
+    if (standardText) makePage("Property Flyer", standardText);
+    if (openHouseText) makePage("Open House Flyer", openHouseText);
 
-  const pdfBytes = await doc.save();
-  return Buffer.from(pdfBytes);
+    const pdfBytes = await doc.save();
+    return Buffer.from(pdfBytes);
+  } catch (error) {
+    console.error("Error in createPdf:", error);
+    throw new Error(`PDF generation failed: ${error.message}`);
+  }
 }
 
 function pickBestText(contentObj) {
@@ -94,15 +99,27 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log("Flyer API request body:", req.body); // Debug log
+    
     const { flyers = [], content } = req.body || {};
     if (!flyers.length) {
       return res.status(400).json({ ok: false, error: "No flyers requested" });
+    }
+
+    if (!content) {
+      return res.status(400).json({ ok: false, error: "No content provided" });
     }
 
     const wantStandard = flyers.includes("standard");
     const wantOpenHouse = flyers.includes("openHouse");
 
     const baseText = pickBestText(content || {});
+    console.log("Base text for flyer:", baseText.substring(0, 100) + "..."); // Debug log
+    
+    if (!baseText.trim()) {
+      return res.status(400).json({ ok: false, error: "No valid content found to generate flyer from" });
+    }
+
     const standardText = wantStandard ? baseText : "";
     const openHouseText = wantOpenHouse ? baseText : "";
 
@@ -116,6 +133,6 @@ export default async function handler(req, res) {
     return res.status(200).send(pdf);
   } catch (e) {
     console.error("/api/flyer error:", e);
-    return res.status(500).json({ ok: false, error: "Failed to generate PDF" });
+    return res.status(500).json({ ok: false, error: `Failed to generate PDF: ${e.message}` });
   }
 }

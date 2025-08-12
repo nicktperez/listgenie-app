@@ -548,9 +548,22 @@ export default function ChatPage() {
 
   async function generateFlyers() {
     if (!isPro) { router.push("/upgrade"); return; }
-    const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant");
-    const content = lastAssistant?.pretty || lastAssistant?.content || "";
-    if (!content.trim()) return;
+    
+    // Find the most recent listing (assistant message with formatted content)
+    const lastAssistant = [...messages].reverse().find((m) => 
+      m.role === "assistant" && m.pretty && m.pretty.includes('**')
+    );
+    
+    if (!lastAssistant) {
+      setError("No listing found to generate flyers from. Please generate a listing first.");
+      return;
+    }
+    
+    const content = lastAssistant.pretty || lastAssistant.content || "";
+    if (!content.trim()) {
+      setError("Listing content is empty. Please generate a listing first.");
+      return;
+    }
 
     const payload = {
       flyers: Object.entries(flyerTypes)
@@ -561,29 +574,46 @@ export default function ChatPage() {
 
     try {
       setFlyerBusy(true);
+      setError(null); // Clear any previous errors
+      
+      console.log("Generating flyers with payload:", payload); // Debug log
+      
       const res = await fetch("/api/flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) throw new Error("Flyer API error");
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Flyer API error: ${res.status}`);
+      }
 
       if (res.headers.get("content-type")?.includes("application/pdf")) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
-        a.href = url; a.download = "flyer.pdf"; document.body.appendChild(a); a.click();
-        URL.revokeObjectURL(url); a.remove();
+        a.href = url; 
+        a.download = "flyer.pdf"; 
+        document.body.appendChild(a); 
+        a.click();
+        URL.revokeObjectURL(url); 
+        a.remove();
       } else {
         // JSON with urls (alternate server behavior)
         const data = await res.json();
         const urls = data?.urls || (data?.url ? [data.url] : []);
         for (const u of urls) {
           const a = document.createElement("a");
-          a.href = u; a.download = ""; document.body.appendChild(a); a.click(); a.remove();
+          a.href = u; 
+          a.download = ""; 
+          document.body.appendChild(a); 
+          a.click(); 
+          a.remove();
         }
       }
     } catch (e) {
+      console.error("Flyer generation error:", e);
       setError(e?.message || "Could not generate flyers");
     } finally {
       setFlyerBusy(false);
