@@ -46,9 +46,9 @@ function splitVariants(text) {
   if (!text) return null;
   const patterns = [
     { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
-    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
-    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\\s\\S]*?)(?=\\n\\s*#{0,3}\\s*|$)/i },
+    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
   ];
   const out = {}; let found = false;
   for (const { key, rx } of patterns) {
@@ -232,13 +232,14 @@ export default function ChatPage() {
   return (
     <div className="chat-page">
       <header className="topbar">
-      <div className="brand">
-  <div className="logo">LG</div>
-  <div>
-    <div className="title">ListGenie.ai <span className="plan pro">Pro</span></div>
-    <div className="tagline">Generate listings, captions, and flyers</div>
-  </div>
-</div>
+        <div className="brand brand--stack">
+          <div className="brand-row">
+            <div className="logo">LG</div>
+            <div className="title">ListGenie.ai</div>
+            <div className={`plan ${isPro ? "pro" : "free"}`}>{isPro ? "Pro" : "Free"}</div>
+          </div>
+          <div className="tagline">Generate listings, captions, and flyers</div>
+        </div>
       </header>
 
       <main className="container">
@@ -415,31 +416,59 @@ export default function ChatPage() {
     backdrop-filter: saturate(120%) blur(6px);
     background: rgba(8,11,18,0.6);
     border-bottom: 1px solid rgba(80,90,120,0.35);
-    padding-bottom: 4px;
+    padding: 6px 0 8px;
   }
-  .topbar .brand { display: flex; gap: 10px; align-items: center; padding: 10px 16px; }
-  .topbar .logo {
-    width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center;
-    background: var(--indigo-ghost); border: 1px solid rgba(99,102,241,0.35);
-    font-weight: 800; font-size: 12px; letter-spacing: .08em;
-  }
-  .topbar .title { font-weight: 600; }
-  .topbar .plan { margin-left: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--stroke); color: var(--text-dim); }
-  .topbar .plan.pro { border-color: rgba(16,185,129,0.5); color: #7ce7c4; }
-  .topbar .hint { margin-left: auto; padding-right: 16px; font-size: 12px; color: var(--text-dim); }
 
+  /* Brand block (stacked, centered) */
+  .brand {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 8px 16px;
+  }
+  .brand--stack {
+    display: grid;
+    grid-auto-rows: max-content;
+    justify-items: center;
+    row-gap: 6px;
+  }
+  .brand-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 10px;
+    border: 1px solid rgba(80,90,120,0.35);
+    background: linear-gradient(180deg, rgba(18,22,32,0.75), rgba(12,16,26,0.6));
+    border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .topbar .logo {
+    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
+    background: var(--indigo-ghost); border: 1px solid rgba(99,102,241,0.35);
+    font-weight: 800; font-size: 12px; letter-spacing: .08em; color: #dfe3ff;
+  }
+  .topbar .title {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: .2px;
+  }
+  .topbar .plan {
+    margin-left: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    border: 1px solid var(--stroke); color: var(--text-dim);
+  }
+  .topbar .plan.pro { border-color: rgba(16,185,129,0.5); color: #7ce7c4; }
+  .topbar .plan.free { border-color: rgba(120,130,155,0.45); color: #b6c1d1; }
+
+  /* Premium tagline */
   .topbar .tagline {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 14px;
-  letter-spacing: 0.3px;
-  margin-top: -4px;
-  margin-bottom: 6px;
-  max-width: 320px;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.4;
-}
+    text-align: center;
+    color: rgba(220,230,245,0.72);
+    font-size: 14.5px;
+    letter-spacing: 0.35px;
+    margin-top: 2px;
+    max-width: 520px;
+    line-height: 1.35;
+    filter: drop-shadow(0 1px 0 rgba(0,0,0,0.35));
+  }
 
   /* Main layout */
   .container {
@@ -454,7 +483,7 @@ export default function ChatPage() {
     border-radius: 14px;
     padding: 10px;
   }
-  .row1 { display: flex; gap: 8px; align-items: center; }
+  .row1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
   .flyer-btn {
     border: 1px solid var(--stroke); background: var(--emerald-ghost); color: #c4f6e6;
     padding: 8px 12px; border-radius: 999px; font-size: 13px;
