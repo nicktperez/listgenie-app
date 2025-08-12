@@ -240,22 +240,13 @@ export default function ChatPage() {
       <header className="main-header">
         <div className="header-content">
           <div className="brand-section">
-            <div className="logo">LG</div>
+            <div className="logo">🏠</div>
             <div className="title">ListGenie.ai</div>
             <div className="plan-badge">
               {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
             </div>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
-          <div className="plan-status">
-            {isTrial ? (
-              <span className="trial-status">{daysLeft} days left in trial</span>
-            ) : !isPro ? (
-              <span className="expired-status">Trial expired</span>
-            ) : (
-              <span className="pro-status">Pro Plan Active</span>
-            )}
-          </div>
         </div>
       </header>
 
@@ -458,7 +449,8 @@ export default function ChatPage() {
     justify-content: center;
     color: white;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 18px;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
   }
   
   .main-header .title {
@@ -481,38 +473,6 @@ export default function ChatPage() {
     width: fit-content;
     max-width: 400px;
     display: block;
-  }
-  
-  .plan-status {
-    text-align: center;
-    margin-top: 8px;
-  }
-  
-  .plan-status span {
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  
-  .trial-status {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(79, 70, 229, 0.2));
-    color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.3);
-  }
-  
-  .expired-status {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
-    color: #fca5a5;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .pro-status {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
-    color: #6ee7b7;
-    border: 1px solid rgba(16, 185, 129, 0.3);
   }
 
   /* Main layout */
