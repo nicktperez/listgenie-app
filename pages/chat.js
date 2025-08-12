@@ -242,7 +242,9 @@ export default function ChatPage() {
           <div className="brand-row">
             <div className="logo">LG</div>
             <div className="title">ListGenie.ai</div>
-            <div className={`plan ${isPro ? "pro" : "free"}`}>{isPro ? "Pro" : "Free"}</div>
+            <div className={`plan ${isPro ? "pro" : isTrial ? "trial" : "expired"}`}>
+              {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
+            </div>
           </div>
           <div className="tagline">Generate listings, captions, and flyers</div>
         </div>
@@ -276,6 +278,7 @@ export default function ChatPage() {
             <button className="flyer-btn" onClick={openFlyerModal}>
               {isPro ? "Create Flyers" : "Flyers (Pro)"}
             </button>
+            <div className="tone-separator"></div>
             <TonePill value="mls" label="MLS-ready" current={tone} onChange={setTone} />
             <TonePill value="social" label="Social caption" current={tone} onChange={setTone} />
             <TonePill value="luxury" label="Luxury tone" current={tone} onChange={setTone} />
@@ -485,6 +488,8 @@ export default function ChatPage() {
   }
   .topbar .plan.pro { border-color: rgba(16,185,129,0.5); color: #7ce7c4; }
   .topbar .plan.free { border-color: rgba(120,130,155,0.45); color: #b6c1d1; }
+  .topbar .plan.trial { border-color: rgba(99,102,241,0.5); color: #d9dbff; }
+  .topbar .plan.expired { border-color: rgba(239,68,68,0.5); color: #ff9db0; }
 
   /* Premium tagline */
   .topbar .tagline {
@@ -496,6 +501,11 @@ export default function ChatPage() {
     max-width: 520px;
     line-height: 1.35;
     filter: drop-shadow(0 1px 0 rgba(0,0,0,0.35));
+    padding: 8px 16px;
+    background: rgba(14,18,28,0.4);
+    border: 1px solid rgba(80,90,120,0.2);
+    border-radius: 12px;
+    backdrop-filter: blur(8px);
   }
 
   /* Main layout */
@@ -509,33 +519,21 @@ export default function ChatPage() {
     background: rgba(14,18,28,0.65);
     border: 1px solid var(--stroke);
     border-radius: 14px;
-    padding: 10px;
-    margin-bottom: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
   }
   .usage-info {
     display: flex;
     flex-direction: column;
     gap: 8px;
-  }
-  .usage-stats {
-    display: flex;
     align-items: center;
-    gap: 10px;
-  }
-  .usage-count {
-    font-size: 18px;
-    font-weight: 700;
-    color: #86a2ff;
-  }
-  .usage-label {
-    font-size: 12px;
-    color: var(--text-dim);
+    text-align: center;
   }
   .trial-info {
     display: flex;
     align-items: center;
-    gap: 10px;
-    font-size: 12px;
+    gap: 12px;
+    font-size: 13px;
     color: var(--text-dim);
   }
   .trial-days {
@@ -547,32 +545,35 @@ export default function ChatPage() {
     text-decoration: none;
     border-bottom: 1px dashed #86a2ff;
     transition: border-color 0.2s ease;
+    padding: 4px 0;
   }
   .upgrade-link:hover {
     border-color: transparent;
   }
   .upgrade-prompt {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--text-dim);
     text-align: center;
+    line-height: 1.4;
   }
   .pro-status {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    font-size: 12px;
+    gap: 6px;
+    font-size: 13px;
     color: var(--text-dim);
   }
   .pro-badge {
     font-weight: 600;
     color: #7ce7c4;
     background: rgba(16,185,129,0.14);
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 999px;
+    border: 1px solid rgba(16,185,129,0.3);
   }
   .pro-features {
-    font-size: 11px;
+    font-size: 12px;
     color: rgba(220,230,245,0.72);
   }
 
@@ -581,15 +582,66 @@ export default function ChatPage() {
     border: 1px solid var(--stroke);
     background: rgba(14,18,28,0.65);
     border-radius: 14px;
-    padding: 10px;
+    padding: 16px;
   }
-  .row1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row1 { 
+    display: flex; 
+    gap: 8px; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
   .flyer-btn {
-    border: 1px solid var(--stroke); background: var(--emerald-ghost); color: #c4f6e6;
-    padding: 8px 12px; border-radius: 999px; font-size: 13px;
+    border: 1px solid var(--stroke); 
+    background: var(--emerald-ghost); 
+    color: #c4f6e6;
+    padding: 8px 12px; 
+    border-radius: 999px; 
+    font-size: 13px;
+    font-weight: 500;
   }
-  .examples { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .example { border: 1px solid var(--stroke); color: var(--text); background: rgba(20,24,36,0.5); padding: 6px 10px; border-radius: 999px; font-size: 12px; }
+  
+  .tone-separator {
+    width: 1px;
+    height: 24px;
+    background: rgba(255,255,255,0.15);
+    margin: 0 4px;
+  }
+
+  /* Examples section */
+  .examples { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 8px; 
+  }
+  .examples::before {
+    content: "Examples:";
+    display: block;
+    width: 100%;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+  }
+  .example { 
+    border: 1px solid rgba(255,255,255,0.15); 
+    color: var(--text); 
+    background: rgba(20,24,36,0.6); 
+    padding: 8px 12px; 
+    border-radius: 8px; 
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  .example:hover {
+    background: rgba(30,34,46,0.8);
+    border-color: rgba(255,255,255,0.25);
+    transform: translateY(-1px);
+  }
 
   /* Messages panel */
   .messages {
@@ -701,6 +753,49 @@ export default function ChatPage() {
   .btn { border: 1px solid var(--stroke); background: rgba(18,22,32,0.7); color: var(--text); border-radius: 10px; padding: 8px 12px; }
   .btn.primary { border-color: rgba(16,185,129,0.5); background: var(--emerald-ghost); color: #c4f6e6; }
   .x { border: 1px solid var(--stroke); background: rgba(18,22,32,0.7); color: var(--text); border-radius: 8px; padding: 4px 8px; }
+
+  /* Tone pills styling */
+  .tone-pill {
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .tone-pill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(16,185,129,0.1));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  
+  .tone-pill:hover::before {
+    opacity: 1;
+  }
+  
+  .tone-pill.active {
+    background: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(16,185,129,0.2));
+    border-color: rgba(99,102,241,0.4);
+    color: #d9dbff;
+    box-shadow: 0 0 0 1px rgba(99,102,241,0.2);
+  }
+  
+  .tone-pill span {
+    position: relative;
+    z-index: 1;
+  }
 `}</style>
     </div>
   );
@@ -711,18 +806,10 @@ function TonePill({ value, label, current, onChange }) {
   const active = current === value;
   return (
     <button
-      className="tone-pill"
+      className={`tone-pill ${active ? 'active' : ''}`}
       onClick={() => onChange(value)}
-      style={{
-        border: `1px solid ${active ? "rgba(99,102,241,0.6)" : "var(--stroke)"}`,
-        background: active ? "var(--indigo-ghost)" : "rgba(20,24,36,0.5)",
-        color: active ? "#d9dbff" : "var(--text)",
-        borderRadius: 9999,
-        padding: "8px 12px",
-        fontSize: 13,
-      }}
     >
-      {label}
+      <span>{label}</span>
     </button>
   );
 }
