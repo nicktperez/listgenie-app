@@ -1083,7 +1083,7 @@ export default function ChatPage() {
                 ) : (
                   <>
                     <span className="generate-icon">✨</span>
-                    Generate Beautiful HTML Flyers
+                    Generate Flyer
                   </>
                 )}
               </button>
