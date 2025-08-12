@@ -57,6 +57,8 @@ CRITICAL RULES:
 - If you have enough information to create a compelling listing (even with some unknowns), generate the listing instead of asking more questions.
 - **ABSOLUTELY NO REDUNDANT QUESTIONS**: If the user has already answered a question (even with "N/A"), NEVER ask it again.
 - **PREFER LISTING GENERATION**: When in doubt, generate a listing with available information rather than asking more questions.
+- **NEVER REPEAT QUESTIONS**: If the user has provided ANY information about a topic, consider that topic covered and move on.
+- **GENERATE LISTINGS**: Your default behavior should be to generate listings, not ask questions.
 `;
 
 export default async function handler(req, res) {

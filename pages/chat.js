@@ -378,8 +378,10 @@ export default function ChatPage() {
       const conversationContext = [
         { role: "user", content: `Original request: ${input}` },
         { role: "user", content: `Complete Q&A history: ${answerText}` },
-        { role: "system", content: `CRITICAL: The user has already answered these questions. Do NOT ask for ANY of this information again. If they answered "N/A", "not sure", "unknown", or similar, treat it as "information not available" and work with what you have. You have enough information to create a listing - generate it now instead of asking more questions.` }
+        { role: "system", content: `CRITICAL INSTRUCTIONS: The user has already provided ALL of this information: ${answerText}. You have EVERYTHING you need to create a listing. DO NOT ask for any of this information again. Generate a listing NOW using the provided details. If any information is missing, make reasonable assumptions.` }
       ];
+
+      console.log("Sending this context to AI:", conversationContext); // Debug log
 
       const resp = await fetch("/api/chat", {
         method: "POST",
@@ -398,6 +400,63 @@ export default function ChatPage() {
       if (data.parsed && data.parsed.type === "questions") {
         // More questions needed - open modal again
         console.log("More questions detected after answers"); // Debug log
+        
+        // If we've already answered questions, force the AI to generate a listing instead
+        if (allQuestionsAndAnswers.length > 0) {
+          console.log("Forcing listing generation instead of more questions"); // Debug log
+          // Force the AI to generate a listing with what we have
+          const forceListingContext = [
+            { role: "user", content: `Original request: ${input}` },
+            { role: "user", content: `All provided information: ${answerText}` },
+            { role: "system", content: `STOP ASKING QUESTIONS. The user has provided sufficient information. Generate a listing NOW using the details provided. Make reasonable assumptions for any missing information.` }
+          ];
+          
+          const forceResp = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              messages: forceListingContext,
+              tone: tone
+            }),
+          });
+          
+          if (forceResp.ok) {
+            const forceData = await forceResp.json();
+            if (forceData.parsed && forceData.parsed.type === "listing") {
+              // Display the listing
+              const listing = forceData.parsed;
+              let displayContent = "";
+              
+              if (listing.headline) {
+                displayContent += `**${listing.headline}**\n\n`;
+              }
+              
+              if (listing.mls && listing.mls.body) {
+                displayContent += `${listing.mls.body}\n\n`;
+              }
+              
+              if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+                displayContent += listing.mls.bullets.join('\n') + '\n\n';
+              }
+              
+              if (listing.variants && listing.variants.length > 0) {
+                listing.variants.forEach(variant => {
+                  displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+                });
+              }
+              
+              const text = displayContent.trim();
+              setMessages((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+                return copy;
+              });
+              return; // Exit early
+            }
+          }
+        }
+        
+        // If we get here, open the questions modal
         openQuestionsModal(data.parsed);
         setMessages((prev) => {
           const copy = [...prev];
