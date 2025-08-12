@@ -70,7 +70,7 @@ async function copyToClipboard(text) {
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
-  const { isPro, canGenerate, daysLeft, isTrial } = useUserPlan();
+  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
 
   // Input
   const [tone, setTone] = useState("mls");
@@ -502,34 +502,31 @@ export default function ChatPage() {
     row-gap: 6px;
   }
   .brand-row {
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 2px 10px;
-    border: 1px solid rgba(80,90,120,0.35);
-    background: linear-gradient(180deg, rgba(18,22,32,0.75), rgba(12,16,26,0.6));
-    border-radius: 14px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+    gap: 12px;
+    margin-bottom: 8px;
   }
+  
   .topbar .logo {
-    width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center;
-    background: var(--indigo-ghost); border: 1px solid rgba(99,102,241,0.35);
-    font-weight: 800; font-size: 12px; letter-spacing: .08em; color: #dfe3ff;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
   }
+  
   .topbar .title {
     font-weight: 700;
     font-size: 18px;
-    letter-spacing: .2px;
+    color: #e6e9ef;
   }
-  .topbar .plan {
-    margin-left: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px;
-    border: 1px solid var(--stroke); color: var(--text-dim);
-  }
-  .topbar .plan.pro { border-color: rgba(16,185,129,0.5); color: #7ce7c4; }
-  .topbar .plan.free { border-color: rgba(120,130,155,0.45); color: #b6c1d1; }
-  .topbar .plan.trial { border-color: rgba(99,102,241,0.5); color: #d9dbff; }
-  .topbar .plan.expired { border-color: rgba(239,68,68,0.5); color: #ff9db0; }
-
+  
   /* Premium tagline */
   .topbar .tagline {
     font-size: 14px;
@@ -1020,6 +1017,17 @@ export default function ChatPage() {
     background: rgba(255, 255, 255, 0.2);
     color: #e6e9ef;
     border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  .debug-info {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #9aa4b2;
+    margin: 8px auto;
+    max-width: 400px;
+    text-align: center;
   }
 `}</style>
     </div>
