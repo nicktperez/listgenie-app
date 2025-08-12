@@ -163,11 +163,15 @@ export default function ChatPage() {
 
       if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
 
+      console.log("Response has getReader:", !!resp.body?.getReader); // Debug log
+      console.log("Response headers:", Object.fromEntries(resp.headers.entries())); // Debug log
+
       if (resp.body && resp.body.getReader) {
         // Stream reader
         const reader = resp.body.getReader();
         const decoder = new TextDecoder("utf-8");
         let acc = "";
+        console.log("Using streaming response"); // Debug log
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -175,8 +179,10 @@ export default function ChatPage() {
           
           // Try to parse as JSON for structured responses
           let displayContent = acc;
+          console.log("Streaming response content:", acc); // Debug log
           try {
             const parsed = JSON.parse(acc);
+            console.log("Parsed streaming response:", parsed); // Debug log
             if (parsed.parsed && parsed.parsed.type === "listing") {
               const listing = parsed.parsed;
               displayContent = "";
@@ -200,6 +206,15 @@ export default function ChatPage() {
               }
               
               displayContent = displayContent.trim();
+            } else if (parsed.parsed && parsed.parsed.type === "questions") {
+              // Handle questions in streaming response
+              console.log("Questions detected in streaming response"); // Debug log
+              displayContent = "I need a bit more information to create your listing. Please answer the questions below.";
+              
+              // Open questions modal when streaming is complete
+              if (done) {
+                openQuestionsModal(parsed.parsed);
+              }
             }
           } catch (e) {
             // If parsing fails, use the raw content
@@ -216,6 +231,7 @@ export default function ChatPage() {
       } else {
         // Non-streaming fallback
         const data = await resp.json();
+        console.log("Chat API response:", data); // Debug log
         
         if (data.parsed && data.parsed.type === "listing") {
           // Display the parsed listing content
@@ -248,6 +264,7 @@ export default function ChatPage() {
           });
         } else if (data.parsed && data.parsed.type === "questions") {
           // Open questions modal for follow-up questions
+          console.log("Questions detected in parsed field"); // Debug log
           openQuestionsModal(data.parsed);
           setMessages((prev) => {
             const copy = [...prev];
@@ -258,6 +275,42 @@ export default function ChatPage() {
             };
             return copy;
           });
+        } else if (data.message?.content && data.message.content.includes('"type":"questions"')) {
+          // Fallback: check if questions are in the raw message content
+          console.log("Questions detected in raw message content"); // Debug log
+          try {
+            const rawContent = data.message.content;
+            const parsedContent = JSON.parse(rawContent);
+            if (parsedContent.type === "questions") {
+              openQuestionsModal(parsedContent);
+              setMessages((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { 
+                  role: "assistant", 
+                  content: "I need a bit more information to create your listing. Please answer the questions below.", 
+                  pretty: "I need a bit more information to create your listing. Please answer the questions below." 
+                };
+                return copy;
+              });
+            } else {
+              // Fallback to raw content if parsing fails
+              const text = coerceToReadableText(data.message?.content || data.content || data);
+              setMessages((prev) => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+                return copy;
+              });
+            }
+          } catch (e) {
+            console.error("Failed to parse message content:", e);
+            // Fallback to raw content if parsing fails
+            const text = coerceToReadableText(data.message?.content || data.content || data);
+            setMessages((prev) => {
+              const copy = [...prev];
+              copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+              return copy;
+            });
+          }
         } else {
           // Fallback to raw content if parsing fails
           const text = coerceToReadableText(data.message?.content || data.content || data);
