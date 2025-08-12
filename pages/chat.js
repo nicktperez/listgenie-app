@@ -232,12 +232,13 @@ export default function ChatPage() {
   return (
     <div className="chat-page">
       <header className="topbar">
-        <div className="brand">
-          <div className="logo">LG</div>
-          <div className="title">ListGenie.ai</div>
-          <div className={`plan ${isPro ? "pro" : "free"}`}>{isPro ? "Pro" : "Free"}</div>
-        </div>
-        <div className="hint">Generate listings, captions, and flyers</div>
+      <div className="brand">
+  <div className="logo">LG</div>
+  <div>
+    <div className="title">ListGenie.ai <span className="plan pro">Pro</span></div>
+    <div className="tagline">Generate listings, captions, and flyers</div>
+  </div>
+</div>
       </header>
 
       <main className="container">
@@ -426,6 +427,19 @@ export default function ChatPage() {
   .topbar .plan { margin-left: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--stroke); color: var(--text-dim); }
   .topbar .plan.pro { border-color: rgba(16,185,129,0.5); color: #7ce7c4; }
   .topbar .hint { margin-left: auto; padding-right: 16px; font-size: 12px; color: var(--text-dim); }
+
+  .topbar .tagline {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  letter-spacing: 0.3px;
+  margin-top: -4px;
+  margin-bottom: 6px;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.4;
+}
 
   /* Main layout */
   .container {
