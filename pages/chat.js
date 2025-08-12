@@ -70,7 +70,7 @@ async function copyToClipboard(text) {
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
-  const { isPro, usageCount, usageLimit, usageRemaining, canGenerate, daysLeft, isTrial } = useUserPlan();
+  const { isPro, canGenerate, daysLeft, isTrial } = useUserPlan();
 
   // Input
   const [tone, setTone] = useState("mls");
@@ -128,7 +128,7 @@ export default function ChatPage() {
 
     // Check if user can generate
     if (!canGenerate) {
-      setError("You've reached your usage limit. Please upgrade to Pro for unlimited generations.");
+      setError("Your trial has expired. Please upgrade to Pro to continue using ListGenie.");
       return;
     }
 
@@ -143,17 +143,6 @@ export default function ChatPage() {
     setError("");
 
     try {
-      // Track usage first
-      const usageRes = await fetch("/api/user/track-usage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "generation" })
-      });
-
-      if (!usageRes.ok) {
-        throw new Error("Failed to track usage");
-      }
-
       // Call your chat route. This assumes your existing /api/chat supports streaming.
       const resp = await fetch("/api/chat", {
         method: "POST",
@@ -263,20 +252,20 @@ export default function ChatPage() {
         {/* Usage Display */}
         <section className="usage-display">
           <div className="usage-info">
-            <div className="usage-stats">
-              <span className="usage-count">{usageCount}/{usageLimit}</span>
-              <span className="usage-label">generations used</span>
-            </div>
-            {isTrial && (
+            {isTrial ? (
               <div className="trial-info">
                 <span className="trial-days">{daysLeft} days left in trial</span>
                 <a href="/upgrade" className="upgrade-link">Upgrade to Pro</a>
               </div>
-            )}
-            {!isPro && !isTrial && (
+            ) : !isPro ? (
               <div className="upgrade-prompt">
-                <span>Upgrade to Pro for unlimited generations</span>
+                <span>Trial expired. Upgrade to Pro to continue using ListGenie.</span>
                 <a href="/upgrade" className="upgrade-link">Upgrade Now</a>
+              </div>
+            ) : (
+              <div className="pro-status">
+                <span className="pro-badge">Pro Plan Active</span>
+                <span className="pro-features">Unlimited generations & all features</span>
               </div>
             )}
           </div>
@@ -566,6 +555,25 @@ export default function ChatPage() {
     font-size: 12px;
     color: var(--text-dim);
     text-align: center;
+  }
+  .pro-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .pro-badge {
+    font-weight: 600;
+    color: #7ce7c4;
+    background: rgba(16,185,129,0.14);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .pro-features {
+    font-size: 11px;
+    color: rgba(220,230,245,0.72);
   }
 
   /* Controls card */

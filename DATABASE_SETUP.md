@@ -8,8 +8,8 @@ Make sure your `users` table has these columns:
 ```sql
 -- Add these columns to your existing users table
 ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS usage_count INTEGER DEFAULT 0,
-ADD COLUMN IF NOT EXISTS last_usage TIMESTAMP WITH TIME ZONE,
+ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'trial',
+ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP WITH TIME ZONE,
 ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
 ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
@@ -18,6 +18,8 @@ ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
 CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
 CREATE INDEX IF NOT EXISTS idx_users_plan ON users(plan);
 ```
+
+**Note**: We removed `usage_count` and `last_usage` columns since we no longer track usage limits.
 
 ### 2. Generations Table (for analytics)
 Create this new table:
@@ -76,6 +78,21 @@ OPENROUTER_API_KEY=sk-or-v1-...
 NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ```
 
+## Plan Model
+
+**New Simplified Model:**
+- **Trial Pro**: New users get 14 days of full Pro features
+- **Paid Pro**: $19/month for unlimited access to all features
+- **No Free Tier**: Users must upgrade after trial expires
+
+**Features Available:**
+- ✅ Unlimited listing generations
+- ✅ Premium AI models  
+- ✅ Flyer generation
+- ✅ Batch processing (up to 20 properties)
+- ✅ Advanced templates
+- ✅ Priority support
+
 ## Deployment Checklist
 
 - [ ] Database tables and columns created
@@ -86,8 +103,9 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 
 ## Testing After Deployment
 
-1. **User Registration**: Test that new users get trial access
-2. **Usage Tracking**: Verify usage counts increment
+1. **User Registration**: Test that new users get trial Pro access
+2. **Trial Features**: Verify trial users can access all Pro features
 3. **Stripe Integration**: Test Pro plan upgrade flow
 4. **Batch Processing**: Verify Pro users can access batch features
 5. **Analytics**: Check that usage page loads correctly
+6. **Trial Expiration**: Test that expired users see upgrade prompts

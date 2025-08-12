@@ -34,7 +34,7 @@ export default function UsagePage() {
 }
 
 function UsageAnalytics() {
-  const { isPro, usageCount, usageLimit, plan, daysLeft, isTrial } = useUserPlan();
+  const { isPro, plan, daysLeft, isTrial } = useUserPlan();
   const [generations, setGenerations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -59,10 +59,6 @@ function UsageAnalytics() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getUsagePercentage = () => {
-    return Math.min((usageCount / usageLimit) * 100, 100);
   };
 
   const getRecentActivity = () => {
@@ -96,7 +92,7 @@ function UsageAnalytics() {
     <div className="usage-container">
       {/* Current Status */}
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 16 }}>Current Plan & Usage</h3>
+        <h3 style={{ marginBottom: 16 }}>Current Plan Status</h3>
         
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
           <div style={{ textAlign: "center" }}>
@@ -109,46 +105,72 @@ function UsageAnalytics() {
           </div>
           
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#86a2ff" }}>
-              {usageCount}
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#7ce7c4" }}>
+              {generations.length}
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-              Generations used
+              Total generations
             </div>
           </div>
           
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#7ce7c4" }}>
-              {usageLimit === 1000 ? "∞" : usageLimit}
+            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4, color: "#86a2ff" }}>
+              {getRecentActivity()}
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-              Monthly limit
+              Last 7 days
             </div>
           </div>
         </div>
 
-        {/* Usage Bar */}
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-            <span style={{ fontSize: "14px" }}>Usage Progress</span>
-            <span style={{ fontSize: "14px", color: "var(--text-dim)" }}>
-              {getUsagePercentage().toFixed(1)}%
-            </span>
-          </div>
-          <div style={{ 
-            width: "100%", 
-            height: "8px", 
-            background: "rgba(255,255,255,0.1)", 
-            borderRadius: "4px",
-            overflow: "hidden"
-          }}>
-            <div style={{
-              width: `${getUsagePercentage()}%`,
-              height: "100%",
-              background: usageCount >= usageLimit ? "#ff6363" : "#86a2ff",
-              transition: "width 0.3s ease"
-            }} />
-          </div>
+        {/* Plan Status */}
+        <div style={{ marginTop: 16, textAlign: "center" }}>
+          {isTrial ? (
+            <div style={{ 
+              padding: "12px", 
+              background: "rgba(124, 231, 196, 0.1)", 
+              borderRadius: "8px",
+              border: "1px solid rgba(124, 231, 196, 0.3)"
+            }}>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: "#7ce7c4", marginBottom: 4 }}>
+                Trial Pro Active
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                You have access to all Pro features for {daysLeft} more days
+              </div>
+            </div>
+          ) : isPro ? (
+            <div style={{ 
+              padding: "12px", 
+              background: "rgba(134, 162, 255, 0.1)", 
+              borderRadius: "8px",
+              border: "1px solid rgba(134, 162, 255, 0.3)"
+            }}>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: "#86a2ff", marginBottom: 4 }}>
+                Pro Plan Active
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                Unlimited access to all features
+              </div>
+            </div>
+          ) : (
+            <div style={{ 
+              padding: "12px", 
+              background: "rgba(255, 99, 99, 0.1)", 
+              borderRadius: "8px",
+              border: "1px solid rgba(255, 99, 99, 0.3)"
+            }}>
+              <div style={{ fontSize: "14px", fontWeight: "600", color: "#ff6363", marginBottom: 4 }}>
+                Trial Expired
+              </div>
+              <div style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 8 }}>
+                Upgrade to Pro to continue using ListGenie
+              </div>
+              <a href="/upgrade" className="btn" style={{ fontSize: "12px", padding: "6px 12px" }}>
+                Upgrade Now
+              </a>
+            </div>
+          )}
         </div>
       </div>
 

@@ -32,7 +32,7 @@ export default function UpgradePage() {
 
 function UpgradeInner() {
   const { user } = useUser();
-  const { isPro, usageCount, usageLimit, daysLeft, isTrial } = useUserPlan();
+  const { isPro, daysLeft, isTrial } = useUserPlan();
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState(null);
 
@@ -86,58 +86,45 @@ function UpgradeInner() {
 
   return (
     <div className="upgrade-container">
-      {/* Current Usage Status */}
+      {/* Current Status */}
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <h3 style={{ marginBottom: 8 }}>Current Status</h3>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: "14px", color: "var(--text-dim)", marginBottom: 4 }}>
-              {isTrial ? `Trial Plan - ${daysLeft} days remaining` : "Free Plan"}
+              {isTrial ? `Trial Pro - ${daysLeft} days remaining` : "Trial Expired"}
             </div>
             <div style={{ fontSize: "16px", fontWeight: "600" }}>
-              {usageCount}/{usageLimit} generations used
+              {isTrial ? "You have access to all Pro features" : "Upgrade to continue using ListGenie"}
             </div>
           </div>
           <div style={{ 
             fontSize: "12px", 
             padding: "4px 8px", 
             borderRadius: "6px",
-            background: isTrial ? "rgba(124, 231, 196, 0.1)" : "rgba(134, 162, 255, 0.1)",
-            color: isTrial ? "#7ce7c4" : "#86a2ff"
+            background: isTrial ? "rgba(124, 231, 196, 0.1)" : "rgba(255, 99, 99, 0.1)",
+            color: isTrial ? "#7ce7c4" : "#ff6363"
           }}>
-            {isTrial ? "TRIAL" : "FREE"}
+            {isTrial ? "TRIAL" : "EXPIRED"}
           </div>
         </div>
       </div>
 
       {/* Feature Comparison */}
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <h3 style={{ marginBottom: 16 }}>Plan Comparison</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-          <div style={{ textAlign: "center" }}>
-            <h4 style={{ marginBottom: 8, color: "var(--text-dim)" }}>Free Plan</h4>
-            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4 }}>$0</div>
-            <div style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 16 }}>forever</div>
-            <ul style={{ textAlign: "left", fontSize: "14px", lineHeight: "1.6" }}>
-              <li>✅ 10 generations per month</li>
-              <li>✅ Basic listing templates</li>
-              <li>✅ Standard AI models</li>
-              <li>❌ No flyer generation</li>
-              <li>❌ No batch processing</li>
-            </ul>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <h4 style={{ marginBottom: 8, color: "#86a2ff" }}>Pro Plan</h4>
-            <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4 }}>$19</div>
-            <div style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 16 }}>per month</div>
-            <ul style={{ textAlign: "left", fontSize: "14px", lineHeight: "1.6" }}>
-              <li>✅ Unlimited generations</li>
-              <li>✅ Premium templates</li>
-              <li>✅ Advanced AI models</li>
-              <li>✅ Flyer generation</li>
-              <li>✅ Batch processing</li>
-            </ul>
-          </div>
+        <h3 style={{ marginBottom: 16 }}>Pro Plan Features</h3>
+        <div style={{ textAlign: "center" }}>
+          <h4 style={{ marginBottom: 8, color: "#86a2ff" }}>Pro Plan</h4>
+          <div style={{ fontSize: "24px", fontWeight: "700", marginBottom: 4 }}>$19</div>
+          <div style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 16 }}>per month</div>
+          <ul style={{ textAlign: "left", fontSize: "14px", lineHeight: "1.6", maxWidth: "300px", margin: "0 auto" }}>
+            <li>✅ Unlimited listing generations</li>
+            <li>✅ Premium AI models</li>
+            <li>✅ Flyer generation</li>
+            <li>✅ Batch processing (up to 20 properties)</li>
+            <li>✅ Advanced templates</li>
+            <li>✅ Priority support</li>
+          </ul>
         </div>
       </div>
 
