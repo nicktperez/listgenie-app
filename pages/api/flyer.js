@@ -20,6 +20,12 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
   const fontStyle = customization.fontStyle || "modern";
   const showPrice = customization.showPrice !== false; // Default to true
   const customPrice = customization.customPrice || "$399,900";
+  const useSignatureStyling = customization.useSignatureStyling || false;
+  
+  // Open house details
+  const openHouseDate = customization.openHouseDate || "December 15th, 2024";
+  const openHouseTime = customization.openHouseTime || "2:00 PM - 5:00 PM";
+  const openHouseAddress = customization.openHouseAddress || "123 Anywhere St., Any City, ST 12345";
   
   // Font family mapping
   const getFontFamily = (style) => {
@@ -85,7 +91,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${isOpenHouse ? 'Open House Flyer' : 'Property Flyer'}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Great+Vibes:wght@400&family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         ${generateDynamicCSS()}
         
@@ -106,7 +112,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         .flyer-container {
             max-width: 900px;
             margin: 20px auto;
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 50%, var(--primary) 100%);
             box-shadow: 0 25px 50px rgba(0,0,0,0.3);
             border-radius: 0;
             overflow: hidden;
@@ -149,7 +155,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         /* Left Column - Photos */
         .left-column {
             padding: 30px 20px;
-            background: var(--primary);
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-light) 100%);
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -161,6 +167,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             border: 2px solid var(--secondary);
             transition: transform 0.3s ease;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 100%);
         }
         
         .photo-item:hover {
@@ -176,7 +183,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         /* Right Column - Content */
         .right-column {
             padding: 40px 35px;
-            background: var(--primary-light);
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--secondary) 20%, var(--primary-light) 100%);
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
@@ -184,13 +191,14 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         /* Typography and Content */
         .flyer-title {
-            font-family: ${fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle)};
-            font-size: 3.5rem;
-            font-weight: 700;
+            font-family: ${useSignatureStyling ? "'Great Vibes', cursive" : (fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle))};
+            font-size: ${useSignatureStyling ? '4rem' : '3.5rem'};
+            font-weight: ${useSignatureStyling ? '400' : '700'};
             color: var(--text-on-primary);
             margin-bottom: 15px;
             line-height: 1.1;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: ${useSignatureStyling ? '3px 3px 6px rgba(0,0,0,0.4)' : '2px 2px 4px rgba(0,0,0,0.3)'};
+            ${useSignatureStyling ? 'letter-spacing: 0.05em;' : ''}
         }
         
         .event-details {
@@ -202,6 +210,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             color: var(--text-on-primary);
             margin-bottom: 8px;
             font-weight: 400;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.4rem;' : ''}
         }
         
         .price-section {
@@ -216,14 +225,17 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 8px;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.3rem;' : ''}
         }
         
         .price-amount {
-            font-size: 3rem;
-            font-weight: 700;
+            font-family: ${useSignatureStyling ? "'Great Vibes', cursive" : 'inherit'};
+            font-size: ${useSignatureStyling ? '3.5rem' : '3rem'};
+            font-weight: ${useSignatureStyling ? '400' : '700'};
             color: var(--text-on-primary);
             line-height: 1;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-shadow: ${useSignatureStyling ? '3px 3px 6px rgba(0,0,0,0.4)' : '2px 2px 4px rgba(0,0,0,0.3)'};
+            ${useSignatureStyling ? 'letter-spacing: 0.02em;' : ''}
         }
         
         .about-section {
@@ -237,6 +249,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.5rem; text-transform: none;' : ''}
         }
         
         .property-description {
@@ -244,6 +257,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             color: var(--text-on-primary);
             line-height: 1.7;
             margin-bottom: 20px;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.2rem;' : ''}
         }
         
         .features-section {
@@ -262,12 +276,13 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             color: var(--text-on-primary);
             margin-bottom: 12px;
             font-weight: 500;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.2rem;' : ''}
         }
         
         .feature-icon {
             width: 20px;
             height: 20px;
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -289,11 +304,12 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         .open-house-title {
-            font-family: ${fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle)};
-            font-size: 2.5rem;
-            font-weight: 700;
+            font-family: ${useSignatureStyling ? "'Great Vibes', cursive" : (fontStyle === "elegant" ? "'Playfair Display', serif" : getFontFamily(fontStyle))};
+            font-size: ${useSignatureStyling ? '3rem' : '2.5rem'};
+            font-weight: ${useSignatureStyling ? '400' : '700'};
             margin-bottom: 20px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            text-shadow: ${useSignatureStyling ? '2px 2px 4px rgba(0,0,0,0.2)' : '1px 1px 2px rgba(0,0,0,0.1)'};
+            ${useSignatureStyling ? 'letter-spacing: 0.03em;' : ''}
         }
         
         .event-grid {
@@ -321,15 +337,17 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             text-transform: uppercase;
             letter-spacing: 0.05em;
             opacity: 0.8;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1rem; text-transform: none;' : ''}
         }
         
         .event-value {
             font-size: 1rem;
             font-weight: 600;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.1rem;' : ''}
         }
         
         .cta-button {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: var(--text-on-primary);
             padding: 15px 30px;
             border-radius: 50px;
@@ -340,6 +358,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             border: 2px solid var(--primary);
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.2rem;' : ''}
         }
         
         .cta-button:hover {
@@ -351,7 +370,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         
         /* Footer */
         .footer {
-            background: var(--primary);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--primary-dark) 100%);
             color: var(--text-on-primary);
             padding: 30px 40px;
             display: grid;
@@ -367,12 +386,13 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             gap: 12px;
             font-size: 1rem;
             font-weight: 500;
+            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.1rem;' : ''}
         }
         
         .contact-icon {
             width: 35px;
             height: 35px;
-            background: var(--secondary);
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -396,11 +416,11 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             }
             
             .flyer-title {
-                font-size: 2.5rem;
+                font-size: ${useSignatureStyling ? '3rem' : '2.5rem'};
             }
             
             .price-amount {
-                font-size: 2.2rem;
+                font-size: ${useSignatureStyling ? '2.8rem' : '2.2rem'};
             }
             
             .footer {
@@ -439,17 +459,17 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 <div class="event-item">
                     <div class="event-icon">📅</div>
                     <div class="event-label">Date</div>
-                    <div class="event-value">December 15th, 2024</div>
+                    <div class="event-value">${openHouseDate}</div>
                 </div>
                 <div class="event-item">
                     <div class="event-icon">⏰</div>
                     <div class="event-label">Time</div>
-                    <div class="event-value">2:00 PM - 5:00 PM</div>
+                    <div class="event-value">${openHouseTime}</div>
                 </div>
                 <div class="event-item">
                     <div class="event-icon">📍</div>
                     <div class="event-label">Location</div>
-                    <div class="event-value">Property Address</div>
+                    <div class="event-value">${openHouseAddress}</div>
                 </div>
             </div>
             <a href="mailto:${customization.agentEmail || 'hello@example.com'}?subject=Open House Inquiry&body=Hi, I'm interested in learning more about this property. Please contact me with additional details." class="cta-button">🎉 Don't Miss This Opportunity!</a>
@@ -480,9 +500,9 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 
                 ${isOpenHouse ? `
                 <div class="event-details">
-                    <div class="event-detail">December 15th, 2024</div>
-                    <div class="event-detail">2:00 PM - 7:00 PM</div>
-                    <div class="event-detail">123 Anywhere St., Any City, ST 12345</div>
+                    <div class="event-detail">${openHouseDate}</div>
+                    <div class="event-detail">${openHouseTime}</div>
+                    <div class="event-detail">${openHouseAddress}</div>
                 </div>
                 ` : ''}
                 
@@ -496,7 +516,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 <div class="about-section">
                     <div class="section-title">About This Property</div>
                     <div class="property-description">
-                        ${standardText || openHouseText || 'Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!'}
+                        Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!
                     </div>
                 </div>
                 

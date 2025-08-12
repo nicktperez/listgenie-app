@@ -104,6 +104,14 @@ export default function ChatPage() {
   const [fontStyle, setFontStyle] = useState("modern");
   const [showPrice, setShowPrice] = useState(true);
   const [customPrice, setCustomPrice] = useState("$399,900");
+  
+  // Open House specific fields
+  const [openHouseDate, setOpenHouseDate] = useState("December 15th, 2024");
+  const [openHouseTime, setOpenHouseTime] = useState("2:00 PM - 5:00 PM");
+  const [openHouseAddress, setOpenHouseAddress] = useState("123 Anywhere St., Any City, ST 12345");
+  
+  // Signature styling option
+  const [useSignatureStyling, setUseSignatureStyling] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -601,6 +609,10 @@ export default function ChatPage() {
         fontStyle,
         showPrice,
         customPrice,
+        openHouseDate,
+        openHouseTime,
+        openHouseAddress,
+        useSignatureStyling,
         showAdvancedOptions
       }
     };
@@ -610,6 +622,8 @@ export default function ChatPage() {
       setError(null); // Clear any previous errors
       
       console.log("Generating flyers with payload:", payload); // Debug log
+      console.log("Flyer types selected:", flyerTypes); // Debug log
+      console.log("Filtered flyers array:", Object.entries(flyerTypes).filter(([_, v]) => v).map(([k]) => k)); // Debug log
       
       const res = await fetch("/api/flyer", {
         method: "POST",
@@ -635,11 +649,16 @@ export default function ChatPage() {
         console.log("Flyer generation response:", data);
         
         if (data.success && data.flyers) {
+          console.log("Available flyers in response:", Object.keys(data.flyers)); // Debug log
+          console.log("Flyer content lengths:", Object.entries(data.flyers).map(([k, v]) => [k, v.length])); // Debug log
+          
           // Download each flyer type separately
           const downloadedFiles = [];
           for (const [flyerType, htmlContent] of Object.entries(data.flyers)) {
             const filename = flyerType === 'standard' ? 'property-flyer.html' : 'open-house-flyer.html';
             downloadedFiles.push(filename);
+            
+            console.log(`Processing ${flyerType} flyer, content length: ${htmlContent.length}`); // Debug log
             
             // Create and download HTML file
             const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -653,6 +672,11 @@ export default function ChatPage() {
             a.remove();
             
             console.log(`Downloaded ${filename} successfully`);
+            
+            // Small delay between downloads to prevent browser issues
+            if (downloadedFiles.length < Object.keys(data.flyers).length) {
+              await new Promise(resolve => setTimeout(resolve, 500));
+            }
           }
           
           // Show success message
@@ -824,10 +848,6 @@ export default function ChatPage() {
       <main className="chat-container">
         <section className="controls">
           <div className="row1">
-            <button className="flyer-btn" onClick={openFlyerModal}>
-              {isPro ? "Create Flyers" : "Flyers (Pro)"}
-            </button>
-            <div className="tone-separator"></div>
             <TonePill value="mls" label="MLS-ready" current={tone} onChange={setTone} />
             <TonePill value="social" label="Social caption" current={tone} onChange={setTone} />
             <TonePill value="luxury" label="Luxury tone" current={tone} onChange={setTone} />
@@ -864,13 +884,7 @@ export default function ChatPage() {
                           >
                             📋 Copy Listing
                           </button>
-                          <button 
-                            className="flyer-btn-small"
-                            onClick={openFlyerModal}
-                            title="Generate flyers from this listing"
-                          >
-                            🎨 Create Flyers
-                          </button>
+
                         </div>
                       )}
                     </div>
@@ -925,6 +939,9 @@ export default function ChatPage() {
               {/* Flyer Type Selection */}
               <div className="flyer-section">
                 <h3 className="flyer-section-title">Flyer Types</h3>
+                <p className="flyer-section-description">
+                  Select which types of flyers you'd like to generate. You can choose one or both.
+                </p>
                 <div className="flyer-options">
                   <label className="flyer-option">
                     <input
@@ -948,6 +965,17 @@ export default function ChatPage() {
                       Open House Flyer
                     </span>
                   </label>
+                </div>
+                <div className="flyer-selection-summary">
+                  {flyerTypes.standard && flyerTypes.openHouse ? (
+                    <span className="summary-both">✅ Both flyer types selected</span>
+                  ) : flyerTypes.standard ? (
+                    <span className="summary-standard">✅ Standard flyer only</span>
+                  ) : flyerTypes.openHouse ? (
+                    <span className="summary-openhouse">✅ Open house flyer only</span>
+                  ) : (
+                    <span className="summary-none">⚠️ Please select at least one flyer type</span>
+                  )}
                 </div>
               </div>
 
@@ -1113,6 +1141,66 @@ export default function ChatPage() {
                     />
                   </div>
                 )}
+                
+                <div className="customization-item full-width">
+                  <label className="customization-label">Signature Styling</label>
+                  <div className="toggle-container">
+                    <input
+                      type="checkbox"
+                      checked={useSignatureStyling}
+                      onChange={(e) => setUseSignatureStyling(e.target.checked)}
+                      className="toggle-checkbox"
+                      id="signature-toggle"
+                    />
+                    <label htmlFor="signature-toggle" className="toggle-label">
+                      <span className="toggle-slider"></span>
+                    </label>
+                    <span className="toggle-description">Ultra-fancy text styling for luxury feel</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Open House Details */}
+              <div className="flyer-section">
+                <h3 className="flyer-section-title">Open House Details</h3>
+                <p className="flyer-section-description">
+                  Fill in the details for your open house flyer.
+                </p>
+                
+                <div className="customization-grid">
+                  <div className="customization-item">
+                    <label className="customization-label">Date</label>
+                    <input
+                      type="text"
+                      value={openHouseDate}
+                      onChange={(e) => setOpenHouseDate(e.target.value)}
+                      placeholder="December 15th, 2024"
+                      className="flyer-input"
+                    />
+                  </div>
+                  
+                  <div className="customization-item">
+                    <label className="customization-label">Time</label>
+                    <input
+                      type="text"
+                      value={openHouseTime}
+                      onChange={(e) => setOpenHouseTime(e.target.value)}
+                      placeholder="2:00 PM - 5:00 PM"
+                      className="flyer-input"
+                    />
+                  </div>
+                  
+                  <div className="customization-item full-width">
+                    <label className="customization-label">Property Address</label>
+                    <input
+                      type="text"
+                      value={openHouseAddress}
+                      onChange={(e) => setOpenHouseAddress(e.target.value)}
+                      placeholder="123 Anywhere St., Any City, ST 12345"
+                      className="flyer-input"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Property Photos */}
@@ -1382,12 +1470,7 @@ export default function ChatPage() {
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
   }
   
-  .tone-separator {
-    width: 1px;
-    height: 24px;
-    background: linear-gradient(180deg, transparent, rgba(80, 90, 120, 0.4), transparent);
-    margin: 0 16px;
-  }
+
 
   /* Examples section */
   .examples { 
@@ -1546,19 +1629,17 @@ export default function ChatPage() {
   .thinking-label { font-size: 12px; color: var(--text-dim); }
   @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
 
-  /* Tone pills styling */
+  /* Tone pills styling - now using flyer-btn styling */
   .tone-pill {
     background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.15));
     border: 1px solid rgba(99, 102, 241, 0.3);
     color: #a5b4fc;
     padding: 10px 16px;
     border-radius: 12px;
-    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
+    font-size: 14px;
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
   }
@@ -1805,6 +1886,38 @@ export default function ChatPage() {
     font-weight: 500;
   }
 
+  .flyer-selection-summary {
+    margin-top: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .summary-both {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .summary-standard {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  .summary-openhouse {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.1);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .summary-none {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
   .flyer-option-icon {
     font-size: 20px;
   }
@@ -1946,6 +2059,13 @@ export default function ChatPage() {
 
   .toggle-checkbox:checked + .toggle-label:before {
     transform: translateX(26px);
+  }
+
+  .toggle-description {
+    margin-left: 12px;
+    font-size: 0.8rem;
+    color: #a0aec0;
+    font-style: italic;
   }
 
   .price-input {
