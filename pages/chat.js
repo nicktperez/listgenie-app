@@ -874,7 +874,7 @@ export default function ChatPage() {
                     <div className="assistant-message">
                       {message.pretty || message.content || "Generating..."}
                       
-                      {/* Show action buttons after listings */}
+                                            {/* Show action buttons after listings */}
                       {message.pretty && message.pretty.includes('**') && (
                         <div className="listing-actions">
                           <button 
@@ -884,7 +884,13 @@ export default function ChatPage() {
                           >
                             📋 Copy Listing
                           </button>
-
+                          <button 
+                            className="flyer-btn-small"
+                            onClick={openFlyerModal}
+                            title="Generate flyers from this listing"
+                          >
+                            🎨 Create Flyers
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1629,35 +1635,31 @@ export default function ChatPage() {
   .thinking-label { font-size: 12px; color: var(--text-dim); }
   @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: .5; } 40% { transform: translateY(-4px); opacity: 1; } }
 
-  /* Tone pills styling - now using flyer-btn styling */
+  /* Tone pills styling - now using copy-btn gradient styling */
   .tone-pill {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.15));
-    border: 1px solid rgba(99, 102, 241, 0.3);
-    color: #a5b4fc;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
     padding: 10px 16px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: 8px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
-    backdrop-filter: blur(10px);
-    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   
   .tone-pill:hover {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(79, 70, 229, 0.25));
-    border-color: rgba(99, 102, 241, 0.5);
-    color: #c7d2fe;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   }
   
   .tone-pill.active {
-    background: linear-gradient(135deg, rgba(99, 102, 241, 0.3), rgba(79, 70, 229, 0.3));
-    border-color: rgba(99, 102, 241, 0.6);
-    color: #d9dbff;
-    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.3);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   }
   
   .tone-pill span {
