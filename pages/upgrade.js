@@ -79,19 +79,19 @@ function UpgradeInner() {
     }
   };
 
-  if (isPro) {
+  // Show Pro status banner at the top if user is already Pro
+  const ProStatusBanner = () => {
+    if (!isPro) return null;
+    
     return (
-      <div className="pricing-pro-section">
-        <div className="pricing-pro-card">
-          <div className="pro-status">
+      <div className="pricing-pro-banner">
+        <div className="pro-banner-content">
+          <div className="pro-banner-left">
             <div className="pro-badge">✅ Pro Member</div>
             <h3>You're already on Pro!</h3>
             <p>Enjoy unlimited access to all ListGenie features</p>
           </div>
-          
-          {err2 && <div className="pricing-error">{err2}</div>}
-          
-          <div className="pro-actions">
+          <div className="pro-banner-actions">
             <button className="pricing-btn primary" onClick={openPortal} disabled={loadingPortal}>
               {loadingPortal ? "Opening…" : "Manage Billing"}
             </button>
@@ -102,10 +102,13 @@ function UpgradeInner() {
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="pricing-plans-section">
+      {/* Pro Status Banner - Shows if user is already Pro */}
+      <ProStatusBanner />
+      
       {/* Current Status Card */}
       <div className="pricing-status-card">
         <div className="status-content">
