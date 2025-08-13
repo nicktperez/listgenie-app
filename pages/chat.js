@@ -151,6 +151,9 @@ export default function ChatPage() {
 
   // Copy state (for "Copied!" UI)
   const [copiedKey, setCopiedKey] = useState(null);
+  
+  // Track if we're in listing mode (hide examples when true)
+  const [isListingMode, setIsListingMode] = useState(false);
   async function handleCopy(key, text) {
     const ok = await copyToClipboard(text);
     if (ok) {
@@ -324,6 +327,9 @@ export default function ChatPage() {
             copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
             return copy;
           });
+          
+          // Set listing mode if this is a listing response
+          setIsListingMode(true);
         } else if (data.parsed && data.parsed.type === "questions") {
           // Open questions modal for follow-up questions
           console.log("Questions detected in parsed field"); // Debug log
@@ -477,23 +483,96 @@ export default function ChatPage() {
           acc += decoder.decode(value, { stream: true });
         }
 
-        const displayContent = coerceToReadableText(acc);
+        // Try to parse as JSON for structured responses
+        let displayContent = acc;
+        try {
+          const parsed = JSON.parse(acc);
+          if (parsed.parsed && parsed.parsed.type === "listing") {
+            const listing = parsed.parsed;
+            displayContent = "";
+            
+            if (listing.headline) {
+              displayContent += `**${listing.headline}**\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.body) {
+              displayContent += `${listing.mls.body}\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+            }
+            
+            if (listing.variants && listing.variants.length > 0) {
+              listing.variants.forEach(variant => {
+                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+              });
+            }
+            
+            displayContent = displayContent.trim();
+          } else {
+            displayContent = coerceToReadableText(acc);
+          }
+        } catch (e) {
+          // If parsing fails, use the raw content
+          displayContent = coerceToReadableText(acc);
+        }
         
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
           return copy;
         });
+        
+        // Set listing mode if this is a listing response
+        if (displayContent.includes('**') && displayContent.includes('•')) {
+          setIsListingMode(true);
+        }
       } else {
         // Handle non-streaming response
         const data = await resp.json();
-        const displayContent = coerceToReadableText(data.content || data.message || "");
+        let displayContent = "";
+        
+        try {
+          if (data.parsed && data.parsed.type === "listing") {
+            const listing = data.parsed;
+            
+            if (listing.headline) {
+              displayContent += `**${listing.headline}**\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.body) {
+              displayContent += `${listing.mls.body}\n\n`;
+            }
+            
+            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
+              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+            }
+            
+            if (listing.variants && listing.variants.length > 0) {
+              listing.variants.forEach(variant => {
+                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+              });
+            }
+            
+            displayContent = displayContent.trim();
+          } else {
+            displayContent = coerceToReadableText(data.content || data.message || "");
+          }
+        } catch (e) {
+          displayContent = coerceToReadableText(data.content || data.message || "");
+        }
         
         setMessages((prev) => {
           const copy = [...prev];
           copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
           return copy;
         });
+        
+        // Set listing mode if this is a listing response
+        if (displayContent.includes('**') && displayContent.includes('•')) {
+          setIsListingMode(true);
+        }
       }
     } catch (error) {
       console.error("Error modifying listing:", error);
@@ -958,6 +1037,37 @@ export default function ChatPage() {
     <div className="chat-page">
 
 
+      {/* Top Navbar */}
+      <nav className="top-navbar">
+        <div className="navbar-content">
+          <div className="navbar-brand">
+            <div className="logo">🏠</div>
+            <div className="brand-text">ListGenie.ai</div>
+          </div>
+          <div className="navbar-right">
+            {isListingMode && (
+              <button 
+                className="new-listing-btn"
+                onClick={() => {
+                  setIsListingMode(false);
+                  setMessages([]);
+                  setInput('');
+                }}
+                title="Start a new listing"
+              >
+                ✨ New Listing
+              </button>
+            )}
+            <div className="plan-badge">
+              {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
+            </div>
+            <div className="profile-section">
+              <div className="profile-avatar">👤</div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <main className="chat-container">
         {/* AI Chat - Main Focal Point */}
         <div className="ai-chat-section">
@@ -977,22 +1087,21 @@ export default function ChatPage() {
           </section>
         </div>
 
-        {/* Examples - Smaller and Less Prominent */}
-        <div className="examples-section">
-          <div className="examples-header">
-            <h3 className="examples-title">Quick Examples</h3>
-            <div className="plan-badge">
-              {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
+        {/* Examples - Only show when not in listing mode */}
+        {!isListingMode && (
+          <div className="examples-section">
+            <div className="examples-header">
+              <h3 className="examples-title">Quick Examples</h3>
+            </div>
+            <div className="examples-grid">
+              {examples.map((ex, i) => (
+                <button key={i} className="example-btn" onClick={() => setInput(ex.text)}>
+                  {ex.label}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="examples-grid">
-            {examples.map((ex, i) => (
-              <button key={i} className="example-btn" onClick={() => setInput(ex.text)}>
-                {ex.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        )}
 
         {/* Only show chat area if there are messages */}
         {messages.length > 0 && (
