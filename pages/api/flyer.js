@@ -568,7 +568,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 `<img src="${customization.propertyPhotos[0].data || customization.propertyPhotos[0].src || customization.propertyPhotos[0]}" alt="Property Hero" class="hero-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
                 '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600;">Property Photo</div>'
             }
-            <div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600; display: none;">Property Photo</div>
+            <div class="hero-image fallback-hero" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600; display: none;">Property Photo</div>
             <div class="hero-overlay"></div>
             
             <!-- Agency Logo (top right corner) -->

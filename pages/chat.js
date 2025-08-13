@@ -1058,11 +1058,16 @@ export default function ChatPage() {
                 ✨ New Listing
               </button>
             )}
-            <div className="plan-badge">
-              {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
-            </div>
-            <div className="profile-section">
-              <div className="profile-avatar">👤</div>
+            <div className="navbar-links">
+              <a href="/upgrade" className="billing-link">
+                Billing
+              </a>
+              <div className="plan-badge">
+                {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
+              </div>
+              <div className="profile-section">
+                <div className="profile-avatar">👤</div>
+              </div>
             </div>
           </div>
         </div>
