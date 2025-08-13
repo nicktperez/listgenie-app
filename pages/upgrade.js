@@ -105,9 +105,25 @@ function UpgradeInner() {
   };
 
   return (
-    <div className="pricing-plans-section">
-      {/* Pro Status Banner - Shows if user is already Pro */}
-      <ProStatusBanner />
+    <div className="pricing-page">
+      {/* Top Navigation Bar */}
+      <nav className="pricing-navbar">
+        <div className="pricing-navbar-content">
+          <div className="pricing-navbar-brand">
+            <div className="pricing-navbar-logo">🏠</div>
+            <div className="pricing-navbar-text">ListGenie.ai</div>
+          </div>
+          <div className="pricing-navbar-actions">
+            <Link href="/chat" className="pricing-navbar-btn">
+              ← Back to App
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="pricing-plans-section">
+        {/* Pro Status Banner - Shows if user is already Pro */}
+        <ProStatusBanner />
       
       {/* Current Status Card - Only show for non-Pro users */}
       {!isPro && (
@@ -234,6 +250,7 @@ function UpgradeInner() {
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Additional Info */}
