@@ -14,6 +14,14 @@ export const config = {
 function createHtmlFlyer({ standardText, openHouseText, customization, pageType }) {
   const isOpenHouse = pageType === "openHouse";
   
+  // Debug logging
+  console.log("Creating flyer with customization:", {
+    propertyPhotos: customization.propertyPhotos,
+    agencyLogo: customization.agencyLogo,
+    primaryColor: customization.primaryColor,
+    fontStyle: customization.fontStyle
+  });
+  
   // Get customization values with defaults
   const primaryColor = customization.primaryColor || "#2d4a3e";
   const secondaryColor = customization.secondaryColor || "#8b9d83";
@@ -557,7 +565,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         <!-- Hero Section with Large Image -->
         <div class="hero-section">
             ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
-                `<img src="${customization.propertyPhotos[0].data}" alt="Property Hero" class="hero-image">` : 
+                `<img src="${customization.propertyPhotos[0].data || customization.propertyPhotos[0].src || customization.propertyPhotos[0]}" alt="Property Hero" class="hero-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
                 '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600;">Property Photo</div>'
             }
             <div class="hero-overlay"></div>
@@ -565,7 +573,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             <!-- Agency Logo (top right corner) -->
             ${customization.agencyLogo ? `
             <div class="agency-logo">
-                <img src="${customization.agencyLogo.data}" alt="Agency Logo" />
+                <img src="${customization.agencyLogo.data || customization.agencyLogo.src || customization.agencyLogo}" alt="Agency Logo" onerror="this.parentElement.style.display='none';" />
             </div>
             ` : ''}
         </div>
@@ -602,7 +610,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 ${customization.propertyPhotos && customization.propertyPhotos.length > 1 ? 
                     customization.propertyPhotos.slice(1, 4).map((photo, index) => `
                         <div class="photo-item">
-                            <img src="${photo.data}" alt="Property Photo ${index + 2}" />
+                            <img src="${photo.data || photo.src || photo}" alt="Property Photo ${index + 2}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); display: none;">Photo ${index + 2}</div>
                         </div>
                     `).join('') : 
                     Array(3).fill().map((_, index) => `
@@ -664,7 +673,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             <!-- Agency Logo in Footer -->
             ${customization.agencyLogo ? `
             <div class="footer-logo">
-                <img src="${customization.agencyLogo.data}" alt="Agency Logo" />
+                <img src="${customization.agencyLogo.data || customization.agencyLogo.src || customization.agencyLogo}" alt="Agency Logo" onerror="this.parentElement.style.display='none';" />
             </div>
             ` : ''}
             
@@ -721,6 +730,8 @@ export default async function handler(req, res) {
     const { flyers = [], content, customization = {} } = req.body || {};
     console.log("Flyers requested:", flyers);
     console.log("Customization keys:", Object.keys(customization));
+    console.log("Property photos:", customization.propertyPhotos);
+    console.log("Agency logo:", customization.agencyLogo);
     
     if (!flyers.length) {
       return res.status(400).json({ ok: false, error: "No flyers requested" });
