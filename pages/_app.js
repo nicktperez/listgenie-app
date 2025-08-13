@@ -5,7 +5,7 @@ import "@/styles/flyer-modal.css";
 import "@/styles/components.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
-import NavBar from "@/components/NavBar";
+
 
 function InitUserOnce() {
   const { isSignedIn } = useAuth();
@@ -39,7 +39,7 @@ export default function App({ Component, pageProps }) {
   return (
     <ClerkProvider {...pageProps}>
       <InitUserOnce />
-      <NavBar />
+
       <Component {...pageProps} />
     </ClerkProvider>
   );
