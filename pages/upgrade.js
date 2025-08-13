@@ -62,34 +62,26 @@ function UpgradeInner() {
   };
 
     const [loadingPortal, setLoadingPortal] = useState(false);
-  const [err2, setErr2] = useState(null);
 
   const openPortal = async () => {
     try {
-      setErr2(null);
       setLoadingPortal(true);
-      console.log("Opening billing portal..."); // Debug log
       
       const r = await fetch("/api/stripe/create-portal-session", { method: "POST" });
-      console.log("Portal response status:", r.status); // Debug log
-      
       const j = await r.json();
-      console.log("Portal response data:", j); // Debug log
       
       if (!r.ok || !j?.url) {
-        const errorMsg = j?.error || "Could not open billing portal.";
-        console.error("Portal error:", errorMsg); // Debug log
-        throw new Error(errorMsg);
+        throw new Error(j?.error || "Could not open cancellation portal.");
       }
       
-      console.log("Redirecting to:", j.url); // Debug log
+      // Redirect to Stripe portal where they can cancel
       window.location.href = j.url;
     } catch (e) {
-      console.error("Portal error:", e); // Debug log
-      setErr2(e?.message || "Something went wrong.");
-    } finally {
-      setLoadingPortal(false);
-    }
+      // Show error in a simple way
+      alert("Unable to open cancellation portal. Please contact support or visit https://dashboard.stripe.com/billing directly.");
+          } finally {
+        setLoadingPortal(false);
+      }
   };
 
   // Show Pro status banner at the top if user is already Pro
@@ -105,20 +97,8 @@ function UpgradeInner() {
             <p>Enjoy unlimited access to all ListGenie features</p>
           </div>
           <div className="pro-banner-actions">
-            {err2 && <div className="pricing-error" style={{ marginBottom: '1rem', textAlign: 'center' }}>{err2}</div>}
-            <button className="pricing-btn primary" onClick={openPortal} disabled={loadingPortal}>
-              {loadingPortal ? "Opening…" : "Manage Billing"}
-            </button>
-            <button 
-              className="pricing-btn secondary" 
-              onClick={() => {
-                console.log("Manual fallback - opening Stripe dashboard...");
-                // Fallback: try to open Stripe dashboard directly
-                window.open("https://dashboard.stripe.com/billing", "_blank");
-              }}
-              style={{ marginTop: '0.5rem' }}
-            >
-              Open Stripe Dashboard
+            <button className="pricing-btn secondary" onClick={openPortal} disabled={loadingPortal}>
+              {loadingPortal ? "Processing…" : "Cancel Membership"}
             </button>
             <Link href="/chat" className="pricing-btn secondary">
               Back to Chat
