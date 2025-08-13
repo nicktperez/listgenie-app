@@ -198,6 +198,11 @@ export default function ChatPage() {
     setInput("");
     setError(null);
 
+    // Scroll to bottom after adding user message
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
+
     try {
       setLoading(true);
       
@@ -293,6 +298,11 @@ export default function ChatPage() {
           copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
           return copy;
         });
+        
+        // Scroll to bottom to show the AI response
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }, 100);
       } else {
         // Non-streaming fallback
         const data = await resp.json();
@@ -327,6 +337,11 @@ export default function ChatPage() {
             copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
             return copy;
           });
+          
+          // Scroll to bottom to show the AI response
+          setTimeout(() => {
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }, 100);
           
           // Set listing mode if this is a listing response
           setIsListingMode(true);
@@ -409,6 +424,11 @@ export default function ChatPage() {
     
     // Add new questions to the history
     setAllQuestionsAndAnswers(prev => [...prev, ...questionsData.questions]);
+    
+    // Scroll to bottom to show the questions modal
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
   }
 
   function handleCopyListing(listingText) {
@@ -453,6 +473,11 @@ export default function ChatPage() {
       { role: "user", content: `Modify this listing: ${prompt}` },
       { role: "assistant", content: "", pretty: "" }
     ]);
+
+    // Scroll to bottom to show the modification request
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
 
     try {
       setLoading(true);
@@ -524,6 +549,11 @@ export default function ChatPage() {
           return copy;
         });
         
+        // Scroll to bottom to show the modification response
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }, 100);
+        
         // Set listing mode if this is a listing response
         if (displayContent.includes('**') && displayContent.includes('•')) {
           setIsListingMode(true);
@@ -569,6 +599,11 @@ export default function ChatPage() {
           return copy;
         });
         
+        // Scroll to bottom to show the modification response
+        setTimeout(() => {
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }, 100);
+        
         // Set listing mode if this is a listing response
         if (displayContent.includes('**') && displayContent.includes('•')) {
           setIsListingMode(true);
@@ -604,6 +639,11 @@ export default function ChatPage() {
       { role: "user", content: answerText },
       { role: "assistant", content: "", pretty: "" }
     ]);
+
+    // Scroll to bottom to show the submitted answers
+    setTimeout(() => {
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }, 100);
 
     // Close modal
     setQuestionsOpen(false);
