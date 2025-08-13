@@ -63,25 +63,49 @@ function UpgradeInner() {
 
     const [loadingPortal, setLoadingPortal] = useState(false);
 
-  const openPortal = async () => {
+    const openPortal = async () => {
     try {
       setLoadingPortal(true);
       
+      // Try to open Stripe portal first
       const r = await fetch("/api/stripe/create-portal-session", { method: "POST" });
       const j = await r.json();
       
-      if (!r.ok || !j?.url) {
-        throw new Error(j?.error || "Could not open cancellation portal.");
+      if (r.ok && j?.url) {
+        // Success - redirect to Stripe portal
+        window.location.href = j.url;
+        return;
       }
       
-      // Redirect to Stripe portal where they can cancel
-      window.location.href = j.url;
+      // If portal fails, show cancellation options
+      throw new Error("Portal unavailable");
     } catch (e) {
-      // Show error in a simple way
-      alert("Unable to open cancellation portal. Please contact support or visit https://dashboard.stripe.com/billing directly.");
-          } finally {
-        setLoadingPortal(false);
+      // Show cancellation options when portal fails
+      const shouldCancel = confirm(
+        "Unable to open billing portal. Would you like to:\n\n" +
+        "1. Contact support for help\n" +
+        "2. Visit Stripe dashboard directly\n" +
+        "3. Get cancellation instructions\n\n" +
+        "Click OK to get help, Cancel to visit Stripe directly."
+      );
+      
+      if (shouldCancel) {
+        // Show cancellation instructions
+        alert(
+          "To cancel your Pro membership:\n\n" +
+          "1. Visit: https://dashboard.stripe.com/billing\n" +
+          "2. Sign in with the email you used for ListGenie\n" +
+          "3. Find your ListGenie subscription\n" +
+          "4. Click 'Cancel subscription'\n\n" +
+          "Need help? Contact: support@listgenie.ai"
+        );
+      } else {
+        // Open Stripe dashboard directly
+        window.open("https://dashboard.stripe.com/billing", "_blank");
       }
+    } finally {
+      setLoadingPortal(false);
+    }
   };
 
   // Show Pro status banner at the top if user is already Pro
@@ -98,7 +122,7 @@ function UpgradeInner() {
           </div>
           <div className="pro-banner-actions">
             <button className="pricing-btn secondary" onClick={openPortal} disabled={loadingPortal}>
-              {loadingPortal ? "Processing…" : "Cancel Membership"}
+              {loadingPortal ? "Processing…" : "Cancel or Manage Billing"}
             </button>
             <Link href="/chat" className="pricing-btn secondary">
               Back to Chat
