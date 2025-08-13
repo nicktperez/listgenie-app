@@ -109,25 +109,27 @@ function UpgradeInner() {
       {/* Pro Status Banner - Shows if user is already Pro */}
       <ProStatusBanner />
       
-      {/* Current Status Card */}
-      <div className="pricing-status-card">
-        <div className="status-content">
-          <div className="status-info">
-            <h3>Current Status</h3>
-            <div className="status-details">
-              <div className="status-text">
-                {isTrial ? `Trial Pro - ${daysLeft} days remaining` : "Trial Expired"}
-              </div>
-              <div className="status-description">
-                {isTrial ? "You have access to all Pro features" : "Upgrade to continue using ListGenie"}
+      {/* Current Status Card - Only show for non-Pro users */}
+      {!isPro && (
+        <div className="pricing-status-card">
+          <div className="status-content">
+            <div className="status-info">
+              <h3>Current Status</h3>
+              <div className="status-details">
+                <div className="status-text">
+                  {isTrial ? `Trial Pro - ${daysLeft} days remaining` : "Trial Expired"}
+                </div>
+                <div className="status-description">
+                  {isTrial ? "You have access to all Pro features" : "Upgrade to continue using ListGenie"}
+                </div>
               </div>
             </div>
-          </div>
-          <div className={`status-badge ${isTrial ? 'trial' : 'expired'}`}>
-            {isTrial ? "TRIAL" : "EXPIRED"}
+            <div className={`status-badge ${isTrial ? 'trial' : 'expired'}`}>
+              {isTrial ? "TRIAL" : "EXPIRED"}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Plans Grid */}
       <div className="pricing-plans-grid">
@@ -280,10 +282,7 @@ function UpgradeInner() {
               <h4>Is there a setup fee?</h4>
               <p>No setup fees! Just $19/month after your free trial.</p>
             </div>
-            <div className="faq-item">
-              <h4>Do you offer refunds?</h4>
-              <p>We offer a 30-day money-back guarantee if you're not satisfied.</p>
-            </div>
+
           </div>
         </div>
       </div>

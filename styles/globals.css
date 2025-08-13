@@ -330,17 +330,17 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 }
 
 .pricing-hero {
-  padding: 4rem 2rem 3rem;
+  padding: 2.5rem 2rem 2rem;
   text-align: center;
   max-width: 800px;
   margin: 0 auto;
 }
 
 .pricing-title {
-  font-size: 3rem;
+  font-size: 2.5rem;
   font-weight: 700;
   line-height: 1.1;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -355,7 +355,7 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 }
 
 .pricing-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   color: #cbd5e1;
   line-height: 1.6;
   max-width: 600px;
@@ -424,8 +424,8 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
   border: 1px solid rgba(16, 185, 129, 0.3);
   border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
   backdrop-filter: blur(10px);
 }
 
@@ -452,7 +452,7 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 }
 
 .pro-banner-left h3 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   margin-bottom: 0.5rem;
   color: white;
 }
@@ -521,7 +521,7 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 
 /* Plans Section */
 .pricing-plans-section {
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -530,8 +530,8 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 3rem;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
   backdrop-filter: blur(10px);
 }
 
@@ -585,15 +585,15 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 .pricing-plans-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: 2rem;
-  margin-bottom: 4rem;
+  gap: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 .pricing-plan-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2rem;
+  padding: 1.5rem;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   position: relative;
@@ -638,19 +638,19 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 
 .plan-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
 .plan-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 }
 
 .plan-name {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
   color: white;
 }
 
@@ -659,7 +659,7 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 }
 
 .price-amount {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #66c3ff;
 }
@@ -778,22 +778,22 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 
 /* Info Section */
 .pricing-info-section {
-  padding: 2rem;
-  margin-bottom: 4rem;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 .pricing-info-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 2rem;
   backdrop-filter: blur(10px);
 }
 
 .pricing-info-card h3 {
   text-align: center;
-  font-size: 1.75rem;
-  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
   color: white;
 }
 
@@ -827,29 +827,29 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 
 /* FAQ Section */
 .pricing-faq-section {
-  padding: 2rem;
-  margin-bottom: 4rem;
+  padding: 1.5rem;
+  margin-bottom: 3rem;
 }
 
 .pricing-faq-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2.5rem;
+  padding: 2rem;
   backdrop-filter: blur(10px);
 }
 
 .pricing-faq-card h3 {
   text-align: center;
-  font-size: 1.75rem;
-  margin-bottom: 2rem;
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
   color: white;
 }
 
 .faq-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .faq-item h4 {
@@ -867,7 +867,7 @@ h1,h2,h3{ margin: 0 0 .5rem; line-height: 1.15; }
 /* Back Section */
 .pricing-back-section {
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .pricing-back-btn {
