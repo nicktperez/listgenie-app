@@ -61,25 +61,25 @@ function UpgradeInner() {
     }
   };
 
-  if (isPro) {
     const [loadingPortal, setLoadingPortal] = useState(false);
-    const [err2, setErr2] = useState(null);
-  
-    const openPortal = async () => {
-      try {
-        setErr2(null);
-        setLoadingPortal(true);
-        const r = await fetch("/api/stripe/create-portal-session", { method: "POST" });
-        const j = await r.json();
-        if (!r.ok || !j?.url) throw new Error(j?.error || "Could not open billing portal.");
-        window.location.href = j.url;
-      } catch (e) {
-        setErr2(e?.message || "Something went wrong.");
-      } finally {
-        setLoadingPortal(false);
-      }
-    };
-  
+  const [err2, setErr2] = useState(null);
+
+  const openPortal = async () => {
+    try {
+      setErr2(null);
+      setLoadingPortal(true);
+      const r = await fetch("/api/stripe/create-portal-session", { method: "POST" });
+      const j = await r.json();
+      if (!r.ok || !j?.url) throw new Error(j?.error || "Could not open billing portal.");
+      window.location.href = j.url;
+    } catch (e) {
+      setErr2(e?.message || "Something went wrong.");
+    } finally {
+      setLoadingPortal(false);
+    }
+  };
+
+  if (isPro) {
     return (
       <div className="pricing-pro-section">
         <div className="pricing-pro-card">
