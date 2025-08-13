@@ -54,9 +54,26 @@
 
 /* Chat Container */
 .chat-container {
-  max-width: 800px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 20px;
+}
+
+.chat-layout {
+  display: flex;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+.chat-sidebar {
+  flex: 0 0 280px;
+  position: sticky;
+  top: 100px;
+}
+
+.chat-main {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Controls Section */
@@ -830,6 +847,15 @@
   padding: 0 20px;
 }
 
+.chat-sidebar .examples-section {
+  max-width: none;
+  margin: 0;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+}
+
 .examples-header {
   display: flex;
   justify-content: space-between;
@@ -931,6 +957,16 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .chat-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .chat-sidebar {
+    flex: none;
+    position: static;
+  }
+  
   .ai-chat-title {
     font-size: 2rem;
   }
