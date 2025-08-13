@@ -430,6 +430,79 @@ export default function ChatPage() {
     });
   }
 
+  async function handleModifyListing(listingText, modificationType) {
+    const modificationPrompts = {
+      longer: "Please make this listing longer and more detailed, adding more descriptive language and specific details about the property features.",
+      modern: "Please rewrite this listing to have a more modern, contemporary tone and style.",
+      country: "Please rewrite this listing to have a more country/rural, warm, and welcoming tone.",
+      luxurious: "Please rewrite this listing to have a more luxurious, upscale, and premium tone."
+    };
+
+    const prompt = modificationPrompts[modificationType];
+    if (!prompt) return;
+
+    // Add the modification request to the chat
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: `Modify this listing: ${prompt}` },
+      { role: "assistant", content: "", pretty: "" }
+    ]);
+
+    try {
+      setLoading(true);
+      
+      const resp = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            { role: "user", content: `Here is a property listing: ${listingText}` },
+            { role: "user", content: prompt }
+          ],
+          tone: "mls" // Use MLS tone for modifications
+        }),
+      });
+
+      if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
+
+      if (resp.body && resp.body.getReader) {
+        // Handle streaming response
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let acc = "";
+        
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+        }
+
+        const displayContent = coerceToReadableText(acc);
+        
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
+          return copy;
+        });
+      } else {
+        // Handle non-streaming response
+        const data = await resp.json();
+        const displayContent = coerceToReadableText(data.content || data.message || "");
+        
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
+          return copy;
+        });
+      }
+    } catch (error) {
+      console.error("Error modifying listing:", error);
+      setError("Failed to modify listing. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function submitQuestionAnswers() {
     // Format answers into a natural language response with better context
     const answerText = questions.map((question, index) => {
@@ -883,35 +956,43 @@ export default function ChatPage() {
 
   return (
     <div className="chat-page">
-      <header className="main-header">
-        <div className="header-content">
-          <div className="brand-section">
-            <div className="logo">🏠</div>
-            <div className="title">ListGenie.ai</div>
+
+
+      <main className="chat-container">
+        {/* AI Chat - Main Focal Point */}
+        <div className="ai-chat-section">
+          <h1 className="ai-chat-title">AI Listing Generator</h1>
+          <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
+          
+          <section className="composer">
+            <textarea
+              rows={4}
+              placeholder="Paste a property description or type details…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+            />
+            <button className="send" disabled={loading || !input.trim()} onClick={handleSend}>
+              {loading ? "Generating…" : "Generate Listing"}
+            </button>
+          </section>
+        </div>
+
+        {/* Examples - Smaller and Less Prominent */}
+        <div className="examples-section">
+          <div className="examples-header">
+            <h3 className="examples-title">Quick Examples</h3>
             <div className="plan-badge">
               {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
             </div>
           </div>
-          <div className="tagline">Generate listings, captions, and flyers</div>
-        </div>
-      </header>
-
-      <main className="chat-container">
-        <section className="controls">
-          <div className="row1">
-            <TonePill value="mls" label="MLS-ready" current={tone} onChange={setTone} />
-            <TonePill value="social" label="Social caption" current={tone} onChange={setTone} />
-            <TonePill value="luxury" label="Luxury tone" current={tone} onChange={setTone} />
-            <TonePill value="concise" label="Concise" current={tone} onChange={setTone} />
-          </div>
-          <div className="examples">
+          <div className="examples-grid">
             {examples.map((ex, i) => (
-              <button key={i} className="example" onClick={() => setInput(ex.text)}>
+              <button key={i} className="example-btn" onClick={() => setInput(ex.text)}>
                 {ex.label}
               </button>
             ))}
           </div>
-        </section>
+        </div>
 
         {/* Only show chat area if there are messages */}
         {messages.length > 0 && (
@@ -925,25 +1006,61 @@ export default function ChatPage() {
                     <div className="assistant-message">
                       {message.pretty || message.content || "Generating..."}
                       
-                                            {/* Show action buttons after listings */}
-                      {message.pretty && message.pretty.includes('**') && (
-                        <div className="listing-actions">
-                          <button 
-                            className="copy-btn"
-                            onClick={() => handleCopyListing(message.pretty)}
-                            title="Copy listing to clipboard"
-                          >
-                            📋 Copy Listing
-                          </button>
-                          <button 
-                            className="flyer-btn-small"
-                            onClick={openFlyerModal}
-                            title="Generate flyers from this listing"
-                          >
-                            🎨 Create Flyers
-                          </button>
-                        </div>
-                      )}
+                                                                      {/* Show action buttons after listings */}
+                          {message.pretty && message.pretty.includes('**') && (
+                            <div className="listing-actions">
+                              <div className="primary-actions">
+                                <button 
+                                  className="copy-btn"
+                                  onClick={() => handleCopyListing(message.pretty)}
+                                  title="Copy listing to clipboard"
+                                >
+                                  📋 Copy Listing
+                                </button>
+                                <button 
+                                  className="flyer-btn-small"
+                                  onClick={openFlyerModal}
+                                  title="Generate flyers from this listing"
+                                >
+                                  🎨 Create Flyers
+                                </button>
+                              </div>
+                              
+                              <div className="modification-options">
+                                <h4 className="modify-title">Modify Listing:</h4>
+                                <div className="modify-buttons">
+                                  <button 
+                                    className="modify-btn"
+                                    onClick={() => handleModifyListing(message.pretty, 'longer')}
+                                    title="Make the listing longer and more detailed"
+                                  >
+                                    📝 Make Longer
+                                  </button>
+                                  <button 
+                                    className="modify-btn"
+                                    onClick={() => handleModifyListing(message.pretty, 'modern')}
+                                    title="Make the listing more modern and contemporary"
+                                  >
+                                    🏢 More Modern
+                                  </button>
+                                  <button 
+                                    className="modify-btn"
+                                    onClick={() => handleModifyListing(message.pretty, 'country')}
+                                    title="Make the listing more country/rural focused"
+                                  >
+                                    🌾 More Country
+                                  </button>
+                                  <button 
+                                    className="modify-btn"
+                                    onClick={() => handleModifyListing(message.pretty, 'luxurious')}
+                                    title="Make the listing more luxurious and upscale"
+                                  >
+                                    ✨ More Luxurious
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                     </div>
                   )}
                 </div>
@@ -963,17 +1080,7 @@ export default function ChatPage() {
           </section>
         )}
 
-        <section className="composer">
-          <textarea
-            rows={3}
-            placeholder="Paste a property description or type details…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-          />
-          <button className="send" disabled={loading || !input.trim()} onClick={handleSend}>
-            {loading ? "Generating…" : "Send"}
-          </button>
-        </section>
+
       </main>
 
       {flyerOpen && (
