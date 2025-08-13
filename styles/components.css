@@ -646,3 +646,148 @@
     opacity: 1; 
   } 
 }
+
+/* New Chat Layout Styles */
+.chat-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.chat-sidebar {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  height: fit-content;
+  backdrop-filter: blur(10px);
+}
+
+.sidebar-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.sidebar-section {
+  margin-bottom: 32px;
+}
+
+.sidebar-title {
+  color: #e6e9ef;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.tone-pills {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tone-pills .tone-pill {
+  width: 100%;
+  justify-content: center;
+}
+
+.examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.example-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #e6e9ef;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.example-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.chat-main {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.ai-search-section {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.ai-search-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #e6e9ef;
+  margin: 0 0 16px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ai-search-subtitle {
+  font-size: 1.1rem;
+  color: #9aa4b2;
+  margin: 0 0 32px 0;
+  line-height: 1.6;
+}
+
+.ai-search-section .composer {
+  max-width: 600px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 32px;
+  backdrop-filter: blur(10px);
+}
+
+.ai-search-section .composer textarea {
+  font-size: 16px;
+  min-height: 120px;
+  margin-bottom: 24px;
+}
+
+.ai-search-section .send {
+  font-size: 18px;
+  padding: 16px 32px;
+  border-radius: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .chat-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .chat-sidebar {
+    order: 2;
+  }
+  
+  .chat-main {
+    order: 1;
+  }
+  
+  .ai-search-title {
+    font-size: 2rem;
+  }
+}
