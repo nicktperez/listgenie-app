@@ -1097,7 +1097,7 @@ export default function ChatPage() {
           
           <section className="composer">
             <textarea
-              rows={4}
+              rows={2}
               placeholder="Paste a property description or type details…"
               value={input}
               onChange={(e) => setInput(e.target.value)}

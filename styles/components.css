@@ -811,14 +811,14 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  padding: 32px;
+  padding: 24px;
   backdrop-filter: blur(10px);
 }
 
 .ai-chat-section .composer textarea {
   font-size: 16px;
-  min-height: 120px;
-  margin-bottom: 24px;
+  min-height: 60px;
+  margin-bottom: 20px;
 }
 
 .ai-chat-section .send {
@@ -845,31 +845,31 @@
 
 /* Compact examples above chat */
 .examples-section.compact {
-  max-width: 600px;
-  margin: 0 auto 20px auto;
-  padding: 12px 16px;
+  max-width: 500px;
+  margin: 0 auto 16px auto;
+  padding: 8px 12px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .examples-section.compact .examples-title {
   font-size: 0.8rem;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: #9aa4b2;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .examples-section.compact .examples-grid {
-  gap: 4px;
+  gap: 3px;
   justify-content: center;
 }
 
 .examples-section.compact .example-btn {
-  padding: 4px 10px;
+  padding: 3px 8px;
   font-size: 10px;
-  border-radius: 6px;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
