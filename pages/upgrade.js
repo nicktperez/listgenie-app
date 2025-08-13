@@ -68,11 +68,24 @@ function UpgradeInner() {
     try {
       setErr2(null);
       setLoadingPortal(true);
+      console.log("Opening billing portal..."); // Debug log
+      
       const r = await fetch("/api/stripe/create-portal-session", { method: "POST" });
+      console.log("Portal response status:", r.status); // Debug log
+      
       const j = await r.json();
-      if (!r.ok || !j?.url) throw new Error(j?.error || "Could not open billing portal.");
+      console.log("Portal response data:", j); // Debug log
+      
+      if (!r.ok || !j?.url) {
+        const errorMsg = j?.error || "Could not open billing portal.";
+        console.error("Portal error:", errorMsg); // Debug log
+        throw new Error(errorMsg);
+      }
+      
+      console.log("Redirecting to:", j.url); // Debug log
       window.location.href = j.url;
     } catch (e) {
+      console.error("Portal error:", e); // Debug log
       setErr2(e?.message || "Something went wrong.");
     } finally {
       setLoadingPortal(false);
@@ -92,8 +105,20 @@ function UpgradeInner() {
             <p>Enjoy unlimited access to all ListGenie features</p>
           </div>
           <div className="pro-banner-actions">
+            {err2 && <div className="pricing-error" style={{ marginBottom: '1rem', textAlign: 'center' }}>{err2}</div>}
             <button className="pricing-btn primary" onClick={openPortal} disabled={loadingPortal}>
               {loadingPortal ? "Opening…" : "Manage Billing"}
+            </button>
+            <button 
+              className="pricing-btn secondary" 
+              onClick={() => {
+                console.log("Manual fallback - opening Stripe dashboard...");
+                // Fallback: try to open Stripe dashboard directly
+                window.open("https://dashboard.stripe.com/billing", "_blank");
+              }}
+              style={{ marginTop: '0.5rem' }}
+            >
+              Open Stripe Dashboard
             </button>
             <Link href="/chat" className="pricing-btn secondary">
               Back to Chat
