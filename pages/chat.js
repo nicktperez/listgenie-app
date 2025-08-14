@@ -1392,26 +1392,125 @@ export default function ChatPage() {
                 </p>
                 
                 <div className="customization-grid">
-                  <div className="customization-item">
-                    <label className="customization-label">Primary Color</label>
-                    <input
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="color-picker"
-                    />
-                    <span className="color-value">{primaryColor}</span>
-                  </div>
-                  
-                  <div className="customization-item">
-                    <label className="customization-label">Accent Color</label>
-                    <input
-                      type="color"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="color-picker"
-                    />
-                    <span className="color-value">{secondaryColor}</span>
+                  <div className="customization-item full-width">
+                    <label className="customization-label">Color Theme</label>
+                    <p className="customization-description">
+                      Choose from professional color schemes designed for real estate
+                    </p>
+                    <div className="current-theme-display">
+                      <span className="current-theme-label">Current:</span>
+                      <span className="current-theme-name">
+                        {primaryColor === "#2d4a3e" && secondaryColor === "#8b9d83" ? "Forest Green" :
+                         primaryColor === "#1e3a8a" && secondaryColor === "#60a5fa" ? "Navy Blue" :
+                         primaryColor === "#7c2d12" && secondaryColor === "#f59e0b" ? "Warm Brown" :
+                         primaryColor === "#374151" && secondaryColor === "#9ca3af" ? "Modern Gray" :
+                         primaryColor === "#581c87" && secondaryColor === "#a855f7" ? "Royal Purple" :
+                         primaryColor === "#dc2626" && secondaryColor === "#f87171" ? "Bold Red" : "Custom"}
+                        </span>
+                    </div>
+                    <div className="color-palettes">
+                      <div 
+                        className={`color-palette ${primaryColor === "#2d4a3e" && secondaryColor === "#8b9d83" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#2d4a3e");
+                          setSecondaryColor("#8b9d83");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#2d4a3e"}}></div>
+                          <div className="palette-secondary" style={{background: "#8b9d83"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Forest Green</span>
+                          <span className="palette-description">Professional & Trustworthy</span>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className={`color-palette ${primaryColor === "#1e3a8a" && secondaryColor === "#60a5fa" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#1e3a8a");
+                          setSecondaryColor("#60a5fa");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#1e3a8a"}}></div>
+                          <div className="palette-secondary" style={{background: "#60a5fa"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Navy Blue</span>
+                          <span className="palette-description">Classic & Sophisticated</span>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className={`color-palette ${primaryColor === "#7c2d12" && secondaryColor === "#f59e0b" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#7c2d12");
+                          setSecondaryColor("#f59e0b");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#7c2d12"}}></div>
+                          <div className="palette-secondary" style={{background: "#f59e0b"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Warm Brown</span>
+                          <span className="palette-description">Cozy & Inviting</span>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className={`color-palette ${primaryColor === "#374151" && secondaryColor === "#9ca3af" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#374151");
+                          setSecondaryColor("#9ca3af");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#374151"}}></div>
+                          <div className="palette-secondary" style={{background: "#9ca3af"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Modern Gray</span>
+                          <span className="palette-description">Clean & Contemporary</span>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className={`color-palette ${primaryColor === "#581c87" && secondaryColor === "#a855f7" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#581c87");
+                          setSecondaryColor("#a855f7");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#581c87"}}></div>
+                          <div className="palette-secondary" style={{background: "#a855f7"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Royal Purple</span>
+                          <span className="palette-description">Luxury & Elegance</span>
+                        </div>
+                      </div>
+                      
+                      <div 
+                        className={`color-palette ${primaryColor === "#dc2626" && secondaryColor === "#f87171" ? 'active' : ''}`}
+                        onClick={() => {
+                          setPrimaryColor("#dc2626");
+                          setSecondaryColor("#f87171");
+                        }}
+                      >
+                        <div className="palette-preview">
+                          <div className="palette-primary" style={{background: "#dc2626"}}></div>
+                          <div className="palette-secondary" style={{background: "#f87171"}}></div>
+                        </div>
+                        <div className="palette-info">
+                          <span className="palette-name">Bold Red</span>
+                          <span className="palette-description">Attention-Grabbing</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="customization-item">
