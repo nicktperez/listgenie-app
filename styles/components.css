@@ -921,6 +921,15 @@
   text-align: center;
 }
 
+.examples-section.compact .examples-header {
+  text-align: center;
+}
+
+.examples-section.compact .examples-title {
+  text-align: center;
+  margin: 0 auto;
+}
+
 .examples-section.compact .examples-title {
   font-size: 0.8rem;
   margin-bottom: 6px;
@@ -932,6 +941,9 @@
 .examples-section.compact .examples-grid {
   gap: 3px;
   justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .examples-section.compact .example-btn {

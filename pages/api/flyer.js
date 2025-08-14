@@ -482,9 +482,18 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         .feature-card .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 12px;
-            display: block;
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--secondary);
+        }
+        
+        .feature-card .feature-icon svg {
+            width: 100%;
+            height: 100%;
         }
         
         .feature-card .feature-text {
@@ -800,7 +809,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             }
             
             .feature-card .feature-icon {
-                font-size: 1.5rem;
+                width: 40px;
+                height: 40px;
                 margin-bottom: 8px;
             }
             
@@ -928,28 +938,44 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 
                 <div class="property-details-grid">
                     <div class="detail-item">
-                        <div class="detail-icon">🛏️</div>
+                        <div class="detail-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M7 13c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM7 17c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM17 13c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM17 17c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM7 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM7 11c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM17 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM17 11c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1z"/>
+                            </svg>
+                        </div>
                         <div class="detail-content">
                             <div class="detail-value">4</div>
                             <div class="detail-label">Bedrooms</div>
                         </div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-icon">🚿</div>
+                        <div class="detail-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8.17 11H7V9.75C7 8.51 8.16 7.5 9.5 7.5S12 8.51 12 9.75V11h-1.17c-.41 0-.67.42-.43.75l2.58 3.67c.36.52.36 1.24 0 1.76-.17.24-.26.41-.26.66 0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5c0-.25-.09-.42-.26-.66-.36-.52-.36-1.24 0-1.76l2.58-3.67c.24-.33-.02-.75-.43-.75zM9 9.75V11h1V9.75c0-.41-.45-.75-1-.75s-1 .34-1 .75z"/>
+                            </svg>
+                        </div>
                         <div class="detail-content">
                             <div class="detail-value">3</div>
                             <div class="detail-label">Bathrooms</div>
                         </div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-icon">📏</div>
+                        <div class="detail-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 5.24 2.19c.48.38.76.96.76 1.58V19z"/>
+                            </svg>
+                        </div>
                         <div class="detail-content">
                             <div class="detail-value">2,528</div>
                             <div class="detail-label">Sq. Ft.</div>
                         </div>
                     </div>
                     <div class="detail-item">
-                        <div class="detail-icon">🏗️</div>
+                        <div class="detail-icon">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                            </svg>
+                        </div>
                         <div class="detail-content">
                             <div class="detail-value">2020</div>
                             <div class="detail-label">Year Built</div>
@@ -979,27 +1005,51 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="section-title">Property Highlights</div>
                     <div class="features-grid">
                         <div class="feature-card">
-                            <div class="feature-icon">✨</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">High Ceilings</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">🎨</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">Crown Molding</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">🏠</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">Updated Kitchen</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">🌳</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zM5.6 10.25c0 1.38 1.12 2.5 2.5 2.5.53 0 1.01-.16 1.42-.44l-.02.19c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5l-.02-.19c.4.28.89.44 1.42.44 1.38 0 2.5-1.12 2.5-2.5 0-1-.59-1.85-1.43-2.25.84-.4 1.43-1.25 1.43-2.25 0-1.38-1.12-2.5-2.5-2.5-.53 0-1.01.16-1.42.44l.02-.19C14.5 2.12 13.38 1 12 1S9.5 2.12 9.5 3.5l.02.19c-.4-.28-.89-.44-1.42-.44-1.38 0-2.5 1.12-2.5 2.5 0 1 .59 1.85 1.43 2.25-.84.4-1.43 1.25-1.43 2.25z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">Lush Landscaping</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">🚗</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">2-Car Garage</div>
                         </div>
                         <div class="feature-card">
-                            <div class="feature-icon">🏊</div>
+                            <div class="feature-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M22 21c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.08.64-2.19.64-1.11 0-1.73-.37-2.18-.64-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.46.27-1.08.64-2.19.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM22 17c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.47.27-1.07.64-2.18.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM22 13c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.47.27-1.07.64-2.18.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM7 15c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1z"/>
+                                </svg>
+                            </div>
                             <div class="feature-text">Community Pool</div>
                         </div>
                     </div>
@@ -1034,28 +1084,44 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     
                     <div class="property-details-grid">
                         <div class="detail-item">
-                            <div class="detail-icon">🛏️</div>
+                            <div class="detail-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M7 13c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM7 17c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM17 13c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM17 17c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM7 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM7 11c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1zM17 7c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3zM17 11c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1z"/>
+                                </svg>
+                            </div>
                             <div class="detail-content">
                                 <div class="detail-value">4</div>
                                 <div class="detail-label">Bedrooms</div>
                             </div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-icon">🚿</div>
+                            <div class="detail-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8.17 11H7V9.75C7 8.51 8.16 7.5 9.5 7.5S12 8.51 12 9.75V11h-1.17c-.41 0-.67.42-.43.75l2.58 3.67c.36.52.36 1.24 0 1.76-.17.24-.26.41-.26.66 0 .83-.67 1.5-1.5 1.5s-1.5-.67-1.5-1.5c0-.25-.09-.42-.26-.66-.36-.52-.36-1.24 0-1.76l2.58-3.67c.24-.33-.02-.75-.43-.75zM9 9.75V11h1V9.75c0-.41-.45-.75-1-.75s-1 .34-1 .75z"/>
+                                </svg>
+                            </div>
                             <div class="detail-content">
                                 <div class="detail-value">3</div>
                                 <div class="detail-label">Bathrooms</div>
                             </div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-icon">📏</div>
+                            <div class="detail-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 5.24 2.19c.48.38.76.96.76 1.58V19z"/>
+                                </svg>
+                            </div>
                             <div class="detail-content">
                                 <div class="detail-value">2,528</div>
                                 <div class="detail-label">Sq. Ft.</div>
                             </div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-icon">🏗️</div>
+                            <div class="detail-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                </svg>
+                            </div>
                             <div class="detail-content">
                                 <div class="detail-value">2020</div>
                                 <div class="detail-label">Year Built</div>
@@ -1067,27 +1133,51 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                         <div class="section-title">Property Highlights</div>
                         <div class="features-grid">
                             <div class="feature-card">
-                                <div class="feature-icon">✨</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">High Ceilings</div>
                             </div>
                             <div class="feature-card">
-                                <div class="feature-icon">🎨</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">Crown Molding</div>
                             </div>
                             <div class="feature-card">
-                                <div class="feature-icon">🏠</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">Updated Kitchen</div>
                             </div>
                             <div class="feature-card">
-                                <div class="feature-icon">🌳</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zM5.6 10.25c0 1.38 1.12 2.5 2.5 2.5.53 0 1.01-.16 1.42-.44l-.02.19c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5l-.02-.19c.4.28.89.44 1.42.44 1.38 0 2.5-1.12 2.5-2.5 0-1-.59-1.85-1.43-2.25.84-.4 1.43-1.25 1.43-2.25 0-1.38-1.12-2.5-2.5-2.5-.53 0-1.01.16-1.42.44l.02-.19C14.5 2.12 13.38 1 12 1S9.5 2.12 9.5 3.5l.02.19c-.4-.28-.89-.44-1.42-.44-1.38 0-2.5 1.12-2.5 2.5 0 1 .59 1.85 1.43 2.25-.84.4-1.43 1.25-1.43 2.25z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">Lush Landscaping</div>
                             </div>
                             <div class="feature-card">
-                                <div class="feature-icon">🚗</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">2-Car Garage</div>
                             </div>
                             <div class="feature-card">
-                                <div class="feature-icon">🏊</div>
+                                <div class="feature-icon">
+                                    <svg viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M22 21c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.46.27-1.08.64-2.19.64-1.11 0-1.73-.37-2.18-.64-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.46.27-1.08.64-2.19.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM22 17c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.47.27-1.07.64-2.18.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM22 13c-1.11 0-1.73-.37-2.18-.64-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.22-.6-.36-1.15-.36-.56 0-.78.13-1.15.36-.45.27-1.07.64-2.18.64s-1.73-.37-2.18-.64c-.37-.23-.6-.36-1.15-.36s-.78.13-1.15.36c-.47.27-1.07.64-2.18.64v-2c.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.22.6.36 1.15.36.56 0 .78-.13 1.15-.36.46-.27 1.08-.64 2.19-.64s1.73.37 2.18.64c.37.23.59.36 1.15.36v2zM7 15c.55 0 1-.45 1-1s-.45-1-1-1-1 .45-1 1 .45 1 1 1z"/>
+                                    </svg>
+                                </div>
                                 <div class="feature-text">Community Pool</div>
                             </div>
                         </div>
