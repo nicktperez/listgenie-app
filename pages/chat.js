@@ -120,6 +120,7 @@ export default function ChatPage() {
         if (parsed.secondaryColor) setSecondaryColor(parsed.secondaryColor);
         if (parsed.fontStyle) setFontStyle(parsed.fontStyle);
         if (parsed.backgroundPattern) setBackgroundPattern(parsed.backgroundPattern);
+        if (parsed.propertyDetails) setPropertyDetails(parsed.propertyDetails);
       } catch (e) {
         console.log('Error loading saved agency info:', e);
       }
@@ -136,6 +137,14 @@ export default function ChatPage() {
   
   // Background pattern option
   const [backgroundPattern, setBackgroundPattern] = useState("none");
+  
+  // Property details state
+  const [propertyDetails, setPropertyDetails] = useState({
+    bedrooms: '',
+    bathrooms: '',
+    sqft: '',
+    yearBuilt: ''
+  });
   
   // Save confirmation state
   const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
@@ -801,7 +810,8 @@ export default function ChatPage() {
       primaryColor,
       secondaryColor,
       fontStyle,
-      backgroundPattern
+      backgroundPattern,
+      propertyDetails
     };
     localStorage.setItem('listgenie_agency_info', JSON.stringify(agencyInfo));
     
@@ -854,6 +864,7 @@ export default function ChatPage() {
         openHouseDate,
         openHouseTime,
         openHouseAddress,
+        propertyDetails,
         useSignatureStyling,
         backgroundPattern,
         showAdvancedOptions
@@ -1349,6 +1360,62 @@ export default function ChatPage() {
                       onChange={(e) => setOfficeAddress(e.target.value)}
                       className="flyer-input"
                     />
+                  </div>
+                </div>
+
+                {/* Property Details */}
+                <div className="flyer-section">
+                  <h3 className="flyer-section-title">Property Details (Optional)</h3>
+                  <p className="flyer-section-description">
+                    Add key property specifications to display on your flyer.
+                  </p>
+                  <div className="flyer-form-grid">
+                    <div className="form-group">
+                      <label>Bedrooms</label>
+                      <input
+                        type="number"
+                        placeholder="e.g., 3"
+                        value={propertyDetails.bedrooms || ''}
+                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, bedrooms: e.target.value }))}
+                        className="flyer-input"
+                        min="0"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Bathrooms</label>
+                      <input
+                        type="number"
+                        placeholder="e.g., 2.5"
+                        value={propertyDetails.bathrooms || ''}
+                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, bathrooms: e.target.value }))}
+                        className="flyer-input"
+                        min="0"
+                        step="0.5"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Square Feet</label>
+                      <input
+                        type="number"
+                        placeholder="e.g., 1850"
+                        value={propertyDetails.sqft || ''}
+                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, sqft: e.target.value }))}
+                        className="flyer-input"
+                        min="0"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Year Built</label>
+                      <input
+                        type="number"
+                        placeholder="e.g., 2015"
+                        value={propertyDetails.yearBuilt || ''}
+                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, yearBuilt: e.target.value }))}
+                        className="flyer-input"
+                        min="1800"
+                        max={new Date().getFullYear()}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
