@@ -121,6 +121,7 @@ export default function ChatPage() {
         if (parsed.fontStyle) setFontStyle(parsed.fontStyle);
         if (parsed.backgroundPattern) setBackgroundPattern(parsed.backgroundPattern);
         if (parsed.propertyDetails) setPropertyDetails(parsed.propertyDetails);
+        if (parsed.propertyHighlights) setPropertyHighlights(parsed.propertyHighlights);
       } catch (e) {
         console.log('Error loading saved agency info:', e);
       }
@@ -144,6 +145,17 @@ export default function ChatPage() {
     bathrooms: '',
     sqft: '',
     yearBuilt: ''
+  });
+  
+  // Property highlights state
+  const [propertyHighlights, setPropertyHighlights] = useState({
+    highCeilings: false,
+    crownMolding: false,
+    updatedKitchen: false,
+    lushLandscaping: false,
+    twoCarGarage: false,
+    communityPool: false,
+    solarPanels: false
   });
   
   // Save confirmation state
@@ -811,7 +823,8 @@ export default function ChatPage() {
       secondaryColor,
       fontStyle,
       backgroundPattern,
-      propertyDetails
+      propertyDetails,
+      propertyHighlights
     };
     localStorage.setItem('listgenie_agency_info', JSON.stringify(agencyInfo));
     
@@ -865,6 +878,7 @@ export default function ChatPage() {
         openHouseTime,
         openHouseAddress,
         propertyDetails,
+        propertyHighlights,
         useSignatureStyling,
         backgroundPattern,
         showAdvancedOptions
@@ -1415,6 +1429,86 @@ export default function ChatPage() {
                         min="1800"
                         max={new Date().getFullYear()}
                       />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Highlights */}
+                <div className="flyer-section">
+                  <h3 className="flyer-section-title">Property Highlights (Optional)</h3>
+                  <p className="flyer-section-description">
+                    Check the features that apply to your property. Only selected features will appear on your flyer.
+                  </p>
+                  <div className="highlights-grid">
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.highCeilings}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, highCeilings: e.target.checked }))}
+                        />
+                        <span className="highlight-label">High Ceilings</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.crownMolding}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, crownMolding: e.target.checked }))}
+                        />
+                        <span className="highlight-label">Crown Molding</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.updatedKitchen}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, updatedKitchen: e.target.checked }))}
+                        />
+                        <span className="highlight-label">Updated Kitchen</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.lushLandscaping}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, lushLandscaping: e.target.checked }))}
+                        />
+                        <span className="highlight-label">Lush Landscaping</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.twoCarGarage}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, twoCarGarage: e.target.checked }))}
+                        />
+                        <span className="highlight-label">2-Car Garage</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.communityPool}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, communityPool: e.target.checked }))}
+                        />
+                        <span className="highlight-label">Community Pool</span>
+                      </label>
+                    </div>
+                    <div className="highlight-item">
+                      <label className="highlight-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={propertyHighlights.solarPanels}
+                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, solarPanels: e.target.checked }))}
+                        />
+                        <span className="highlight-label">Solar Panels</span>
+                      </label>
                     </div>
                   </div>
                 </div>

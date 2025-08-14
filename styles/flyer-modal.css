@@ -354,6 +354,67 @@
   font-size: 0.9rem;
 }
 
+  /* Property Highlights Grid */
+  .highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+.highlight-item {
+  display: flex;
+  align-items: center;
+}
+
+.highlight-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.highlight-checkbox:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.highlight-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+  .highlight-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-on-primary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  @media (max-width: 768px) {
+    .highlights-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    .highlight-checkbox {
+      padding: 10px;
+    }
+    
+    .highlight-label {
+      font-size: 13px;
+    }
+  }
+
 .color-palettes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
