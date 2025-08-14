@@ -265,7 +265,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         .photo-item {
-            border-radius: 8px;
+            border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
             border: 2px solid var(--secondary);
@@ -281,6 +281,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             width: 100%;
             height: 180px;
             object-fit: cover;
+            border-radius: 12px;
         }
         
         /* Right Column - Content */
@@ -716,16 +717,16 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         <div class="main-content">
             <!-- Left Column - Photos -->
             <div class="left-column ${backgroundPattern !== "none" ? 'pattern-background' : ''}">
-                ${customization.propertyPhotos && customization.propertyPhotos.length > 1 ? 
-                    customization.propertyPhotos.slice(1, 4).map((photo, index) => `
+                ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
+                    customization.propertyPhotos.slice(0, 3).map((photo, index) => `
                         <div class="photo-item">
-                            <img src="${photo.data || photo.src || photo}" alt="Property Photo ${index + 2}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); display: none;">Photo ${index + 2}</div>
+                            <img src="${photo.data || photo.src || photo}" alt="Property Photo ${index + 1}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px; display: none;">Photo ${index + 1}</div>
                         </div>
                     `).join('') : 
                     Array(3).fill().map((_, index) => `
                         <div class="photo-item">
-                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary);">Photo ${index + 1}</div>
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px;">Photo ${index + 1}</div>
                         </div>
                     `).join('')
                 }
