@@ -190,49 +190,56 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             ${backgroundPattern !== "none" ? `background: var(--primary);` : ''}
         }
         
-        /* Hero Section with Large Image */
-        .hero-section {
+        /* Property Header */
+        .property-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--text-on-primary);
+            padding: 30px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             position: relative;
-            height: 350px;
-            overflow: hidden;
-            background: var(--primary);
         }
         
-        .hero-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.9;
-        }
-        
-        .hero-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
-        }
-        
-        .agency-logo {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-            width: 80px;
-            height: 80px;
-            border-radius: 12px;
+        .header-agency-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
             overflow: hidden;
             background: white;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            border: 3px solid var(--secondary);
+            border: 2px solid var(--secondary);
+            flex-shrink: 0;
         }
         
-        .agency-logo img {
+        .header-agency-logo img {
             width: 100%;
             height: 100%;
             object-fit: contain;
-            padding: 8px;
+            padding: 6px;
+        }
+        
+        .header-content {
+            flex: 1;
+            text-align: center;
+            margin: 0 20px;
+        }
+        
+        .header-title {
+            font-family: ${useSignatureStyling ? "'Great Vibes', cursive" : "'Playfair Display', serif"};
+            font-size: ${useSignatureStyling ? '2.5rem' : '2.2rem'};
+            font-weight: ${useSignatureStyling ? '400' : '600'};
+            margin-bottom: 8px;
+            line-height: 1.1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            ${useSignatureStyling ? 'letter-spacing: 0.05em;' : ''}
+        }
+        
+        .header-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            opacity: 0.8;
+            font-weight: 400;
         }
         
         /* Main Content Section - Two Column Layout */
@@ -392,159 +399,64 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             font-weight: bold;
         }
         
-        /* Open House Special Styling - Sleek Modern Design */
-        .open-house-banner {
-            position: relative;
-            background: rgba(255, 255, 255, 0.95);
-            color: var(--primary);
-            padding: 0;
-            margin: 0;
-            border-radius: 0;
-            text-align: left;
-            box-shadow: none;
-            overflow: hidden;
-        }
-        
-        .open-house-hero {
-            position: relative;
-            height: 400px;
+        /* Open House Special Styling - Clean & Simple */
+        .open-house-header {
             background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        
-        .open-house-hero::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 100%);
-            z-index: 1;
-        }
-        
-        .open-house-hero-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            z-index: 0;
-        }
-        
-        .open-house-content {
-            position: relative;
-            z-index: 2;
-            text-align: center;
             color: white;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 0;
+        }
+        
+        .open-house-title-section {
             max-width: 600px;
             margin: 0 auto;
-            padding: 0 40px;
         }
         
         .open-house-main-title {
             font-family: ${useSignatureStyling ? "'Great Vibes', cursive" : "'Playfair Display', serif"};
-            font-size: ${useSignatureStyling ? '4.5rem' : '4rem'};
+            font-size: ${useSignatureStyling ? '3.5rem' : '3rem'};
             font-weight: ${useSignatureStyling ? '400' : '300'};
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             line-height: 1.1;
-            text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
             ${useSignatureStyling ? 'letter-spacing: 0.05em;' : ''}
         }
         
-        .open-house-subtitle {
+        .open-house-date-info {
             font-family: 'Inter', sans-serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
-        }
-        
-        .open-house-invitation {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 500;
-            margin-bottom: 30px;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 10px;
             opacity: 0.9;
         }
         
-        .open-house-date-bar {
-            background: rgba(255, 255, 255, 0.95);
-            color: var(--primary);
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: inline-block;
+        .open-house-location {
             font-family: 'Inter', sans-serif;
             font-size: 1.1rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            opacity: 0.8;
         }
         
-        .open-house-details {
-            background: white;
-            padding: 40px;
-            position: relative;
+        .open-house-content-section {
+            padding: 40px 20px;
         }
         
-        .open-house-details::before {
-            content: '';
-            position: absolute;
-            top: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
-            background: var(--primary);
-            border-radius: 50%;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-        }
-        
-        .open-house-description {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.1rem;
-            line-height: 1.7;
-            color: #333;
+        .open-house-description-section {
             margin-bottom: 30px;
-            text-align: center;
-            max-width: 500px;
-            margin-left: auto;
-            margin-right: auto;
         }
         
-        .open-house-features {
-            margin-bottom: 40px;
+        .open-house-features-section {
+            margin-bottom: 30px;
         }
         
-        .open-house-features-title {
-            font-family: 'Inter', sans-serif;
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 20px;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-        
-        .open-house-features-list {
+        .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 15px;
-            max-width: 600px;
-            margin: 0 auto;
+            margin-top: 20px;
         }
         
-        .open-house-feature-item {
+        .feature-item {
             background: #f8f9fa;
             padding: 15px 20px;
             border-radius: 12px;
@@ -557,90 +469,16 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             transition: all 0.3s ease;
         }
         
-        .open-house-feature-item:hover {
+        .feature-item:hover {
             background: var(--primary);
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         
-        .open-house-photos {
-            background: var(--primary);
-            padding: 40px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .open-house-photos::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            z-index: 0;
-        }
-        
-        .open-house-photos-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .open-house-photo {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 4px solid white;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .open-house-photo:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.4);
-        }
-        
-        .open-house-photo img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .open-house-contact {
-            background: white;
-            padding: 30px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .open-house-contact-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-family: 'Inter', sans-serif;
-            font-size: 1rem;
-            font-weight: 500;
-            color: #333;
-        }
-        
-        .open-house-contact-icon {
-            width: 24px;
-            height: 24px;
-            background: var(--primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 0.8rem;
+        .open-house-cta-section {
+            text-align: center;
+            margin-top: 30px;
         }
         
         .open-house-cta {
@@ -658,38 +496,54 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             border: 2px solid var(--primary);
         }
         
-                 .open-house-cta:hover {
-             background: white;
-             color: var(--primary);
-             transform: translateY(-2px);
-             box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-         }
-         
-         .open-house-cta-section {
-             text-align: center;
-             padding: 40px 20px;
-         }
-         
-         .open-house-info {
-             margin: 30px 0;
-             text-align: left;
-         }
-         
-         .info-item {
-             font-family: 'Inter', sans-serif;
-             font-size: 1.1rem;
-             color: #333;
-             margin-bottom: 15px;
-             padding: 15px 20px;
-             background: #f8f9fa;
-             border-radius: 8px;
-             border-left: 4px solid var(--primary);
-         }
-         
-         .info-item strong {
-             color: var(--primary);
-             margin-right: 10px;
-         }
+        .open-house-cta:hover {
+            background: white;
+            color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+        
+        /* Website Link Styling */
+        .listing-website-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .website-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .listing-website-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--secondary);
+            text-decoration: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .listing-website-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
         
         /* Footer */
         .footer {
@@ -754,8 +608,24 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 padding: 25px 20px;
             }
             
-            .hero-section {
-                height: 250px;
+            .property-header {
+                padding: 20px 15px;
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .header-agency-logo {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .header-title {
+                font-size: ${useSignatureStyling ? '2rem' : '1.8rem'};
+            }
+            
+            .header-subtitle {
+                font-size: 0.9rem;
             }
             
             .flyer-title {
@@ -772,49 +642,33 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             }
             
             /* Open House Mobile Styles */
-            .open-house-hero {
-                height: 300px;
+            .open-house-header {
+                padding: 30px 15px;
             }
             
             .open-house-main-title {
-                font-size: ${useSignatureStyling ? '3.5rem' : '3rem'};
+                font-size: ${useSignatureStyling ? '2.8rem' : '2.5rem'};
             }
             
-            .open-house-subtitle {
-                font-size: 2rem;
+            .open-house-date-info {
+                font-size: 1.1rem;
             }
             
-            .open-house-invitation {
+            .open-house-location {
                 font-size: 1rem;
             }
             
-            .open-house-date-bar {
-                padding: 12px 25px;
-                font-size: 1rem;
+            .open-house-content-section {
+                padding: 30px 15px;
             }
             
-            .open-house-details {
-                padding: 30px 20px;
-            }
-            
-            .open-house-features-list {
+            .features-grid {
                 grid-template-columns: 1fr;
                 gap: 12px;
             }
             
-            .open-house-photos {
-                padding: 30px 20px;
-            }
-            
-            .open-house-photo {
-                width: 100px;
-                height: 100px;
-            }
-            
-            .open-house-contact {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
+            .listing-website-section {
+                padding: 15px;
             }
         }
         
@@ -825,88 +679,35 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 box-shadow: none;
                 border-radius: 0;
             }
-            .hero-section { height: 250px; }
+            .property-header { padding: 20px 15px; }
+            .open-house-header { padding: 30px 15px; }
         }
     </style>
 </head>
 <body>
     <div class="flyer-container ${backgroundPattern !== "none" ? 'pattern-background' : ''}">
-        <!-- Hero Section with Large Image -->
-        <div class="hero-section">
-            ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
-                `<img src="${customization.propertyPhotos[0].data || customization.propertyPhotos[0].src || customization.propertyPhotos[0]}" alt="Property Hero" class="hero-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                '<div class="hero-image" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600;">Property Photo</div>'
-            }
-            <div class="hero-image fallback-hero" style="background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); display: flex; align-items: center; justify-content: center; color: var(--text-on-primary); font-size: 1.5rem; font-weight: 600; display: none;">Property Photo</div>
-            <div class="hero-overlay"></div>
-            
-            <!-- Agency Logo (top right corner) -->
+        <!-- Standard Property Header (if applicable) -->
+        ${!isOpenHouse ? `
+        <div class="property-header">
             ${customization.agencyLogo ? `
-            <div class="agency-logo">
+            <div class="header-agency-logo">
                 <img src="${customization.agencyLogo.data || customization.agencyLogo.src || customization.agencyLogo}" alt="Agency Logo" onerror="this.parentElement.style.display='none';" />
             </div>
             ` : ''}
+            <div class="header-content">
+                <h1 class="header-title">Property Listing</h1>
+                <div class="header-subtitle">Professional Real Estate Marketing</div>
+            </div>
         </div>
+        ` : ''}
         
-        <!-- Open House Banner (if applicable) -->
+        <!-- Open House Header (if applicable) -->
         ${isOpenHouse ? `
-        <div class="open-house-banner">
-            <div class="open-house-hero">
-                ${customization.propertyPhotos && customization.propertyPhotos.length > 0 ? 
-                    `<img src="${customization.propertyPhotos[0].data || customization.propertyPhotos[0].src || customization.propertyPhotos[0]}" alt="Property Hero" class="open-house-hero-image" onerror="this.style.display='none';">` : 
-                    ''
-                }
-                <div class="open-house-content">
-                    <h1 class="open-house-main-title">Open</h1>
-                    <h2 class="open-house-subtitle">HOUSE</h2>
-                    <div class="open-house-invitation">INVITATION</div>
-                    <div class="open-house-date-bar">${openHouseDate}</div>
-                </div>
-            </div>
-            
-            <div class="open-house-details">
-                <div class="open-house-description">
-                    Attending the open house allowed visitors to envision themselves living in the comfortable and stylish surroundings.
-                </div>
-                
-                <div class="open-house-features">
-                    <h3 class="open-house-features-title">PROPERTY FEATURES</h3>
-                    <div class="open-house-features-list">
-                        <div class="open-house-feature-item">Living Room</div>
-                        <div class="open-house-feature-item">Dining Room</div>
-                        <div class="open-house-feature-item">Kitchen Set</div>
-                        <div class="open-house-feature-item">Swimming Pool</div>
-                        <div class="open-house-feature-item">Carport</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="open-house-photos">
-                <div class="open-house-photos-content">
-                    ${customization.propertyPhotos && customization.propertyPhotos.length > 1 ? 
-                        customization.propertyPhotos.slice(1, 4).map((photo, index) => `
-                            <div class="open-house-photo">
-                                <img src="${photo.data || photo.src || photo}" alt="Property Photo ${index + 2}" onerror="this.parentElement.style.display='none';" />
-                            </div>
-                        `).join('') : 
-                        Array(3).fill().map((_, index) => `
-                            <div class="open-house-photo" style="background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem;">
-                                Photo ${index + 1}
-                            </div>
-                        `).join('')
-                    }
-                </div>
-            </div>
-            
-            <div class="open-house-contact">
-                <div class="open-house-contact-item">
-                    <div class="open-house-contact-icon">📞</div>
-                    <span>${customization.agentPhone || '+123-456-789'}</span>
-                </div>
-                <div class="open-house-contact-item">
-                    <div class="open-house-contact-icon">🌐</div>
-                    <span>${customization.websiteLink || '@reallygreatsite'}</span>
-                </div>
+        <div class="open-house-header">
+            <div class="open-house-title-section">
+                <h1 class="open-house-main-title">Open House</h1>
+                <div class="open-house-date-info">${openHouseDate} • ${openHouseTime}</div>
+                <div class="open-house-location">${openHouseAddress}</div>
             </div>
         </div>
         ` : ''}
@@ -946,6 +747,17 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="section-title">About This Property</div>
                     <div class="property-description">
                         Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!
+                        
+                        ${customization.websiteLink ? `
+                        <div class="listing-website-section">
+                            <div class="website-label">View Full Listing:</div>
+                            <a href="${customization.websiteLink.startsWith('http') ? customization.websiteLink : 'https://' + customization.websiteLink}" 
+                               target="_blank" 
+                               class="listing-website-link">
+                                🌐 ${customization.websiteLink}
+                            </a>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
                 
@@ -967,22 +779,43 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     </ul>
                 </div>
                 ` : `
-                <div class="open-house-cta-section">
+                <div class="open-house-content-section">
                     <h2 class="flyer-title">Join Us for the Open House</h2>
-                    <div class="open-house-info">
-                        <div class="info-item">
-                            <strong>Date:</strong> ${openHouseDate}
+                    
+                    <div class="open-house-description-section">
+                        <div class="section-title">About This Property</div>
+                        <div class="property-description">
+                            Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!
                         </div>
-                        <div class="info-item">
-                            <strong>Time:</strong> ${openHouseTime}
+                        
+                        ${customization.websiteLink ? `
+                        <div class="listing-website-section">
+                            <div class="website-label">View Full Listing:</div>
+                            <a href="${customization.websiteLink.startsWith('http') ? customization.websiteLink : 'https://' + customization.websiteLink}" 
+                               target="_blank" 
+                               class="listing-website-link">
+                                🌐 ${customization.websiteLink}
+                            </a>
                         </div>
-                        <div class="info-item">
-                            <strong>Location:</strong> ${openHouseAddress}
+                        ` : ''}
+                    </div>
+                    
+                    <div class="open-house-features-section">
+                        <div class="section-title">Property Features</div>
+                        <div class="features-grid">
+                            <div class="feature-item">Living Room</div>
+                            <div class="feature-item">Dining Room</div>
+                            <div class="feature-item">Kitchen Set</div>
+                            <div class="feature-item">Swimming Pool</div>
+                            <div class="feature-item">Carport</div>
                         </div>
                     </div>
-                    <a href="mailto:${customization.agentEmail || 'hello@example.com'}?subject=Open House Inquiry&body=Hi, I'm interested in learning more about this property. Please contact me with additional details." class="open-house-cta">
-                        🎉 Don't Miss This Opportunity!
-                    </a>
+                    
+                    <div class="open-house-cta-section">
+                        <a href="mailto:${customization.agentEmail || 'hello@example.com'}?subject=Open House Inquiry&body=Hi, I'm interested in learning more about this property. Please contact me with additional details." class="open-house-cta">
+                            🎉 Don't Miss This Opportunity!
+                        </a>
+                    </div>
                 </div>
                 `}
             </div>

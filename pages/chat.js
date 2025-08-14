@@ -1330,14 +1330,15 @@ export default function ChatPage() {
                     />
                   </div>
                   <div className="form-group">
-                    <label>Website/Listing Link</label>
+                    <label>Listing Website Link</label>
                     <input
                       type="url"
-                      placeholder="https://yourlisting.com"
+                      placeholder="https://yourlisting.com or MLS listing URL"
                       value={websiteLink}
                       onChange={(e) => setWebsiteLink(e.target.value)}
                       className="flyer-input"
                     />
+                    <small className="input-hint">This will be displayed prominently in the flyer description</small>
                   </div>
                   <div className="form-group">
                     <label>Office Address</label>
