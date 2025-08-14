@@ -265,6 +265,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
         }
         
         .photo-item {
+            position: relative;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
@@ -282,6 +283,26 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             height: 180px;
             object-fit: cover;
             border-radius: 12px;
+        }
+        
+        .photo-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            color: white;
+            padding: 20px 15px 15px 15px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+            border-radius: 0 0 12px 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .photo-item:hover .photo-caption {
+            opacity: 1;
         }
         
         /* Right Column - Content */
@@ -372,32 +393,137 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             margin-bottom: 25px;
         }
         
-        .features-list {
-            list-style: none;
+        /* Property Details Grid */
+        .property-details-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        .feature-item {
+        .detail-item {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 1.1rem;
-            color: var(--text-on-primary);
-            margin-bottom: 12px;
-            font-weight: 500;
-            ${useSignatureStyling ? 'font-family: "Dancing Script", cursive; font-size: 1.2rem;' : ''}
+            gap: 15px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease;
         }
         
-        .feature-icon {
-            width: 20px;
-            height: 20px;
+        .detail-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+        
+        .detail-icon {
+            font-size: 1.8rem;
+            width: 50px;
+            height: 50px;
             background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
-            border-radius: 50%;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--text-on-secondary);
-            font-size: 0.8rem;
-            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .detail-content {
+            flex: 1;
+        }
+        
+        .detail-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-on-primary);
+            line-height: 1;
+            margin-bottom: 4px;
+            ${useSignatureStyling ? 'font-family: "Great Vibes", cursive; font-size: 1.8rem;' : ''}
+        }
+        
+        .detail-label {
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+        
+        /* Enhanced Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px 15px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border-color: var(--secondary);
+        }
+        
+        .feature-card .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .feature-card .feature-text {
+            font-size: 0.9rem;
+            color: var(--text-on-primary);
+            font-weight: 500;
+            line-height: 1.3;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            margin-top: 35px;
+            padding: 30px;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .cta-button {
+            background: var(--primary);
+            color: white;
+            padding: 18px 36px;
+            border-radius: 50px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            border: 2px solid var(--primary);
+        }
+        
+        .cta-button:hover {
+            background: white;
+            color: var(--primary);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
         }
         
         /* Open House Special Styling - Clean & Simple */
@@ -642,6 +768,56 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 text-align: center;
             }
             
+            /* Property Details Grid Mobile */
+            .property-details-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            .detail-item {
+                padding: 12px;
+            }
+            
+            .detail-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 1.5rem;
+            }
+            
+            .detail-value {
+                font-size: 1.3rem;
+            }
+            
+            /* Features Grid Mobile */
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            
+            .feature-card {
+                padding: 15px 10px;
+            }
+            
+            .feature-card .feature-icon {
+                font-size: 1.5rem;
+                margin-bottom: 8px;
+            }
+            
+            .feature-card .feature-text {
+                font-size: 0.8rem;
+            }
+            
+            /* CTA Section Mobile */
+            .cta-section {
+                padding: 25px 20px;
+            }
+            
+            .cta-button {
+                padding: 15px 30px;
+                font-size: 1rem;
+            }
+            
             /* Open House Mobile Styles */
             .open-house-header {
                 padding: 30px 15px;
@@ -661,11 +837,6 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
             
             .open-house-content-section {
                 padding: 30px 15px;
-            }
-            
-            .features-grid {
-                grid-template-columns: 1fr;
-                gap: 12px;
             }
             
             .listing-website-section {
@@ -721,12 +892,23 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     customization.propertyPhotos.slice(0, 3).map((photo, index) => `
                         <div class="photo-item">
                             <img src="${photo.data || photo.src || photo}" alt="Property Photo ${index + 1}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px; display: none;">Photo ${index + 1}</div>
+                            <div class="photo-caption">${index === 0 ? 'Main Living Area' : index === 1 ? 'Kitchen & Dining' : 'Master Suite'}</div>
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px; display: none;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">📷</div>
+                                    <div style="font-size: 0.9rem;">${index === 0 ? 'Main Living Area' : index === 1 ? 'Kitchen & Dining' : 'Master Suite'}</div>
+                                </div>
+                            </div>
                         </div>
                     `).join('') : 
                     Array(3).fill().map((_, index) => `
                         <div class="photo-item">
-                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px;">Photo ${index + 1}</div>
+                            <div style="height: 180px; background: var(--primary-light); display: flex; align-items: center; justify-content: center; color: var(--secondary); border: 2px solid var(--secondary); border-radius: 12px;">
+                                <div style="text-align: center;">
+                                    <div style="font-size: 2rem; margin-bottom: 8px;">📷</div>
+                                    <div style="font-size: 0.9rem;">${index === 0 ? 'Main Living Area' : index === 1 ? 'Kitchen & Dining' : 'Master Suite'}</div>
+                                </div>
+                            </div>
                         </div>
                     `).join('')
                 }
@@ -743,6 +925,37 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="price-amount">${customPrice}</div>
                 </div>
                 ` : ''}
+                
+                <div class="property-details-grid">
+                    <div class="detail-item">
+                        <div class="detail-icon">🛏️</div>
+                        <div class="detail-content">
+                            <div class="detail-value">4</div>
+                            <div class="detail-label">Bedrooms</div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">🚿</div>
+                        <div class="detail-content">
+                            <div class="detail-value">3</div>
+                            <div class="detail-label">Bathrooms</div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">📏</div>
+                        <div class="detail-content">
+                            <div class="detail-value">2,528</div>
+                            <div class="detail-label">Sq. Ft.</div>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-icon">🏗️</div>
+                        <div class="detail-content">
+                            <div class="detail-value">2020</div>
+                            <div class="detail-label">Year Built</div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="about-section">
                     <div class="section-title">About This Property</div>
@@ -763,21 +976,39 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                 </div>
                 
                 <div class="features-section">
-                    <div class="section-title">Features</div>
-                    <ul class="features-list">
-                        <li class="feature-item">
-                            <span class="feature-icon">✓</span>
-                            <span>4 Bedrooms</span>
-                        </li>
-                        <li class="feature-item">
-                            <span class="feature-icon">✓</span>
-                            <span>3 Full Baths</span>
-                        </li>
-                        <li class="feature-item">
-                            <span class="feature-icon">✓</span>
-                            <span>2,528 Sq. Ft.</span>
-                        </li>
-                    </ul>
+                    <div class="section-title">Property Highlights</div>
+                    <div class="features-grid">
+                        <div class="feature-card">
+                            <div class="feature-icon">✨</div>
+                            <div class="feature-text">High Ceilings</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🎨</div>
+                            <div class="feature-text">Crown Molding</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🏠</div>
+                            <div class="feature-text">Updated Kitchen</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🌳</div>
+                            <div class="feature-text">Lush Landscaping</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🚗</div>
+                            <div class="feature-text">2-Car Garage</div>
+                        </div>
+                        <div class="feature-card">
+                            <div class="feature-icon">🏊</div>
+                            <div class="feature-text">Community Pool</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="cta-section">
+                    <a href="mailto:${customization.agentEmail || 'hello@example.com'}?subject=Property Inquiry&body=Hi, I'm interested in learning more about this property. Please contact me with additional details." class="cta-button">
+                        📧 Contact Agent Today
+                    </a>
                 </div>
                 ` : `
                 <div class="open-house-content-section">
@@ -801,14 +1032,64 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                         ` : ''}
                     </div>
                     
+                    <div class="property-details-grid">
+                        <div class="detail-item">
+                            <div class="detail-icon">🛏️</div>
+                            <div class="detail-content">
+                                <div class="detail-value">4</div>
+                                <div class="detail-label">Bedrooms</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🚿</div>
+                            <div class="detail-content">
+                                <div class="detail-value">3</div>
+                                <div class="detail-label">Bathrooms</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">📏</div>
+                            <div class="detail-content">
+                                <div class="detail-value">2,528</div>
+                                <div class="detail-label">Sq. Ft.</div>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-icon">🏗️</div>
+                            <div class="detail-content">
+                                <div class="detail-value">2020</div>
+                                <div class="detail-label">Year Built</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="open-house-features-section">
-                        <div class="section-title">Property Features</div>
+                        <div class="section-title">Property Highlights</div>
                         <div class="features-grid">
-                            <div class="feature-item">Living Room</div>
-                            <div class="feature-item">Dining Room</div>
-                            <div class="feature-item">Kitchen Set</div>
-                            <div class="feature-item">Swimming Pool</div>
-                            <div class="feature-item">Carport</div>
+                            <div class="feature-card">
+                                <div class="feature-icon">✨</div>
+                                <div class="feature-text">High Ceilings</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🎨</div>
+                                <div class="feature-text">Crown Molding</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🏠</div>
+                                <div class="feature-text">Updated Kitchen</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🌳</div>
+                                <div class="feature-text">Lush Landscaping</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🚗</div>
+                                <div class="feature-text">2-Car Garage</div>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🏊</div>
+                                <div class="feature-text">Community Pool</div>
+                            </div>
                         </div>
                     </div>
                     
