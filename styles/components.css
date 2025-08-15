@@ -841,60 +841,89 @@
 
 /* New Chat Layout Styles */
 .ai-chat-section {
-  max-width: 700px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 3rem 1rem 2rem 1rem;
+  padding: 4rem 1rem 3rem 1rem;
   text-align: center;
 }
 
 .ai-chat-title {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #8b5cf6;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   text-align: center;
 }
 
 .ai-chat-subtitle {
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 3rem;
+  margin-bottom: 4rem;
   text-align: center;
-  max-width: 500px;
+  max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.6;
 }
 
 .ai-chat-section .composer {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto 2rem auto;
+  width: 100%;
 }
 
 .ai-chat-section .composer textarea {
   width: 100%;
-  min-height: 100px;
-  padding: 1.25rem;
+  min-height: 120px;
+  padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 16px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.05);
   color: white;
   font-size: 1.1rem;
   resize: vertical;
-  margin-bottom: 1.25rem;
-  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.ai-chat-section .composer textarea:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 4px 25px rgba(139, 92, 246, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ai-chat-section .composer textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.1rem;
 }
 
 .ai-chat-section .send {
   width: 100%;
-  padding: 1.25rem 2rem;
+  padding: 1.5rem 2rem;
   background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
   color: white;
   border: none;
-  border-radius: 16px;
+  border-radius: 20px;
   font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
+}
+
+.ai-chat-section .send:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(139, 92, 246, 0.4);
+}
+
+.ai-chat-section .send:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.2);
 }
 
 /* Examples Section - Smaller and Less Prominent */
