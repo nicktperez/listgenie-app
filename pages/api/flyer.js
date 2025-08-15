@@ -1090,7 +1090,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="open-house-description-section">
                         <div class="section-title">About This Property</div>
                         <div class="property-description">
-                            Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!
+                            ${content?.openHouseText || content?.standardText || 'Come and see this beautiful house with so much to offer! This house has high ceilings, crown and base molding, and upgraded tile flooring. It has lush landscaping with a variety of trees and gorgeous lawns. Book an appointment today!'}
                         </div>
                         
                         ${customization.websiteLink ? `
@@ -1167,6 +1167,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                     <div class="open-house-features-section">
                         <div class="section-title">Property Highlights</div>
                         <div class="features-grid">
+                            ${customization.propertyHighlights.highCeilings ? `
                             <div class="feature-card">
                                 <div class="feature-icon">
                                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -1175,6 +1176,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                                 </div>
                                 <div class="feature-text">High Ceilings</div>
                             </div>
+                            ` : ''}
+                            ${customization.propertyHighlights.crownMolding ? `
                             <div class="feature-card">
                                 <div class="feature-icon">
                                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -1183,6 +1186,8 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                                 </div>
                                 <div class="feature-text">Crown Molding</div>
                             </div>
+                            ` : ''}
+                            ${customization.propertyHighlights.updatedKitchen ? `
                             <div class="feature-card">
                                 <div class="feature-icon">
                                     <svg viewBox="0 0 24 24" fill="currentColor">
@@ -1191,6 +1196,7 @@ function createHtmlFlyer({ standardText, openHouseText, customization, pageType 
                                 </div>
                                 <div class="feature-text">Updated Kitchen</div>
                             </div>
+                            ` : ''}
                             <div class="feature-card">
                                 <div class="feature-icon">
                                     <svg viewBox="0 0 24 24" fill="currentColor">
