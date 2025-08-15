@@ -850,48 +850,59 @@
 
 /* New Chat Layout Styles */
 .ai-chat-section {
-  text-align: center;
-  padding: 40px 0;
   max-width: 800px;
   margin: 0 auto;
+  padding: 2rem 1rem;
+  text-align: center;
 }
 
 .ai-chat-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #e6e9ef;
-  margin: 0 0 16px 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #8b5cf6;
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
 .ai-chat-subtitle {
   font-size: 1.1rem;
-  color: #9aa4b2;
-  margin: 0 0 32px 0;
-  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 2rem;
+  text-align: center;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .ai-chat-section .composer {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 24px;
-  backdrop-filter: blur(10px);
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
 }
 
 .ai-chat-section .composer textarea {
-  font-size: 16px;
-  min-height: 60px;
-  margin-bottom: 20px;
+  width: 100%;
+  min-height: 80px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 1rem;
+  resize: vertical;
+  margin-bottom: 1rem;
 }
 
 .ai-chat-section .send {
-  font-size: 18px;
-  padding: 16px 32px;
-  border-radius: 16px;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
 /* Examples Section - Smaller and Less Prominent */
@@ -912,20 +923,25 @@
 
 /* Compact examples above chat */
 .examples-section.compact {
-  max-width: 500px;
-  margin: 0 auto 16px auto;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto 2rem auto;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   text-align: center;
 }
 
 .examples-section.compact .examples-header {
+  margin-bottom: 1rem;
   text-align: center;
 }
 
 .examples-section.compact .examples-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
   text-align: center;
   margin: 0 auto;
 }
@@ -939,19 +955,45 @@
 }
 
 .examples-section.compact .examples-grid {
-  gap: 3px;
-  justify-content: center;
   display: flex;
   flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
   align-items: center;
 }
 
 .examples-section.compact .example-btn {
-  padding: 3px 8px;
-  font-size: 10px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.examples-section.compact .example-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.thread {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem 0;
+}
+
+.listing-actions {
+  max-width: 800px;
+  margin: 2rem auto 0 auto;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  text-align: center;
 }
 
 .examples-header {

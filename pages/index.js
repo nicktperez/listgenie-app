@@ -597,6 +597,41 @@ export default function ChatPage() {
             Describe your property and I'll create compelling listings in multiple formats
           </p>
 
+          {/* Examples Section - Moved above search box */}
+          {!isListingMode && (
+            <div className="examples-section compact">
+              <div className="examples-header">
+                <h3 className="examples-title">Quick Examples</h3>
+              </div>
+              <div className="examples-grid">
+                <button
+                  className="example-btn"
+                  onClick={() => setInput("3 bed, 2 bath ranch in suburbs, updated kitchen, large yard")}
+                >
+                  3 bed, 2 bath ranch
+                </button>
+                <button
+                  className="example-btn"
+                  onClick={() => setInput("Luxury condo with city views, modern amenities, pool and gym")}
+                >
+                  Luxury condo
+                </button>
+                <button
+                  className="example-btn"
+                  onClick={() => setInput("Family home with great schools, finished basement, 2-car garage")}
+                >
+                  Family home
+                </button>
+                <button
+                  className="example-btn"
+                  onClick={() => setInput("Investment property, 4 units, good cash flow, low maintenance")}
+                >
+                  Investment property
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="composer">
             <div className="composer-inner">
               <div className="input-row">
@@ -713,41 +748,6 @@ export default function ChatPage() {
             </div>
           )}
         </div>
-
-        {/* Examples Section */}
-        {!isListingMode && (
-          <div className="examples-section compact">
-            <div className="examples-header">
-              <h3 className="examples-title">Quick Examples</h3>
-            </div>
-            <div className="examples-grid">
-              <button
-                className="example-btn"
-                onClick={() => setInput("3 bed, 2 bath ranch in suburbs, updated kitchen, large yard")}
-              >
-                3 bed, 2 bath ranch
-              </button>
-              <button
-                className="example-btn"
-                onClick={() => setInput("Luxury condo with city views, modern amenities, pool and gym")}
-              >
-                Luxury condo
-              </button>
-              <button
-                className="example-btn"
-                onClick={() => setInput("Family home with great schools, finished basement, 2-car garage")}
-              >
-                Family home
-              </button>
-              <button
-                className="example-btn"
-                onClick={() => setInput("Investment property, 4 units, good cash flow, low maintenance")}
-              >
-                Investment property
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Questions Modal */}
