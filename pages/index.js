@@ -606,27 +606,27 @@ export default function ChatPage() {
               <div className="examples-grid">
                 <button
                   className="example-btn"
-                  onClick={() => setInput("3 bed, 2 bath ranch in suburbs, updated kitchen, large yard")}
+                  onClick={() => setInput("3 bed, 2 bath ranch in suburbs, updated kitchen with granite countertops, large fenced yard, 2-car garage, 1850 sqft, built in 1995, great schools, quiet neighborhood")}
                 >
-                  3 bed, 2 bath ranch
+                  3 bed ranch
                 </button>
                 <button
                   className="example-btn"
-                  onClick={() => setInput("Luxury condo with city views, modern amenities, pool and gym")}
+                  onClick={() => setInput("Luxury condo with city views, 2 bed 2 bath, modern amenities, pool and gym, 1200 sqft, built in 2020, downtown location, parking included")}
                 >
                   Luxury condo
                 </button>
                 <button
                   className="example-btn"
-                  onClick={() => setInput("Family home with great schools, finished basement, 2-car garage")}
+                  onClick={() => setInput("Family home with great schools, 4 bed 3 bath, finished basement, 2-car garage, 2200 sqft, built in 2005, cul-de-sac location, large backyard")}
                 >
                   Family home
                 </button>
                 <button
                   className="example-btn"
-                  onClick={() => setInput("Investment property, 4 units, good cash flow, low maintenance")}
+                  onClick={() => setInput("Investment property, 4 units, 2 bed 1 bath each, good cash flow, low maintenance, 3200 sqft total, built in 1980, established neighborhood")}
                 >
-                  Investment property
+                  Investment
                 </button>
               </div>
             </div>
