@@ -866,31 +866,32 @@
 }
 
 .ai-chat-section .composer {
-  max-width: 500px;
+  max-width: 600px;
   margin: 0 auto 2rem auto;
 }
 
 .ai-chat-section .composer textarea {
   width: 100%;
-  min-height: 80px;
-  padding: 1rem;
+  min-height: 100px;
+  padding: 1.25rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.05);
   color: white;
-  font-size: 1rem;
+  font-size: 1.1rem;
   resize: vertical;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
 }
 
 .ai-chat-section .send {
   width: 100%;
-  padding: 1rem 2rem;
+  padding: 1.25rem 2rem;
   background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
   color: white;
   border: none;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  border-radius: 16px;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -914,24 +915,24 @@
 
 /* Compact examples above chat */
 .examples-section.compact {
-  max-width: 350px;
+  max-width: 300px;
   margin: 0 auto 2.5rem auto;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
   text-align: center;
 }
 
 .examples-section.compact .examples-header {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
   text-align: center;
 }
 
 .examples-section.compact .examples-title {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.65rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
   margin: 0;
   text-align: center;
   margin: 0 auto;
@@ -942,26 +943,26 @@
 .examples-section.compact .examples-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.3rem;
   justify-content: center;
   align-items: center;
 }
 
 .examples-section.compact .example-btn {
-  padding: 0.4rem 0.6rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 5px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.65rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.6rem;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
 }
 
 .examples-section.compact .example-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
   transform: translateY(-1px);
 }
 
