@@ -1,6 +1,6 @@
 // pages/api/agent/save.js
 import { getAuth } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/utils/supabase-admin';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });

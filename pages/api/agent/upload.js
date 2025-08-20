@@ -1,6 +1,6 @@
 // pages/api/agent/upload.js
 import { getAuth } from '@clerk/nextjs/server';
-import { supabaseAdmin } from '@/utils/supabase-admin';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 function dataUrlToBuffer(dataUrl) {
   const [meta, b64] = (dataUrl || '').split(',');
