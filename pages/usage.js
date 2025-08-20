@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
 import NavBar from "@/components/NavBar";
+import Link from "next/link";
 
 export default function UsagePage() {
   return (
@@ -166,9 +167,9 @@ function UsageAnalytics() {
               <div style={{ fontSize: "12px", color: "var(--text-dim)", marginBottom: 8 }}>
                 Upgrade to Pro to continue using ListGenie
               </div>
-              <a href="/upgrade" className="btn" style={{ fontSize: "12px", padding: "6px 12px" }}>
+              <Link href="/upgrade" className="btn" style={{ fontSize: "12px", padding: "6px 12px" }}>
                 Upgrade Now
-              </a>
+              </Link>
             </div>
           )}
         </div>

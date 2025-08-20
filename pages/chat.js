@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import useUserPlan from "@/hooks/useUserPlan";
+import Link from "next/link";
 
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
@@ -1124,9 +1125,9 @@ export default function ChatPage() {
               </button>
             )}
             <div className="navbar-links">
-              <a href="/upgrade" className="billing-link">
+              <Link href="/upgrade" className="billing-link">
                 Billing
-              </a>
+              </Link>
               <div className="plan-badge">
                 {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
               </div>

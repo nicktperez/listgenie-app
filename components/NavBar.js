@@ -2,6 +2,7 @@
 import React from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
+import Link from "next/link";
 
 export default function NavBar() {
   const { isSignedIn } = useUser();
@@ -31,7 +32,7 @@ export default function NavBar() {
         }}
       >
         {/* Left: brand */}
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}>
           <div
             style={{
               width: 34,
@@ -46,13 +47,13 @@ export default function NavBar() {
             🏠
           </div>
           <strong>ListGenie.ai</strong>
-        </a>
+        </Link>
 
         {/* Left: primary nav */}
         <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
-          <a href="/chat" className="link">Chat</a>
+          <Link href="/chat" className="link">Chat</Link>
           <SignedIn>
-            <a href="/listings" className="link">Listings</a>
+            <Link href="/listings" className="link">Listings</Link>
           </SignedIn>
         </div>
 
@@ -65,7 +66,7 @@ export default function NavBar() {
           </SignedOut>
 
           <SignedIn>
-            {!isPro && <a href="/upgrade" className="link">Upgrade</a>}
+            {!isPro && <Link href="/upgrade" className="link">Upgrade</Link>}
 
             {isPro && (
               <form action="/api/stripe/create-portal-session" method="post" style={{ display: "inline" }}>

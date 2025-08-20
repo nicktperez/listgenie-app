@@ -3,6 +3,7 @@ import { useState } from "react";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
 import NavBar from "@/components/NavBar";
+import Link from "next/link";
 
 export default function BatchPage() {
   return (
@@ -48,7 +49,7 @@ function BatchProcessor() {
           <p style={{ marginBottom: 16, color: "var(--text-dim)" }}>
             Batch processing is available exclusively to Pro users.
           </p>
-          <a href="/upgrade" className="btn">Upgrade to Pro</a>
+          <Link href="/upgrade" className="btn">Upgrade to Pro</Link>
         </div>
       </div>
     );

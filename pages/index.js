@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
+import Link from "next/link";
 
 function stripFences(s = "") {
   if (!s) return "";
@@ -561,8 +562,8 @@ export default function ChatPage() {
           
           <div className="navbar-right">
             <div className="navbar-links">
-              <a href="/listings" className="billing-link">Listings</a>
-              <a href="/upgrade" className="billing-link">Upgrade</a>
+              <Link href="/listings" className="billing-link">Listings</Link>
+              <Link href="/upgrade" className="billing-link">Upgrade</Link>
             </div>
             
             <button className="new-listing-btn" onClick={() => {

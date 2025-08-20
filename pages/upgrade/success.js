@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Success() {
     return (
       <div className="chat-wrap">
@@ -5,7 +7,7 @@ export default function Success() {
         <p className="chat-sub" style={{ marginBottom: 16 }}>
           Your account will update automatically. If you don’t see Pro yet, refresh the page.
         </p>
-        <a href="/chat" className="link">Back to Chat</a>
+        <Link href="/chat" className="link">Back to Chat</Link>
       </div>
     );
   }
