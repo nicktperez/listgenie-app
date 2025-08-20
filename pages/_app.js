@@ -4,7 +4,8 @@ import "@/styles/chat.css";
 import "@/styles/flyer-modal.css";
 import "@/styles/components.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 
 function InitUserOnce() {
@@ -36,11 +37,15 @@ function InitUserOnce() {
 }
 
 export default function App({ Component, pageProps }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <ClerkProvider {...pageProps}>
-      <InitUserOnce />
+      <QueryClientProvider client={queryClient}>
+        <InitUserOnce />
 
-      <Component {...pageProps} />
+        <Component {...pageProps} />
+      </QueryClientProvider>
     </ClerkProvider>
   );
 }
