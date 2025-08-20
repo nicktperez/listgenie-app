@@ -1139,125 +1139,138 @@ export default function ChatPage() {
       </nav>
 
       <main className="chat-container">
-        {/* Examples - Compact above chat (only when not in listing mode) */}
-        {!isListingMode && (
-          <div className="examples-section compact">
-            <div className="examples-header">
-              <h3 className="examples-title">Quick Examples</h3>
-            </div>
-            <div className="examples-grid">
-              {examples.map((ex, i) => (
-                <button key={i} className="example-btn" onClick={() => setInput(ex.text)}>
-                  {ex.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="chat-wrap">
+          {/* Header */}
+          <header className="chat-header">
+            <h1 className="chat-title">AI Listing Generator</h1>
+          </header>
+          <p className="header-sub">
+            Describe your property and let AI create professional listings
+          </p>
 
-        {/* AI Chat - Main Focal Point */}
-        <div className="ai-chat-section">
-          <h1 className="ai-chat-title">AI Listing Generator</h1>
-          <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
-          
-          <section className="composer">
+          {/* Example prompts */}
+          {!isListingMode && (
+            <>
+              <p className="examples-label">Quick examples</p>
+              <div className="examples-row">
+                {examples.map((ex, i) => (
+                  <button
+                    key={i}
+                    className="chip example-chip"
+                    onClick={() => setInput(ex.text)}
+                  >
+                    {ex.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {/* Input field */}
+          <div className="field-card">
             <textarea
-              rows={2}
-              placeholder="Paste a property description or type details…"
+              className="chat-textarea"
+              rows={4}
+              placeholder="Describe your property (e.g., '3 bed ranch')"
               value={input}
               onChange={(e) => setInput(e.target.value)}
             />
-            <button className="send" disabled={loading || !input.trim()} onClick={handleSend}>
-              {loading ? "Generating…" : "Generate Listing"}
-            </button>
-          </section>
-        </div>
+            <div className="field-actions">
+              <button
+                className="send-btn"
+                disabled={loading || !input.trim()}
+                onClick={handleSend}
+              >
+                {loading ? "Generating…" : "Generate"}
+              </button>
+            </div>
+          </div>
 
-        {/* Chat Messages - Centered when present */}
-        {messages.length > 0 && (
-          <section className="chat-area">
-            {messages.map((message, index) => (
-              <div key={index} className={`message ${message.role}`}>
-                <div className="message-content">
-                  {message.role === "user" ? (
-                    <span className="user-message">{message.content}</span>
-                  ) : (
-                    <div className="assistant-message">
-                      {message.pretty || message.content || "Generating..."}
-                      
-                      {/* Show action buttons after listings */}
-                      {message.pretty && message.pretty.includes('**') && (
-                        <div className="listing-actions">
-                          <div className="primary-actions">
-                            <button 
-                              className="copy-btn"
-                              onClick={() => handleCopyListing(message.pretty)}
-                              title="Copy listing to clipboard"
-                            >
-                              📋 Copy Listing
-                            </button>
-                            <button 
-                              className="flyer-btn-small"
-                              onClick={openFlyerModal}
-                              title="Generate flyers from this listing"
-                            >
-                              🎨 Create Flyers
-                            </button>
-                          </div>
-                          
-                          <div className="modification-options">
-                            <h4 className="modify-title">Modify Listing:</h4>
-                            <div className="modify-buttons">
-                              <button 
-                                className="modify-btn"
-                                onClick={() => handleModifyListing(message.pretty, 'longer')}
-                                title="Make the listing longer and more detailed"
-                              >
-                                📝 Make Longer
-                              </button>
-                              <button 
-                                className="modify-btn"
-                                onClick={() => handleModifyListing(message.pretty, 'modern')}
-                                title="Make the listing more modern and contemporary"
-                              >
-                                🏢 More Modern
-                              </button>
-                              <button 
-                                className="modify-btn"
-                                onClick={() => handleModifyListing(message.pretty, 'country')}
-                                title="Make the listing more country/rural focused"
-                              >
-                                🌾 More Country
-                              </button>
-                              <button 
-                                className="modify-btn"
-                                onClick={() => handleModifyListing(message.pretty, 'luxurious')}
-                                title="Make the listing more luxurious and upscale"
-                              >
-                                ✨ More Luxurious
-                              </button>
-                            </div>
-                          </div>
+          {error && <div className="error-card">{error}</div>}
+
+          {/* Chat Messages - Centered when present */}
+          {messages.length > 0 && (
+            <section className="chat-area thread">
+              {messages.map((message, index) => (
+                <div key={index} className={`msg-card ${message.role}`}>
+                  <div className="msg-header">{message.role === "user" ? "You" : "ListGenie"}</div>
+                  <div className="msg-body">
+                    {message.role === "user"
+                      ? message.content
+                      : message.pretty || message.content || "Generating..."}
+                  </div>
+
+                  {message.role === "assistant" && message.pretty && message.pretty.includes('**') && (
+                    <div className="listing-actions">
+                      <div className="primary-actions">
+                        <button
+                          className="copy-btn"
+                          onClick={() => handleCopyListing(message.pretty)}
+                          title="Copy listing to clipboard"
+                        >
+                          📋 Copy Listing
+                        </button>
+                        <button
+                          className="flyer-btn-small"
+                          onClick={openFlyerModal}
+                          title="Generate flyers from this listing"
+                        >
+                          🎨 Create Flyers
+                        </button>
+                      </div>
+
+                      <div className="modification-options">
+                        <h4 className="modify-title">Modify Listing:</h4>
+                        <div className="modify-buttons">
+                          <button
+                            className="modify-btn"
+                            onClick={() => handleModifyListing(message.pretty, 'longer')}
+                            title="Make the listing longer and more detailed"
+                          >
+                            📝 Make Longer
+                          </button>
+                          <button
+                            className="modify-btn"
+                            onClick={() => handleModifyListing(message.pretty, 'modern')}
+                            title="Make the listing more modern and contemporary"
+                          >
+                            🏢 More Modern
+                          </button>
+                          <button
+                            className="modify-btn"
+                            onClick={() => handleModifyListing(message.pretty, 'country')}
+                            title="Make the listing more country/rural focused"
+                          >
+                            🌾 More Country
+                          </button>
+                          <button
+                            className="modify-btn"
+                            onClick={() => handleModifyListing(message.pretty, 'luxurious')}
+                            title="Make the listing more luxurious and upscale"
+                          >
+                            ✨ More Luxurious
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="loading">
-                <div className="loading-dots">
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
+              ))}
+
+              {loading && (
+                <div className="loading">
+                  <div className="loading-dots">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </div>
+                  <div className="loading-text">Generating your listing...</div>
                 </div>
-                <div className="loading-text">Generating your listing...</div>
-              </div>
-            )}
-            {error && <div className="error">{error}</div>}
-          </section>
-        )}
+              )}
+              {error && <div className="error">{error}</div>}
+            </section>
+          )}
+        </div>
       </main>
 
       {flyerOpen && (

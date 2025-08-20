@@ -16,7 +16,7 @@
     #0b1220;
 }
 
-.chat-wrap {
+.chat-page .chat-wrap {
   max-width: 1080px;
   margin: 0 auto;
 }
@@ -25,6 +25,7 @@
 .chat-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   margin: 4px 0 10px;
 }
@@ -33,6 +34,9 @@
   line-height: 1.15;
   font-weight: 800;
   letter-spacing: 0.2px;
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+  -webkit-background-clip: text;
+  color: transparent;
 }
 .pro-pill {
   font-size: 12px;
@@ -76,18 +80,25 @@
 }
 
 /* Examples */
+.examples-label {
+  font-size: 13px;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin: 4px 0 8px;
+}
+
 .examples-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-  margin: 4px 0 18px;
+  justify-content: center;
+  margin: 0 0 18px;
 }
 .example-chip {
-  height: unset;
-  padding: 8px 12px;
-  font-size: 15px;
-  color: #fff; /* brighter for visibility */
-  white-space: nowrap;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 14px;
+  color: #fff;
 }
 
 /* Input area */
@@ -97,7 +108,7 @@
   border-radius: 14px;
   padding: 0;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin: 20px 0;
 }
 .chat-textarea {
   width: 100%;
@@ -112,7 +123,7 @@
 }
 .field-actions {
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   padding: 10px 12px 12px;
   gap: 10px;
   border-top: 1px solid var(--field-border);
@@ -124,14 +135,14 @@
   height: 40px;
   padding: 0 18px;
   border-radius: 10px;
-  border: 1px solid var(--chip-border);
-  background: var(--chip-bg);
+  border: none;
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6);
   color: #fff;
   font-weight: 500;
   cursor: pointer;
-  transition: background 120ms ease, transform 80ms ease, opacity 120ms ease;
+  transition: opacity 120ms ease, transform 80ms ease;
 }
-.send-btn:hover { background: var(--chip-bg-hover); }
+.send-btn:hover { opacity: 0.9; }
 .send-btn[disabled] { opacity: 0.6; cursor: not-allowed; }
 
 /* Error surface */
@@ -160,6 +171,14 @@
   border-radius: 14px;
   padding: 14px;
   color: #fff;
+}
+.msg-card.user {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.3);
+}
+.msg-card.assistant {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3);
 }
 .msg-header {
   font-size: 13px;
