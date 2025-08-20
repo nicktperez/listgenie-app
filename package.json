@@ -4,7 +4,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.31.8",
@@ -25,6 +27,13 @@
     "tailwindcss": "^3.4.1"
   },
   "devDependencies": {
-    "@types/qrcode": "^1.5.5"
+    "@babel/core": "^7.28.3",
+    "@babel/preset-env": "^7.28.3",
+    "@types/qrcode": "^1.5.5",
+    "babel-jest": "^30.0.5",
+    "jest": "^30.0.5"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }

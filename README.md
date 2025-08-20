@@ -8,6 +8,14 @@ A GPT-powered listing assistant for realtors, with Clerk authentication and Stri
 2. Run `npm install`
 3. Run `npm run dev`
 
+### Tests
+
+Run unit tests for helper utilities with:
+
+```bash
+npm test
+```
+
 ## Features
 
 - Clerk user authentication
