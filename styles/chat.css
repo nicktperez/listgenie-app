@@ -161,6 +161,14 @@
   padding: 14px;
   color: #fff;
 }
+.msg-card.user {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.3);
+}
+.msg-card.assistant {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3);
+}
 .msg-header {
   font-size: 13px;
   text-transform: uppercase;
