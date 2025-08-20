@@ -10,7 +10,7 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return res.status(405).send("Method not allowed");
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
   let event;
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     event = stripe.webhooks.constructEvent(buf, sig, webhookSecret);
   } catch (err) {
     console.error("Webhook signature verify failed:", err?.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
+    return res.status(400).json({ ok: false, error: `Webhook Error: ${err.message}` });
   }
 
   try {
@@ -110,10 +110,10 @@ export default async function handler(req, res) {
         break;
     }
 
-    return res.status(200).json({ received: true });
+    return res.status(200).json({ ok: true, received: true });
   } catch (e) {
     console.error("Webhook handler error:", e);
-    return res.status(500).send("Webhook handler failed");
+    return res.status(500).json({ ok: false, error: "Webhook handler failed" });
   }
 }
 

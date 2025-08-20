@@ -8,9 +8,11 @@ export default async function handler(req, res) {
       res.setHeader("Allow", "GET");
       return res.status(405).json({ ok: false, error: "Method not allowed" });
     }
-    
+
     const { userId } = getAuth(req);
-    if (!userId) return res.status(200).json({ ok: true, plan: "expired" });
+    if (!userId) {
+      return res.status(401).json({ ok: false, error: "Unauthenticated" });
+    }
 
     const { data, error } = await supabaseAdmin
       .from("users")
@@ -18,7 +20,9 @@ export default async function handler(req, res) {
       .eq("clerk_id", userId)
       .maybeSingle();
 
-    if (error) return res.status(200).json({ ok: true, plan: "expired" });
+    if (error) {
+      return res.status(500).json({ ok: false, error: error.message });
+    }
 
     // Normalize: if trial passed, reflect expired
     const now = new Date();
@@ -30,10 +34,10 @@ export default async function handler(req, res) {
       ok: true,
       plan,
       trial_end_date: data?.trial_end_date || null,
-      stripe_customer_id: data?.stripe_customer_id || null
+      stripe_customer_id: data?.stripe_customer_id || null,
     });
   } catch (e) {
     console.error("User plan API error:", e);
-    return res.status(200).json({ ok: true, plan: "expired" });
+    return res.status(500).json({ ok: false, error: "Server error" });
   }
 }

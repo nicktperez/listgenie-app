@@ -38,7 +38,7 @@ Example output: [4 formatted sections as described above]`;
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    return res.status(405).end("Method not allowed");
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
   try {
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
     if (!or.ok || !or.body) {
       const errBody = await safeJson(or);
       const msg = errBody?.error?.message || errBody?.message || `OpenRouter error (${or.status})`;
-      res.write(`event: error\ndata: ${JSON.stringify({ error: msg })}\n\n`);
+      res.write(`event: error\ndata: ${JSON.stringify({ ok: false, error: msg })}\n\n`);
       return res.end();
     }
 
@@ -142,8 +142,12 @@ export default async function handler(req, res) {
 
   } catch (e) {
     console.error("stream fatal:", e);
-    res.write(`event: error\ndata: ${JSON.stringify({ error: "Server error" })}\n\n`);
-    res.end();
+    if (res.headersSent) {
+      res.write(`event: error\ndata: ${JSON.stringify({ ok: false, error: "Server error" })}\n\n`);
+      res.end();
+    } else {
+      res.status(500).json({ ok: false, error: "Server error" });
+    }
   }
 }
 
@@ -157,8 +161,7 @@ async function readAll(req) {
 }
 
 function endErr(res, status, message) {
-  res.write(`event: error\ndata: ${JSON.stringify({ error: message })}\n\n`);
-  res.end();
+  return res.status(status).json({ ok: false, error: message });
 }
 
 async function safeJson(res) {

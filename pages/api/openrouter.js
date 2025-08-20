@@ -22,22 +22,26 @@ function getOrigin(req) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  try {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    }
 
-  if (!OPENROUTER_API_KEY) {
-    return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured' });
-  }
+    if (!OPENROUTER_API_KEY) {
+      return res.status(500).json({ ok: false, error: 'OPENROUTER_API_KEY not configured' });
+    }
 
-  const { userId } = getAuth(req);
-  let body;
+    const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ ok: false, error: 'Unauthenticated' });
+    }
+    let body;
 
   try {
     body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   } catch {
-    return res.status(400).json({ error: 'Invalid JSON body' });
+    return res.status(400).json({ ok: false, error: 'Invalid JSON body' });
   }
 
   const {
@@ -49,7 +53,7 @@ export default async function handler(req, res) {
   } = body || {};
 
   if (!Array.isArray(messages) || messages.length === 0) {
-    return res.status(400).json({ error: 'Body must include messages: Message[]' });
+    return res.status(400).json({ ok: false, error: 'Body must include messages: Message[]' });
   }
 
   // Build headers required by OpenRouter (helpful for rate limits/analytics)
@@ -61,36 +65,36 @@ export default async function handler(req, res) {
     'X-Title': 'ListGenie',
   };
 
-  let apiResponse;
-  try {
-    apiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature,
-        max_tokens,
-      }),
-    });
-  } catch (e) {
-    console.error('OpenRouter fetch error:', e);
-    return res.status(502).json({ error: 'Upstream fetch failed' });
-  }
+    let apiResponse;
+    try {
+      apiResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature,
+          max_tokens,
+        }),
+      });
+    } catch (e) {
+      console.error('OpenRouter fetch error:', e);
+      return res.status(502).json({ ok: false, error: 'Upstream fetch failed' });
+    }
 
   if (!apiResponse.ok) {
     const text = await apiResponse.text().catch(() => '');
     console.error('OpenRouter non-OK:', apiResponse.status, text);
-    return res.status(apiResponse.status).json({ error: text || 'OpenRouter error' });
+    return res.status(apiResponse.status).json({ ok: false, error: text || 'OpenRouter error' });
   }
 
   let data;
-  try {
-    data = await apiResponse.json();
-  } catch (e) {
-    console.error('OpenRouter JSON parse error:', e);
-    return res.status(502).json({ error: 'Invalid JSON from OpenRouter' });
-  }
+    try {
+      data = await apiResponse.json();
+    } catch (e) {
+      console.error('OpenRouter JSON parse error:', e);
+      return res.status(502).json({ ok: false, error: 'Invalid JSON from OpenRouter' });
+    }
 
   // OpenAI-compatible shape:
   // { choices: [ { message: { role, content } } ], usage: { prompt, completion, total } }
@@ -121,9 +125,14 @@ export default async function handler(req, res) {
     // don’t fail the request for logging problems
   }
 
-  return res.status(200).json({
-    message: assistantText,
-    usage,
-    model,
-  });
+    return res.status(200).json({
+      ok: true,
+      message: assistantText,
+      usage,
+      model,
+    });
+  } catch (e) {
+    console.error('openrouter handler error:', e);
+    return res.status(500).json({ ok: false, error: 'Server error' });
+  }
 }

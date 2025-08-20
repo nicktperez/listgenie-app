@@ -2,6 +2,7 @@
 // Generates beautiful, professional HTML flyers with agency branding, photos, and QR codes
 
 import { NextApiRequest, NextApiResponse } from "next";
+import { getAuth } from "@clerk/nextjs/server";
 
 export const config = {
   api: {
@@ -1300,6 +1301,11 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
+  const { userId } = getAuth(req);
+  if (!userId) {
+    return res.status(401).json({ ok: false, error: "Unauthenticated" });
+  }
+
   try {
     console.log("Flyer API request received");
     console.log("Request body keys:", Object.keys(req.body || {}));
@@ -1359,8 +1365,8 @@ export default async function handler(req, res) {
 
     // Return JSON with separate flyer content
     res.setHeader("Content-Type", "application/json");
-    return res.status(200).json({ 
-      success: true, 
+    return res.status(200).json({
+      ok: true,
       flyers: generatedFlyers,
       message: `Generated ${Object.keys(generatedFlyers).length} flyer(s) successfully`
     });

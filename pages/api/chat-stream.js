@@ -21,12 +21,19 @@ function estimateTokensFromChars(charCount) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
+  }
 
   try {
     const { userId } = getAuth(req);
+    if (!userId) {
+      return res.status(401).json({ ok: false, error: "Unauthenticated" });
+    }
     const { messages = [], model = DEFAULT_MODEL } = req.body || {};
-    if (!messages.length) return res.status(400).json({ error: "No messages" });
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ ok: false, error: "No messages" });
+    }
 
     // Fetch plan/role
     let plan = "free";
@@ -58,6 +65,7 @@ export default async function handler(req, res) {
 
       if (chars > FREE_LIMITS.maxInputChars) {
         return res.status(400).json({
+          ok: false,
           error: `Free plan limit: ${FREE_LIMITS.maxInputChars} chars input. You used ${chars}. Please shorten your prompt or upgrade.`,
           code: "INPUT_LIMIT",
         });
@@ -67,7 +75,7 @@ export default async function handler(req, res) {
 
     // Call OpenRouter (streaming)
     const key = process.env.OPENROUTER_API_KEY;
-    if (!key) return res.status(500).json({ error: "Missing OPENROUTER_API_KEY" });
+    if (!key) return res.status(500).json({ ok: false, error: "Missing OPENROUTER_API_KEY" });
 
     const controller = new AbortController();
 
@@ -99,7 +107,7 @@ export default async function handler(req, res) {
 
     if (!orRes.ok) {
       const errTxt = await orRes.text().catch(() => "");
-      res.write(`event: error\ndata: ${JSON.stringify({ error: errTxt || orRes.statusText })}\n\n`);
+      res.write(`event: error\ndata: ${JSON.stringify({ ok: false, error: errTxt || orRes.statusText })}\n\n`);
       return res.end();
     }
 
@@ -156,6 +164,11 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error("chat-stream error:", err);
-    if (!res.headersSent) res.status(500).json({ error: "Server error" });
+    if (!res.headersSent) {
+      res.status(500).json({ ok: false, error: "Server error" });
+    } else {
+      res.write(`event: error\ndata: ${JSON.stringify({ ok: false, error: "Server error" })}\n\n`);
+      res.end();
+    }
   }
 }
