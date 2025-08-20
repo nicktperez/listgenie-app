@@ -5,23 +5,29 @@ import { useEffect, useState } from "react";
 export default function OpenRouterModels() {
   const [models, setModels] = useState([]);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const res = await fetch("/api/openrouter");
+        const res = await fetch("/api/openrouter/models");
+        if (!res.ok) throw new Error("Request failed");
         const data = await res.json();
-
-        // ✅ FIX: use `data.data`, not `data.models`
-        setModels(data.models || data.data || []);
+        setModels(data.data || []);
       } catch (err) {
         setError("Failed to load models.");
         console.error("Error fetching models:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchModels();
   }, []);
+
+  if (loading) {
+    return <p className="text-gray-500">Loading models...</p>;
+  }
 
   if (error) {
     return <p className="text-red-500">{error}</p>;
