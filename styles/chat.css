@@ -20,7 +20,7 @@
 }
 
 .chat-page .chat-wrap {
-  max-width: 1200px !important;
+  max-width: 1400px !important;
   width: 100% !important;
   margin: 0 auto !important;
   display: flex !important;
@@ -49,16 +49,9 @@
   margin-right: auto !important;
 }
 
-/* Enhanced focus on chat input */
+/* Enhanced focus on chat input - removed gradient line */
 .chat-page .ai-chat-section::after {
-  content: '' !important;
-  display: block !important;
-  width: 40px !important;
-  height: 2px !important;
-  background: linear-gradient(90deg, #8b5cf6, #3b82f6) !important;
-  border-radius: 1px !important;
-  margin: 16px auto 0 !important;
-  opacity: 0.4 !important;
+  display: none !important;
 }
 
 .chat-page .ai-chat-title {
@@ -91,7 +84,7 @@
 .chat-page .composer-field {
   margin-bottom: 32px !important;
   width: 100% !important;
-  max-width: 1200px !important;
+  max-width: 1400px !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
@@ -753,9 +746,10 @@
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 12px !important;
-  padding: 8px 16px !important;
+  padding: 8px 20px !important;
   backdrop-filter: blur(10px) !important;
   min-height: 48px !important;
+  width: 100% !important;
 }
 
 .composer .composer-textarea {
