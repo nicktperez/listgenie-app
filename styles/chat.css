@@ -98,7 +98,7 @@
   margin-bottom: 24px !important;
   box-shadow: 0 12px 32px rgba(139, 92, 246, 0.15) !important;
   width: 100% !important;
-  max-width: 600px !important;
+  max-width: 1400px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   transition: all 0.3s ease !important;
@@ -697,12 +697,12 @@
   padding: 24px !important;
 }
 
-/* Chat input section with generating animation */
+/* Chat input section */
 .chat-page .chat-input-section {
   position: relative !important;
-  display: flex !important;
-  align-items: flex-start !important;
-  gap: 16px !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
 }
 
 .chat-page .generating-animation {
@@ -710,13 +710,14 @@
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  padding: 16px !important;
+  padding: 20px !important;
   background: rgba(139, 92, 246, 0.1) !important;
   border: 1px solid rgba(139, 92, 246, 0.2) !important;
-  border-radius: 12px !important;
-  min-width: 120px !important;
-  height: 80px !important;
-  margin-top: 8px !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin: 24px auto 0 auto !important;
+  backdrop-filter: blur(10px) !important;
 }
 
 .chat-page .generating-dots {

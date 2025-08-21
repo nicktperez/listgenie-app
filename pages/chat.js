@@ -935,17 +935,17 @@ export default function ChatPage() {
             )}
             <div className="chat-input-section">
               <Composer ref={composerRef} onSend={handleSend} loading={loading} />
-              {loading && (
-                <div className="generating-animation">
-                  <div className="generating-dots">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                  </div>
-                  <div className="generating-text">Generating...</div>
-                </div>
-              )}
             </div>
+            {loading && (
+              <div className="generating-animation">
+                <div className="generating-dots">
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                  <span className="dot"></span>
+                </div>
+                <div className="generating-text">Generating...</div>
+              </div>
+            )}
           </div>
         </div>
       </main>
