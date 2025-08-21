@@ -94,6 +94,7 @@ export default function useUserPlan() {
     isLoading,
     canGenerate,
     isInitialized,
-    refreshPlan
+    refreshPlan,
+    isSignedIn // Add this to return the Clerk authentication state
   };
 }

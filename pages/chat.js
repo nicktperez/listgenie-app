@@ -105,6 +105,22 @@ export default function ChatPage() {
   const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
   const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
 
+  // Show loading state while checking authentication
+  if (isSignedIn === undefined) {
+    return (
+      <div className="chat-page">
+        <div className="chat-wrap">
+          <div className="loading-state">
+            <div className="loading-card">
+              <div className="loading-spinner"></div>
+              <p>Checking authentication...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If not signed in, show sign-in prompt
   if (!isSignedIn) {
     return (
