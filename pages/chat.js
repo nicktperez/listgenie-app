@@ -8,6 +8,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/router";
+import { useUser } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
 import ChatHeader from "@/components/chat/Header";
 import ExamplesRow from "@/components/chat/ExamplesRow";
@@ -75,7 +76,8 @@ async function copyToClipboard(text) {
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
-  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd, isSignedIn } = useUserPlan();
+  const { isSignedIn, isLoaded, user } = useUser();
+  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
 
   // Input
   const [tone, setTone] = useState("mls");
@@ -105,15 +107,15 @@ export default function ChatPage() {
   const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
   const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
 
-  // Show loading state while checking authentication
-  if (isSignedIn === undefined) {
+  // Show loading state while Clerk is loading
+  if (!isLoaded) {
     return (
       <div className="chat-page">
         <div className="chat-wrap">
           <div className="loading-state">
             <div className="loading-card">
               <div className="loading-spinner"></div>
-              <p>Checking authentication...</p>
+              <p>Loading...</p>
             </div>
           </div>
         </div>
@@ -121,14 +123,14 @@ export default function ChatPage() {
     );
   }
 
-  // If not signed in, show sign-in prompt
+  // If not signed in, show sign-in prompt and BLOCK ALL CHAT ACCESS
   if (!isSignedIn) {
     return (
       <div className="chat-page">
         <div className="chat-wrap">
           <div className="sign-in-prompt">
             <div className="sign-in-card">
-              <h3>Sign In Required</h3>
+              <h3>🔐 Sign In Required</h3>
               <p>Please sign in to use the AI Listing Generator</p>
               <button 
                 className="sign-in-btn"
@@ -892,34 +894,7 @@ export default function ChatPage() {
           <div className="ai-chat-section">
             <h1 className="ai-chat-title">AI Listing Generator</h1>
             <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
-            {!isSignedIn ? (
-              <div className="sign-in-prompt">
-                <div className="sign-in-card">
-                  <h3>Sign In Required</h3>
-                  <p>Please sign in to use the AI Listing Generator</p>
-                  <button 
-                    className="sign-in-btn"
-                    onClick={() => router.push("/sign-in")}
-                  >
-                    Sign In
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="auth-status-check">
-                <div className="auth-status-card">
-                  <h3>Authentication Status</h3>
-                  <p>You appear to be signed in, but there may be a configuration issue.</p>
-                  <p>Status: {isSignedIn ? "Signed In" : "Not Signed In"}</p>
-                  <button 
-                    className="refresh-btn"
-                    onClick={() => window.location.reload()}
-                  >
-                    Refresh Page
-                  </button>
-                </div>
-              </div>
-            )}
+            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
           </div>
           {messages.length > 0 && (
             <MessageThread
