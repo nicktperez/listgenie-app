@@ -6,9 +6,14 @@
 // - Pro-gated flyer modal (Standard + Open House)
 // - Downloads PDF via /api/flyer
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/router";
 import useUserPlan from "@/hooks/useUserPlan";
+import ChatHeader from "@/components/chat/Header";
+import ExamplesRow from "@/components/chat/ExamplesRow";
+import Composer from "@/components/chat/Composer";
+import MessageThread from "@/components/chat/MessageThread";
+import FlyerModal from "@/components/chat/FlyerModal";
 
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
@@ -74,7 +79,6 @@ export default function ChatPage() {
 
   // Input
   const [tone, setTone] = useState("mls");
-  const [input, setInput] = useState("");
 
   // Chat state
   const [messages, setMessages] = useState([
@@ -85,81 +89,6 @@ export default function ChatPage() {
 
   // Flyer modal state
   const [flyerOpen, setFlyerOpen] = useState(false);
-  const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
-  const [flyerBusy, setFlyerBusy] = useState(false);
-  
-  // New flyer customization state
-  const [agencyName, setAgencyName] = useState("");
-  const [agentEmail, setAgentEmail] = useState("");
-  const [agentPhone, setAgentPhone] = useState("");
-  const [websiteLink, setWebsiteLink] = useState("");
-  const [officeAddress, setOfficeAddress] = useState("");
-  const [agencyLogo, setAgencyLogo] = useState(null);
-  const [propertyPhotos, setPropertyPhotos] = useState([]);
-  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-
-  // New customization state variables
-  const [primaryColor, setPrimaryColor] = useState("#2d4a3e");
-  const [secondaryColor, setSecondaryColor] = useState("#8b9d83");
-  const [fontStyle, setFontStyle] = useState("modern");
-  const [showPrice, setShowPrice] = useState(true);
-  const [customPrice, setCustomPrice] = useState("$399,900");
-  
-  // Load saved agency info from localStorage on component mount
-  useEffect(() => {
-    const savedAgencyInfo = localStorage.getItem('listgenie_agency_info');
-    if (savedAgencyInfo) {
-      try {
-        const parsed = JSON.parse(savedAgencyInfo);
-        if (parsed.agencyName) setAgencyName(parsed.agencyName);
-        if (parsed.agentEmail) setAgentEmail(parsed.agentEmail);
-        if (parsed.agentPhone) setAgentPhone(parsed.agentPhone);
-        if (parsed.websiteLink) setWebsiteLink(parsed.websiteLink);
-        if (parsed.officeAddress) setOfficeAddress(parsed.officeAddress);
-        if (parsed.primaryColor) setPrimaryColor(parsed.primaryColor);
-        if (parsed.secondaryColor) setSecondaryColor(parsed.secondaryColor);
-        if (parsed.fontStyle) setFontStyle(parsed.fontStyle);
-        if (parsed.backgroundPattern) setBackgroundPattern(parsed.backgroundPattern);
-        if (parsed.propertyDetails) setPropertyDetails(parsed.propertyDetails);
-        if (parsed.propertyHighlights) setPropertyHighlights(parsed.propertyHighlights);
-      } catch (e) {
-        console.log('Error loading saved agency info:', e);
-      }
-    }
-  }, []);
-  
-  // Open House specific fields
-  const [openHouseDate, setOpenHouseDate] = useState("December 15th, 2024");
-  const [openHouseTime, setOpenHouseTime] = useState("2:00 PM - 5:00 PM");
-  const [openHouseAddress, setOpenHouseAddress] = useState("123 Anywhere St., Any City, ST 12345");
-  
-  // Signature styling option
-  const [useSignatureStyling, setUseSignatureStyling] = useState(false);
-  
-  // Background pattern option
-  const [backgroundPattern, setBackgroundPattern] = useState("none");
-  
-  // Property details state
-  const [propertyDetails, setPropertyDetails] = useState({
-    bedrooms: '',
-    bathrooms: '',
-    sqft: '',
-    yearBuilt: ''
-  });
-  
-  // Property highlights state
-  const [propertyHighlights, setPropertyHighlights] = useState({
-    highCeilings: false,
-    crownMolding: false,
-    updatedKitchen: false,
-    lushLandscaping: false,
-    twoCarGarage: false,
-    communityPool: false,
-    solarPanels: false
-  });
-  
-  // Save confirmation state
-  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -169,80 +98,45 @@ export default function ChatPage() {
   
   // Track all Q&A history for better AI memory
   const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
+    const [isListingMode, setIsListingMode] = useState(false);
 
-  // Copy state (for "Copied!" UI)
-  const [copiedKey, setCopiedKey] = useState(null);
-  
-  // Track if we're in listing mode (hide examples when true)
-  const [isListingMode, setIsListingMode] = useState(false);
-  async function handleCopy(key, text) {
-    const ok = await copyToClipboard(text);
-    if (ok) {
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 1500);
-    }
-  }
+  const composerRef = useRef(null);
+  const [originalInput, setOriginalInput] = useState("");
 
-  const listRef = useRef(null);
-  useEffect(() => {
-    if (!listRef.current) return;
-    listRef.current.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length]);
+    async function handleSend(text) {
+      const trimmed = text.trim();
+      if (!trimmed || loading) return;
+      const baseInput = messages.length === 0 ? trimmed : originalInput;
+      if (messages.length === 0) setOriginalInput(trimmed);
 
-  const examples = [
-    {
-      label: "3BR Craftsman in Midtown",
-      text:
-        "3 bed, 2 bath Craftsman in Midtown. 1,650 sqft, updated kitchen, quartz counters, oak floors, detached garage, walkable to cafés and parks.",
-    },
-    {
-      label: "Modern Condo DTLA",
-      text:
-        "1 bed, 1 bath modern condo, 780 sqft with skyline views, floor-to-ceiling windows, pool, gym, 24/7 security, near transit.",
-    },
-    {
-      label: "Luxury Estate",
-      text:
-        "5 bed, 6 bath estate on 2 acres, 6,200 sqft, chef's kitchen, wine cellar, home theater, infinity pool, smart home, gated entry.",
-    },
-  ];
+      // Add user message to chat
+      setMessages(prev => [...prev, { role: "user", content: trimmed }]);
+      setError(null);
 
-  async function handleSend() {
-    const trimmed = input.trim();
-    if (!trimmed || loading) return;
+      // Scroll to bottom after adding user message
+      setTimeout(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }, 100);
 
-    // Store the original input before clearing it
-    const originalInput = input;
+      try {
+        setLoading(true);
 
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: "user", content: trimmed }]);
-    setInput("");
-    setError(null);
-
-    // Scroll to bottom after adding user message
-    setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
-
-    try {
-      setLoading(true);
-      
-      // Build conversation context with full history
-      const conversationContext = [
-        // Include the original request and any previous Q&A
-        ...(allQuestionsAndAnswers.length > 0 ? [
-          { role: "user", content: `Original request: ${originalInput}` },
-          { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
-        ] : []),
-        // Include the previous listing if it exists
-        ...(messages.length > 0 ? [
-          { role: "assistant", content: `Previous listing: ${messages[messages.length - 1].content || messages[messages.length - 1].pretty || ''}` }
-        ] : []),
-        // Current message
-        { role: "user", content: trimmed },
-        // System instruction for edit requests
-        { role: "system", content: `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.` }
-      ];
+        // Build conversation context with full history
+        const conversationContext = [
+          // Include the original request and any previous Q&A
+          ...(allQuestionsAndAnswers.length > 0 ? [
+            { role: "user", content: `Original request: ${baseInput}` },
+            { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
+          ] : []),
+          // Include the previous listing if it exists
+          ...(messages.length > 0 ? [
+            { role: "assistant", content: `Previous listing: ${messages[messages.length - 1].content || messages[messages.length - 1].pretty || ''}` }
+          ] : []),
+          // Current message
+          { role: "user", content: trimmed },
+          // System instruction for edit requests
+          { role: "system", content: `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.` }
+        ];
 
       console.log("Sending this context to AI:", conversationContext); // Debug log
 
@@ -435,6 +329,12 @@ export default function ChatPage() {
   function openFlyerModal() {
     if (!isPro) { router.push("/upgrade"); return; }
     setFlyerOpen(true);
+  }
+
+  function handleNewListing() {
+    setIsListingMode(false);
+    setMessages([]);
+    if (composerRef.current) composerRef.current.clearInput();
   }
 
   function openQuestionsModal(questionsData) {
@@ -675,7 +575,7 @@ export default function ChatPage() {
       
       // Build complete conversation context with ALL previous Q&A
       const conversationContext = [
-        { role: "user", content: `Original request: ${input}` },
+        { role: "user", content: `Original request: ${originalInput}` },
         { role: "user", content: `Complete Q&A history: ${answerText}` },
         { role: "system", content: `CRITICAL INSTRUCTIONS: The user has already provided ALL of this information: ${answerText}. You have EVERYTHING you need to create a listing. DO NOT ask for any of this information again. Generate a listing NOW using the provided details. If any information is missing, make reasonable assumptions.` }
       ];
@@ -705,7 +605,7 @@ export default function ChatPage() {
           console.log("Forcing listing generation instead of more questions"); // Debug log
           // Force the AI to generate a listing with what we have
           const forceListingContext = [
-            { role: "user", content: `Original request: ${input}` },
+            { role: "user", content: `Original request: ${originalInput}` },
             { role: "user", content: `All provided information: ${answerText}` },
             { role: "system", content: `STOP ASKING QUESTIONS. The user has provided sufficient information. Generate a listing NOW using the details provided. Make reasonable assumptions for any missing information.` }
           ];
@@ -811,1100 +711,55 @@ export default function ChatPage() {
     }
   }
 
-  // Function to save agency info to localStorage
-  const saveAgencyInfo = () => {
-    const agencyInfo = {
-      agencyName,
-      agentEmail,
-      agentPhone,
-      websiteLink,
-      officeAddress,
-      primaryColor,
-      secondaryColor,
-      fontStyle,
-      backgroundPattern,
-      propertyDetails,
-      propertyHighlights
-    };
-    localStorage.setItem('listgenie_agency_info', JSON.stringify(agencyInfo));
-    
-    // Show confirmation
-    setShowSaveConfirmation(true);
-    setTimeout(() => setShowSaveConfirmation(false), 2000);
-  };
-
-  async function generateFlyers() {
-    if (!isPro) { router.push("/upgrade"); return; }
-    
-    // Save agency info before generating flyers
-    saveAgencyInfo();
-    
-    // Find the most recent listing (assistant message with formatted content)
-    const lastAssistant = [...messages].reverse().find((m) => 
-      m.role === "assistant" && m.pretty && m.pretty.includes('**')
-    );
-    
-    if (!lastAssistant) {
-      setError("No listing found to generate flyers from. Please generate a listing first.");
-      return;
-    }
-    
-    const content = lastAssistant.pretty || lastAssistant.content || "";
-    if (!content.trim()) {
-      setError("Listing content is empty. Please generate a listing first.");
-      return;
-    }
-
-    const payload = {
-      flyers: Object.entries(flyerTypes)
-        .filter(([_, v]) => v)
-        .map(([k]) => k),
-      content: { single: content },
-      // Add customization data
-      customization: {
-        agencyName: agencyName.trim(),
-        agentEmail: agentEmail.trim(),
-        agentPhone: agentPhone.trim(),
-        websiteLink: websiteLink.trim(),
-        officeAddress: officeAddress.trim(),
-        agencyLogo: agencyLogo,
-        propertyPhotos: propertyPhotos,
-        primaryColor,
-        secondaryColor,
-        fontStyle,
-        showPrice,
-        customPrice,
-        openHouseDate,
-        openHouseTime,
-        openHouseAddress,
-        propertyDetails,
-        propertyHighlights,
-        useSignatureStyling,
-        backgroundPattern,
-        showAdvancedOptions
-      }
-    };
-
-    try {
-      setFlyerBusy(true);
-      setError(null); // Clear any previous errors
-      
-      console.log("Generating flyers with payload:", payload); // Debug log
-      console.log("Flyer types selected:", flyerTypes); // Debug log
-      console.log("Filtered flyers array:", Object.entries(flyerTypes).filter(([_, v]) => v).map(([k]) => k)); // Debug log
-      
-      const res = await fetch("/api/flyer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      
-      console.log("Flyer API response status:", res.status);
-      console.log("Flyer API response headers:", Object.fromEntries(res.headers.entries()));
-      
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        console.error("Flyer API error response:", errorData);
-        throw new Error(errorData.error || `Flyer API error: ${res.status} ${res.statusText}`);
-      }
-
-      const contentType = res.headers.get("content-type");
-      console.log("Response content type:", contentType);
-      
-      if (contentType?.includes("application/json")) {
-        console.log("Processing JSON response with separate flyers...");
-        const data = await res.json();
-        console.log("Flyer generation response:", data);
-        
-        if (data.success && data.flyers) {
-          console.log("Available flyers in response:", Object.keys(data.flyers)); // Debug log
-          console.log("Flyer content lengths:", Object.entries(data.flyers).map(([k, v]) => [k, v.length])); // Debug log
-          
-          // Download each flyer type separately
-          const downloadedFiles = [];
-          for (const [flyerType, htmlContent] of Object.entries(data.flyers)) {
-            const filename = flyerType === 'standard' ? 'property-flyer.html' : 'open-house-flyer.html';
-            downloadedFiles.push(filename);
-            
-            console.log(`Processing ${flyerType} flyer, content length: ${htmlContent.length}`); // Debug log
-            
-            // Create and download HTML file
-            const blob = new Blob([htmlContent], { type: 'text/html' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url; 
-            a.download = filename; 
-            document.body.appendChild(a); 
-            a.click();
-            URL.revokeObjectURL(url); 
-            a.remove();
-            
-            console.log(`Downloaded ${filename} successfully`);
-            
-            // Small delay between downloads to prevent browser issues
-            if (downloadedFiles.length < Object.keys(data.flyers).length) {
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-          }
-          
-          // Show success message
-          setError(null);
-          alert(`✅ Successfully generated and downloaded: ${downloadedFiles.join(', ')}`);
-        } else {
-          throw new Error(data.message || "Failed to generate flyers");
-        }
-      } else if (contentType?.includes("text/html")) {
-        console.log("Processing HTML response...");
-        const htmlText = await res.text();
-        console.log("HTML content length:", htmlText.length);
-        
-        // Create and download HTML file
-        const blob = new Blob([htmlText], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; 
-        a.download = "flyer.html"; 
-        document.body.appendChild(a); 
-        a.click();
-        URL.revokeObjectURL(url); 
-        a.remove();
-        
-        console.log("HTML flyer download initiated successfully");
-      } else if (contentType?.includes("application/pdf")) {
-        console.log("Processing PDF response...");
-        const blob = await res.blob();
-        console.log("PDF blob size:", blob.size);
-        
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url; 
-        a.download = "flyer.pdf"; 
-        document.body.appendChild(a); 
-        a.click();
-        URL.revokeObjectURL(url); 
-        a.remove();
-        
-        console.log("PDF download initiated successfully");
-      } else {
-        console.log("Processing JSON response...");
-        // JSON with urls (alternate server behavior)
-        const data = await res.json();
-        console.log("JSON response data:", data);
-        
-        const urls = data?.urls || (data?.url ? [data.url] : []);
-        for (const u of urls) {
-          const a = document.createElement("a");
-          a.href = u; 
-          a.download = ""; 
-          document.body.appendChild(a); 
-          a.click(); 
-          a.remove();
-        }
-      }
-    } catch (e) {
-      console.error("Flyer generation error:", e);
-      setError(e?.message || "Could not generate flyers");
-    } finally {
-      setFlyerBusy(false);
-    }
-  }
-
-  function handleLogoUpload(event) {
-    const file = event.target.files[0];
-    if (file && file.type.startsWith('image/')) {
-      // Check file size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        setError("Logo file is too large. Please use an image under 5MB.");
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        // Compress the image before storing
-        compressImage(e.target.result, 800, 600, 0.7).then(compressed => {
-          setAgencyLogo(compressed);
-          setError(null); // Clear any previous errors
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  function handlePhotoUpload(event) {
-    const files = Array.from(event.target.files);
-    const imageFiles = files.filter(file => file.type.startsWith('image/'));
-    
-    // Check total file sizes
-    const totalSize = imageFiles.reduce((sum, file) => sum + file.size, 0);
-    if (totalSize > 20 * 1024 * 1024) { // 20MB total limit
-      setError("Total photo size is too large. Please use images under 20MB total.");
-      return;
-    }
-    
-    imageFiles.forEach(file => {
-      if (file.size > 5 * 1024 * 1024) { // 5MB per photo limit
-        setError(`Photo "${file.name}" is too large. Please use images under 5MB each.`);
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        // Compress each photo before storing
-        compressImage(e.target.result, 600, 400, 0.6).then(compressed => {
-          setPropertyPhotos(prev => [...prev, {
-            id: Date.now() + Math.random(),
-            data: compressed,
-            name: file.name
-          }]);
-          setError(null); // Clear any previous errors
-        });
-      };
-      reader.readAsDataURL(file);
-    });
-  }
-
-  // Image compression function
-  function compressImage(dataUrl, maxWidth, maxHeight, quality) {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        // Calculate new dimensions maintaining aspect ratio
-        let { width, height } = img;
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw and compress
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
-      };
-      img.src = dataUrl;
-    });
-  }
-
-  function removePhoto(photoId) {
     setPropertyPhotos(prev => prev.filter(photo => photo.id !== photoId));
   }
 
   return (
     <div className="chat-page">
-
-
-      {/* Top Navbar */}
-      <nav className="top-navbar">
-        <div className="navbar-content">
-          <div className="navbar-brand">
-            <div className="logo">🏠</div>
-            <div className="brand-text">ListGenie.ai</div>
-          </div>
-          <div className="navbar-right">
-            {isListingMode && (
-              <button 
-                className="new-listing-btn"
-                onClick={() => {
-                  setIsListingMode(false);
-                  setMessages([]);
-                  setInput('');
-                }}
-                title="Start a new listing"
-              >
-                ✨ New Listing
-              </button>
-            )}
-            <div className="navbar-links">
-              <a href="/upgrade" className="billing-link">
-                Billing
-              </a>
-              <div className="plan-badge">
-                {isPro ? "Pro" : isTrial ? "Trial" : "Expired"}
-              </div>
-              <div className="profile-section">
-                <div className="profile-avatar">👤</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
-
+      <ChatHeader
+        isListingMode={isListingMode}
+        onNewListing={handleNewListing}
+        isPro={isPro}
+        isTrial={isTrial}
+      />
       <main className="chat-container">
         <div className="chat-wrap">
-          {/* Examples - Compact above chat (only when not in listing mode) */}
           {!isListingMode && (
-            <div className="examples-section compact">
-              <div className="examples-header">
-                <h3 className="examples-title">Quick Examples</h3>
-              </div>
-              <div className="examples-grid">
-                {examples.map((ex, i) => (
-                  <button key={i} className="example-btn" onClick={() => setInput(ex.text)}>
-                    {ex.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
           )}
-
-          {/* AI Chat - Main Focal Point */}
           <div className="ai-chat-section">
             <h1 className="ai-chat-title">AI Listing Generator</h1>
             <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
-
-            <section className="composer">
-              <textarea
-                rows={2}
-                placeholder="Paste a property description or type details…"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
-              <button className="send" disabled={loading || !input.trim()} onClick={handleSend}>
-                {loading ? "Generating…" : "Generate Listing"}
-              </button>
-            </section>
+            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
           </div>
-
-          {/* Chat Messages - Centered when present */}
           {messages.length > 0 && (
-            <section className="chat-area thread">
-              {messages.map((message, index) => (
-                <div key={index} className={`msg-card ${message.role}`}>
-                  <div className="msg-header">{message.role === "user" ? "You" : "ListGenie"}</div>
-                  <div className="msg-body">
-                    {message.role === "user"
-                      ? message.content
-                      : message.pretty || message.content || "Generating..."}
-                  </div>
-
-                  {message.role === "assistant" && message.pretty && message.pretty.includes('**') && (
-                    <div className="listing-actions">
-                      <div className="primary-actions">
-                        <button
-                          className="copy-btn"
-                          onClick={() => handleCopyListing(message.pretty)}
-                          title="Copy listing to clipboard"
-                        >
-                          📋 Copy Listing
-                        </button>
-                        <button
-                          className="flyer-btn-small"
-                          onClick={openFlyerModal}
-                          title="Generate flyers from this listing"
-                        >
-                          🎨 Create Flyers
-                        </button>
-                      </div>
-
-                      <div className="modification-options">
-                        <h4 className="modify-title">Modify Listing:</h4>
-                        <div className="modify-buttons">
-                          <button
-                            className="modify-btn"
-                            onClick={() => handleModifyListing(message.pretty, 'longer')}
-                            title="Make the listing longer and more detailed"
-                          >
-                            📝 Make Longer
-                          </button>
-                          <button
-                            className="modify-btn"
-                            onClick={() => handleModifyListing(message.pretty, 'modern')}
-                            title="Make the listing more modern and contemporary"
-                          >
-                            🏢 More Modern
-                          </button>
-                          <button
-                            className="modify-btn"
-                            onClick={() => handleModifyListing(message.pretty, 'country')}
-                            title="Make the listing more country/rural focused"
-                          >
-                            🌾 More Country
-                          </button>
-                          <button
-                            className="modify-btn"
-                            onClick={() => handleModifyListing(message.pretty, 'luxurious')}
-                            title="Make the listing more luxurious and upscale"
-                          >
-                            ✨ More Luxurious
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {loading && (
-                <div className="loading">
-                  <div className="loading-dots">
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                    <span className="dot"></span>
-                  </div>
-                  <div className="loading-text">Generating your listing...</div>
-                </div>
-              )}
-              {error && <div className="error">{error}</div>}
-            </section>
+            <MessageThread
+              messages={messages}
+              loading={loading}
+              error={error}
+              onCopyListing={handleCopyListing}
+              onModifyListing={handleModifyListing}
+              onOpenFlyer={openFlyerModal}
+            />
           )}
         </div>
       </main>
-
-      {flyerOpen && (
-        <div className="flyer-modal">
-          <div className="flyer-modal-content">
-            <div className="flyer-modal-header">
-              <h2 className="flyer-modal-title">Create Beautiful Flyers</h2>
-              <button className="flyer-modal-close" onClick={() => setFlyerOpen(false)}>✕</button>
-            </div>
-            
-            <div className="flyer-modal-body">
-              {/* Error Display */}
-              {error && (
-                <div className="flyer-error">
-                  <span className="error-icon">⚠️</span>
-                  <span className="error-text">{error}</span>
-                </div>
-              )}
-              
-              {/* Flyer Type Selection */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Flyer Types</h3>
-                <p className="flyer-section-description">
-                  Select which types of flyers you'd like to generate. You can choose one or both.
-                </p>
-                <div className="flyer-options">
-                  <label className="flyer-option">
-                    <input
-                      type="checkbox"
-                      checked={flyerTypes.standard}
-                      onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
-                    />
-                    <span className="flyer-option-text">
-                      <span className="flyer-option-icon">📄</span>
-                      Standard Property Flyer
-                    </span>
-                  </label>
-                  <label className="flyer-option">
-                    <input
-                      type="checkbox"
-                      checked={flyerTypes.openHouse}
-                      onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
-                    />
-                    <span className="flyer-option-text">
-                      <span className="flyer-option-icon">🏠</span>
-                      Open House Flyer
-                    </span>
-                  </label>
-                </div>
-                <div className="flyer-selection-summary">
-                  {flyerTypes.standard && flyerTypes.openHouse ? (
-                    <span className="summary-both">✅ Both flyer types selected</span>
-                  ) : flyerTypes.standard ? (
-                    <span className="summary-standard">✅ Standard flyer only</span>
-                  ) : flyerTypes.openHouse ? (
-                    <span className="summary-openhouse">✅ Open house flyer only</span>
-                  ) : (
-                    <span className="summary-none">⚠️ Please select at least one flyer type</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Agency Information */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Agency Information</h3>
-                <div className="flyer-form-grid">
-                  <div className="form-group">
-                    <label>Agency Name</label>
-                    <input
-                      type="text"
-                      placeholder="Your Agency Name"
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Agent Email</label>
-                    <input
-                      type="email"
-                      placeholder="your@email.com"
-                      value={agentEmail}
-                      onChange={(e) => setAgentEmail(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Agent Phone</label>
-                    <input
-                      type="tel"
-                      placeholder="123-456-7890"
-                      value={agentPhone}
-                      onChange={(e) => setAgentPhone(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Listing Website Link</label>
-                    <input
-                      type="url"
-                      placeholder="https://yourlisting.com or MLS listing URL"
-                      value={websiteLink}
-                      onChange={(e) => setWebsiteLink(e.target.value)}
-                      className="flyer-input"
-                    />
-                    <small className="input-hint">This will be displayed prominently in the flyer description</small>
-                  </div>
-                  <div className="form-group">
-                    <label>Office Address</label>
-                    <input
-                      type="text"
-                      placeholder="123 Main St, City, State ZIP"
-                      value={officeAddress}
-                      onChange={(e) => setOfficeAddress(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                </div>
-
-                {/* Property Details */}
-                <div className="flyer-section">
-                  <h3 className="flyer-section-title">Property Details (Optional)</h3>
-                  <p className="flyer-section-description">
-                    Add key property specifications to display on your flyer.
-                  </p>
-                  <div className="flyer-form-grid">
-                    <div className="form-group">
-                      <label>Bedrooms</label>
-                      <input
-                        type="number"
-                        placeholder="e.g., 3"
-                        value={propertyDetails.bedrooms || ''}
-                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, bedrooms: e.target.value }))}
-                        className="flyer-input"
-                        min="0"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Bathrooms</label>
-                      <input
-                        type="number"
-                        placeholder="e.g., 2.5"
-                        value={propertyDetails.bathrooms || ''}
-                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, bathrooms: e.target.value }))}
-                        className="flyer-input"
-                        min="0"
-                        step="0.5"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Square Feet</label>
-                      <input
-                        type="number"
-                        placeholder="e.g., 1850"
-                        value={propertyDetails.sqft || ''}
-                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, sqft: e.target.value }))}
-                        className="flyer-input"
-                        min="0"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Year Built</label>
-                      <input
-                        type="number"
-                        placeholder="e.g., 2015"
-                        value={propertyDetails.yearBuilt || ''}
-                        onChange={(e) => setPropertyDetails(prev => ({ ...prev, yearBuilt: e.target.value }))}
-                        className="flyer-input"
-                        min="1800"
-                        max={new Date().getFullYear()}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Property Highlights */}
-                <div className="flyer-section">
-                  <h3 className="flyer-section-title">Property Highlights (Optional)</h3>
-                  <p className="flyer-section-description">
-                    Check the features that apply to your property. Only selected features will appear on your flyer.
-                  </p>
-                  <div className="highlights-grid">
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.highCeilings}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, highCeilings: e.target.checked }))}
-                        />
-                        <span className="highlight-label">High Ceilings</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.crownMolding}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, crownMolding: e.target.checked }))}
-                        />
-                        <span className="highlight-label">Crown Molding</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.updatedKitchen}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, updatedKitchen: e.target.checked }))}
-                        />
-                        <span className="highlight-label">Updated Kitchen</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.lushLandscaping}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, lushLandscaping: e.target.checked }))}
-                        />
-                        <span className="highlight-label">Lush Landscaping</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.twoCarGarage}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, twoCarGarage: e.target.checked }))}
-                        />
-                        <span className="highlight-label">2-Car Garage</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.communityPool}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, communityPool: e.target.checked }))}
-                        />
-                        <span className="highlight-label">Community Pool</span>
-                      </label>
-                    </div>
-                    <div className="highlight-item">
-                      <label className="highlight-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={propertyHighlights.solarPanels}
-                          onChange={(e) => setPropertyHighlights(prev => ({ ...prev, solarPanels: e.target.checked }))}
-                        />
-                        <span className="highlight-label">Solar Panels</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Logo Upload */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Agency Logo (Optional)</h3>
-                <div className="logo-upload-area">
-                  {agencyLogo ? (
-                    <div className="logo-preview">
-                      <img src={agencyLogo} alt="Agency Logo" />
-                      <button 
-                        className="remove-logo-btn"
-                        onClick={() => setAgencyLogo(null)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="logo-upload-label">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        className="logo-upload-input"
-                      />
-                      <div className="logo-upload-content">
-                        <span className="logo-upload-icon">📷</span>
-                        <span>Click to upload logo</span>
-                        <span className="logo-upload-hint">PNG, JPG up to 2MB</span>
-                      </div>
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Design Customization */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Design Customization</h3>
-                <p className="flyer-section-description">
-                  Customize the look and feel of your flyer to match your brand.
-                </p>
-                
-                <div className="customization-grid">
-                  <div className="customization-item full-width">
-                    <label className="customization-label">Color Theme</label>
-                    <p className="customization-description">
-                      Choose from professional color schemes designed for real estate
-                    </p>
-                    <div className="current-theme-display">
-                      <span className="current-theme-label">Current:</span>
-                      <span className="current-theme-name">
-                        {primaryColor === "#2d4a3e" && secondaryColor === "#8b9d83" ? "Forest Green" :
-                         primaryColor === "#1e3a8a" && secondaryColor === "#60a5fa" ? "Navy Blue" :
-                         primaryColor === "#7c2d12" && secondaryColor === "#f59e0b" ? "Warm Brown" :
-                         primaryColor === "#374151" && secondaryColor === "#9ca3af" ? "Modern Gray" :
-                         primaryColor === "#581c87" && secondaryColor === "#a855f7" ? "Royal Purple" :
-                         primaryColor === "#dc2626" && secondaryColor === "#f87171" ? "Bold Red" : "Custom"}
-                        </span>
-                    </div>
-                    <div className="color-palettes">
-                      <div 
-                        className={`color-palette ${primaryColor === "#2d4a3e" && secondaryColor === "#8b9d83" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#2d4a3e");
-                          setSecondaryColor("#8b9d83");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#2d4a3e"}}></div>
-                          <div className="palette-secondary" style={{background: "#8b9d83"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Forest Green</span>
-                          <span className="palette-description">Professional & Trustworthy</span>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`color-palette ${primaryColor === "#1e3a8a" && secondaryColor === "#60a5fa" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#1e3a8a");
-                          setSecondaryColor("#60a5fa");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#1e3a8a"}}></div>
-                          <div className="palette-secondary" style={{background: "#60a5fa"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Navy Blue</span>
-                          <span className="palette-description">Classic & Sophisticated</span>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`color-palette ${primaryColor === "#7c2d12" && secondaryColor === "#f59e0b" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#7c2d12");
-                          setSecondaryColor("#f59e0b");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#7c2d12"}}></div>
-                          <div className="palette-secondary" style={{background: "#f59e0b"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Warm Brown</span>
-                          <span className="palette-description">Cozy & Inviting</span>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`color-palette ${primaryColor === "#374151" && secondaryColor === "#9ca3af" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#374151");
-                          setSecondaryColor("#9ca3af");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#374151"}}></div>
-                          <div className="palette-secondary" style={{background: "#9ca3af"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Modern Gray</span>
-                          <span className="palette-description">Clean & Contemporary</span>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`color-palette ${primaryColor === "#581c87" && secondaryColor === "#a855f7" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#581c87");
-                          setSecondaryColor("#a855f7");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#581c87"}}></div>
-                          <div className="palette-secondary" style={{background: "#a855f7"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Royal Purple</span>
-                          <span className="palette-description">Luxury & Elegance</span>
-                        </div>
-                      </div>
-                      
-                      <div 
-                        className={`color-palette ${primaryColor === "#dc2626" && secondaryColor === "#f87171" ? 'active' : ''}`}
-                        onClick={() => {
-                          setPrimaryColor("#dc2626");
-                          setSecondaryColor("#f87171");
-                        }}
-                      >
-                        <div className="palette-preview">
-                          <div className="palette-primary" style={{background: "#dc2626"}}></div>
-                          <div className="palette-secondary" style={{background: "#f87171"}}></div>
-                        </div>
-                        <div className="palette-info">
-                          <span className="palette-name">Bold Red</span>
-                          <span className="palette-description">Attention-Grabbing</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="customization-item">
-                    <label className="customization-label">Font Style</label>
-                    <select
-                      value={fontStyle}
-                      onChange={(e) => setFontStyle(e.target.value)}
-                      className="font-select"
-                    >
-                      <option value="modern">Modern & Clean</option>
-                      <option value="elegant">Elegant Serif</option>
-                      <option value="playful">Playful & Fun</option>
-                      <option value="professional">Professional</option>
-                    </select>
-                  </div>
-                  
-                  <div className="customization-item">
-                    <label className="customization-label">Show Price</label>
-                    <div className="toggle-container">
-                      <input
-                        type="checkbox"
-                        checked={showPrice}
-                        onChange={(e) => setShowPrice(e.target.checked)}
-                        className="toggle-checkbox"
-                        id="show-price-toggle"
-                      />
-                      <label htmlFor="show-price-toggle" className="toggle-label">
-                        <span className="toggle-slider"></span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-                
-                {showPrice && (
-                  <div className="customization-item full-width">
-                    <label className="customization-label">Custom Price</label>
-                    <input
-                      type="text"
-                      value={customPrice}
-                      onChange={(e) => setCustomPrice(e.target.value)}
-                      placeholder="$399,900"
-                      className="price-input"
-                    />
-                  </div>
-                )}
-                
-                <div className="customization-item full-width">
-                  <label className="customization-label">Signature Styling</label>
-                  <div className="toggle-container">
-                    <input
-                      type="checkbox"
-                      checked={useSignatureStyling}
-                      onChange={(e) => setUseSignatureStyling(e.target.checked)}
-                      className="toggle-checkbox"
-                      id="signature-toggle"
-                    />
-                    <label htmlFor="signature-toggle" className="toggle-label">
-                      <span className="toggle-slider"></span>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="customization-item full-width">
-                  <label className="customization-label">Background Pattern</label>
-                  <select
-                    value={backgroundPattern}
-                    onChange={(e) => setBackgroundPattern(e.target.value)}
-                    className="font-select"
-                  >
-                    <option value="none">Plain Background</option>
-                    <option value="checkerboard">Checkered Pattern</option>
-                    <option value="floral">Floral Design</option>
-                    <option value="geometric">Geometric Shapes</option>
-                    <option value="dots">Polka Dots</option>
-                    <option value="stripes">Subtle Stripes</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Open House Details */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Open House Details</h3>
-                <p className="flyer-section-description">
-                  Fill in the details for your open house flyer.
-                </p>
-                
-                <div className="customization-grid">
-                  <div className="customization-item">
-                    <label className="customization-label">Date</label>
-                    <input
-                      type="text"
-                      value={openHouseDate}
-                      onChange={(e) => setOpenHouseDate(e.target.value)}
-                      placeholder="December 15th, 2024"
-                      className="flyer-input"
-                    />
-                  </div>
-                  
-                  <div className="customization-item">
-                    <label className="customization-label">Time</label>
-                    <input
-                      type="text"
-                      value={openHouseTime}
-                      onChange={(e) => setOpenHouseTime(e.target.value)}
-                      placeholder="2:00 PM - 5:00 PM"
-                      className="flyer-input"
-                    />
-                  </div>
-                  
-                  <div className="customization-item full-width">
-                    <label className="customization-label">Property Address</label>
-                    <input
-                      type="text"
-                      value={openHouseAddress}
-                      onChange={(e) => setOpenHouseAddress(e.target.value)}
-                      placeholder="123 Anywhere St., Any City, ST 12345"
-                      className="flyer-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Property Photos */}
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Property Photos (Optional)</h3>
-                <div className="photo-upload-area">
-                  <label className="photo-upload-label">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handlePhotoUpload}
-                      className="photo-upload-input"
-                    />
-                    <div className="photo-upload-content">
-                      <span className="photo-upload-icon">📸</span>
-                      <span>Add property photos</span>
-                      <span className="photo-upload-hint">Select multiple images</span>
-                    </div>
-                  </label>
-                  
-                  {propertyPhotos.length > 0 && (
-                    <div className="photo-grid">
-                      {propertyPhotos.map((photo) => (
-                        <div key={photo.id} className="photo-item">
-                          <img src={photo.data} alt="Property" />
-                          <button 
-                            className="remove-photo-btn"
-                            onClick={() => removePhoto(photo.id)}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Save Settings Button */}
-              <div className="flyer-section">
-                <button 
-                  onClick={saveAgencyInfo}
-                  className="save-settings-btn"
-                  type="button"
-                  disabled={showSaveConfirmation}
-                >
-                  {showSaveConfirmation ? (
-                    <>
-                      <span className="save-checkmark">✓</span>
-                      Settings Saved!
-                    </>
-                  ) : (
-                    <>
-                      💾 Save Settings for Next Time
-                    </>
-                  )}
-                </button>
-                <p className="flyer-section-description">
-                  {showSaveConfirmation 
-                    ? "Your settings have been saved successfully!" 
-                    : "Your agency information and preferences will be automatically filled in next time."
-                  }
-                </p>
-              </div>
-            </div>
-
-            <div className="flyer-modal-actions">
-              <button className="flyer-modal-btn cancel" onClick={() => setFlyerOpen(false)}>
-                Cancel
-              </button>
-              <button
-                className="flyer-modal-btn generate"
-                onClick={generateFlyers}
-                disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
-              >
-                {flyerBusy ? (
-                  <>
-                    <span className="loading-spinner"></span>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <span className="generate-icon">✨</span>
-                    Generate Flyer
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Questions Modal */}
+      <FlyerModal
+        open={flyerOpen}
+        onClose={() => setFlyerOpen(false)}
+        messages={messages}
+        isPro={isPro}
+      />
       {questionsOpen && (
-        <div className="questions-modal">
-          <div className="questions-modal-content">
+        <div className="questions-modal-overlay">
+          <div className="questions-modal">
             <div className="questions-modal-header">
-              <h2 className="questions-modal-title">Additional Information Needed</h2>
+              <h3>Additional Information Needed</h3>
               <button className="questions-modal-close" onClick={() => setQuestionsOpen(false)}>✕</button>
             </div>
-            <p className="questions-modal-description">
-              To create the best listing, I need a bit more information about the property.
-            </p>
-            
-            <div className="question-progress">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </div>
-            
-            <div className="current-question">
-              <h3>{questions[currentQuestionIndex]}</h3>
+            <div className="questions-modal-body">
+              <p>{questions[currentQuestionIndex]}</p>
               <textarea
-                className="question-answer-input"
                 placeholder="Type your answer here..."
                 value={questionAnswers[currentQuestionIndex] || ""}
                 onChange={(e) => setQuestionAnswers(prev => ({
@@ -1914,33 +769,29 @@ export default function ChatPage() {
                 rows={3}
               />
             </div>
-            
             <div className="questions-modal-actions">
-              <button 
-                className="questions-modal-btn cancel" 
-                onClick={() => setQuestionsOpen(false)}
-              >
+              <button className="questions-modal-btn cancel" onClick={() => setQuestionsOpen(false)}>
                 Cancel
               </button>
               {currentQuestionIndex > 0 && (
-                <button 
-                  className="questions-modal-btn secondary" 
+                <button
+                  className="questions-modal-btn secondary"
                   onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                 >
                   Previous
                 </button>
               )}
               {currentQuestionIndex < questions.length - 1 ? (
-                <button 
-                  className="questions-modal-btn primary" 
+                <button
+                  className="questions-modal-btn primary"
                   onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
                   disabled={!questionAnswers[currentQuestionIndex]}
                 >
                   Next
                 </button>
               ) : (
-                <button 
-                  className="questions-modal-btn submit" 
+                <button
+                  className="questions-modal-btn submit"
                   onClick={submitQuestionAnswers}
                   disabled={!questionAnswers[currentQuestionIndex]}
                 >
@@ -1951,9 +802,9 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-
     </div>
   );
+}
 }
 
 /** ---------------- Small bits ---------------- */
