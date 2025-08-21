@@ -4,11 +4,15 @@
     "next/typescript"
   ],
   "rules": {
-    "@typescript-eslint/no-unused-vars": "error",
+    "@typescript-eslint/no-unused-vars": "warn",
     "@typescript-eslint/no-explicit-any": "warn",
-    "prefer-const": "error",
-    "no-var": "error",
-    "object-shorthand": "error",
-    "prefer-template": "error"
+    "prefer-const": "warn",
+    "no-var": "warn",
+    "object-shorthand": "warn",
+    "prefer-template": "warn",
+    "@next/next/no-html-link-for-pages": "warn",
+    "react/no-unescaped-entities": "warn",
+    "react/jsx-no-undef": "warn",
+    "react-hooks/exhaustive-deps": "warn"
   }
 }

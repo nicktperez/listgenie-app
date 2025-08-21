@@ -29,7 +29,15 @@ export default async function handler(req, res) {
       return res.status(403).json({ ok: false, error: "Pro plan required for batch processing" });
     }
 
-    const { properties = [], tone = "mls" } = req.body;
+    const {
+      address,
+      bedrooms,
+      bathrooms,
+      sqft,
+      style,
+      features,
+      // Remove unused tone variable
+    } = req.body;
 
     if (!Array.isArray(properties) || properties.length === 0) {
       return res.status(400).json({ ok: false, error: "No properties provided" });
