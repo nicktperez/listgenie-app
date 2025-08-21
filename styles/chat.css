@@ -748,7 +748,7 @@
   border-radius: 12px !important;
   padding: 8px 20px !important;
   backdrop-filter: blur(10px) !important;
-  min-height: 48px !important;
+  min-height: 52px !important;
   width: 100% !important;
 }
 
@@ -761,8 +761,8 @@
   line-height: 1.2 !important;
   resize: none !important;
   outline: none !important;
-  min-height: 20px !important;
-  max-height: 24px !important;
+  min-height: 28px !important;
+  max-height: 32px !important;
   padding: 8px 0 !important;
 }
 
