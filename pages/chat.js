@@ -109,10 +109,13 @@ export default function ChatPage() {
       
       // Check authentication first
       if (!isSignedIn) {
+        console.log("User not signed in, redirecting to sign-in page");
         setError("Please sign in to use the AI Listing Generator");
         router.push("/sign-in");
         return;
       }
+      
+      console.log("User authentication status:", { isSignedIn, isPro, isTrial }); // Debug log
       
       const baseInput = messages.length === 0 ? trimmed : originalInput;
       if (messages.length === 0) setOriginalInput(trimmed);
@@ -159,9 +162,13 @@ export default function ChatPage() {
 
       if (!resp.ok) {
         const errorData = await resp.json().catch(() => ({}));
+        console.log("API error data:", errorData); // Debug log
         const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
         if (resp.status === 401) {
-          throw new Error("Please sign in to use the AI Listing Generator");
+          console.error("Authentication failed. User appears signed in but API rejected request.");
+          console.error("User state:", { isSignedIn, isPro, isTrial });
+          console.error("This usually means the Clerk environment variables are not properly configured.");
+          throw new Error("Authentication failed. This appears to be a configuration issue. Please contact support.");
         } else if (resp.status === 400) {
           throw new Error(errorMessage);
         } else {
@@ -784,7 +791,19 @@ export default function ChatPage() {
                 </div>
               </div>
             ) : (
-              <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+              <div className="auth-status-check">
+                <div className="auth-status-card">
+                  <h3>Authentication Status</h3>
+                  <p>You appear to be signed in, but there may be a configuration issue.</p>
+                  <p>Status: {isSignedIn ? "Signed In" : "Not Signed In"}</p>
+                  <button 
+                    className="refresh-btn"
+                    onClick={() => window.location.reload()}
+                  >
+                    Refresh Page
+                  </button>
+                </div>
+              </div>
             )}
           </div>
           {messages.length > 0 && (
