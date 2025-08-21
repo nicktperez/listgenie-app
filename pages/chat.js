@@ -95,13 +95,112 @@ export default function ChatPage() {
   const [questions, setQuestions] = useState([]);
   const [questionAnswers, setQuestionAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  
-  // Track all Q&A history for better AI memory
   const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
-    const [isListingMode, setIsListingMode] = useState(false);
+  const [isListingMode, setIsListingMode] = useState(false);
 
   const composerRef = useRef(null);
   const [originalInput, setOriginalInput] = useState("");
+
+  // Check if we have a listing to display
+  const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
+  const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
+
+  // If not signed in, show sign-in prompt
+  if (!isSignedIn) {
+    return (
+      <div className="chat-page">
+        <div className="chat-wrap">
+          <div className="sign-in-prompt">
+            <div className="sign-in-card">
+              <h3>Sign In Required</h3>
+              <p>Please sign in to use the AI Listing Generator</p>
+              <button 
+                className="sign-in-btn"
+                onClick={() => router.push("/sign-in")}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If we have a listing, show the listing-focused layout
+  if (hasListing) {
+    return (
+      <div className="chat-page listing-focused">
+        <div className="listing-container">
+          {/* Header with actions */}
+          <div className="listing-header">
+            <h1 className="listing-title">Your Generated Listing</h1>
+            <div className="listing-actions">
+              <button 
+                className="action-btn new-listing-btn"
+                onClick={() => {
+                  setMessages([]);
+                  setOriginalInput("");
+                  setIsListingMode(false);
+                }}
+              >
+                New Listing
+              </button>
+              <button 
+                className="action-btn flyer-btn"
+                onClick={openFlyerModal}
+                disabled={!isPro}
+              >
+                Generate Flyer
+              </button>
+            </div>
+          </div>
+
+          {/* Main listing content */}
+          <div className="listing-content">
+            <div className="listing-display">
+              <pre className="listing-text">{currentListing}</pre>
+              <button 
+                className="copy-btn"
+                onClick={() => handleCopyListing(currentListing)}
+              >
+                Copy Listing
+              </button>
+            </div>
+          </div>
+
+          {/* Compact chatbox for tweaks */}
+          <div className="compact-chat">
+            <div className="compact-chat-header">
+              <h3>Need to tweak your listing?</h3>
+              <p>Describe what you'd like to change or add</p>
+            </div>
+            <Composer 
+              ref={composerRef} 
+              onSend={handleSend} 
+              loading={loading}
+              placeholder="e.g., 'Make it more luxury-focused' or 'Add details about the backyard'"
+              compact={true}
+            />
+            {error && <div className="error-message">{error}</div>}
+          </div>
+        </div>
+
+        {/* Flyer Modal */}
+        {flyerOpen && (
+          <FlyerModal
+            listing={currentListing}
+            onClose={() => setFlyerOpen(false)}
+            onError={(e) => {
+              console.error("Flyer generation error:", e);
+              const errorMessage = e?.message || e?.error || "Could not generate flyers";
+              setError(errorMessage);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
 
     async function handleSend(text) {
       const trimmed = text.trim();

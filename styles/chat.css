@@ -506,3 +506,248 @@
   background: #ffb300 !important;
   transform: translateY(-1px) !important;
 }
+
+/* Listing-focused layout - HIGH PRIORITY */
+.chat-page.listing-focused {
+  padding: 24px !important;
+}
+
+.chat-page.listing-focused .listing-container {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 32px !important;
+}
+
+/* Listing header - HIGH PRIORITY */
+.chat-page.listing-focused .listing-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 24px 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.chat-page.listing-focused .listing-title {
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  color: #fff !important;
+  margin: 0 !important;
+}
+
+.chat-page.listing-focused .listing-actions {
+  display: flex !important;
+  gap: 16px !important;
+}
+
+.chat-page.listing-focused .action-btn {
+  padding: 12px 24px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.chat-page.listing-focused .new-listing-btn {
+  background: #8b5cf6 !important;
+  color: #fff !important;
+}
+
+.chat-page.listing-focused .new-listing-btn:hover {
+  background: #7c3aed !important;
+  transform: translateY(-1px) !important;
+}
+
+.chat-page.listing-focused .flyer-btn {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+
+.chat-page.listing-focused .flyer-btn:hover:not(:disabled) {
+  background: #059669 !important;
+  transform: translateY(-1px) !important;
+}
+
+.chat-page.listing-focused .flyer-btn:disabled {
+  background: rgba(16, 185, 129, 0.3) !important;
+  cursor: not-allowed !important;
+}
+
+/* Listing content - HIGH PRIORITY */
+.chat-page.listing-focused .listing-content {
+  flex: 1 !important;
+  min-height: 400px !important;
+}
+
+.chat-page.listing-focused .listing-display {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 32px !important;
+  position: relative !important;
+}
+
+.chat-page.listing-focused .listing-text {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+  color: #fff !important;
+  white-space: pre-wrap !important;
+  margin: 0 !important;
+  overflow-wrap: break-word !important;
+}
+
+.chat-page.listing-focused .copy-btn {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.chat-page.listing-focused .copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Compact chat - HIGH PRIORITY */
+.chat-page.listing-focused .compact-chat {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 24px !important;
+}
+
+.chat-page.listing-focused .compact-chat-header {
+  text-align: center !important;
+  margin-bottom: 20px !important;
+}
+
+.chat-page.listing-focused .compact-chat-header h3 {
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  margin: 0 0 8px 0 !important;
+}
+
+.chat-page.listing-focused .compact-chat-header p {
+  font-size: 14px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  margin: 0 !important;
+}
+
+/* Compact composer - HIGH PRIORITY */
+.composer.composer-compact {
+  max-width: 600px !important;
+  margin: 0 auto !important;
+}
+
+.composer.composer-compact .composer-input-wrapper {
+  display: flex !important;
+  gap: 12px !important;
+  align-items: flex-end !important;
+}
+
+.composer.composer-compact .composer-textarea {
+  flex: 1 !important;
+  min-height: 60px !important;
+  max-height: 120px !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+}
+
+.composer.composer-compact .composer-send-btn {
+  padding: 12px 16px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+}
+
+/* Error message - HIGH PRIORITY */
+.error-message {
+  background: rgba(244, 63, 94, 0.1) !important;
+  border: 1px solid rgba(244, 63, 94, 0.3) !important;
+  color: #f43f5e !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  margin-top: 16px !important;
+  font-size: 14px !important;
+  text-align: center !important;
+}
+
+/* Regular composer - HIGH PRIORITY */
+.composer {
+  width: 100% !important;
+}
+
+.composer .composer-input-wrapper {
+  display: flex !important;
+  gap: 16px !important;
+  align-items: flex-end !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.composer .composer-textarea {
+  flex: 1 !important;
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  line-height: 1.5 !important;
+  resize: none !important;
+  outline: none !important;
+  min-height: 80px !important;
+  max-height: 200px !important;
+}
+
+.composer .composer-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.composer .composer-send-btn {
+  background: #8b5cf6 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 12px !important;
+  padding: 16px 20px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 56px !important;
+  height: 56px !important;
+}
+
+.composer .composer-send-btn:hover:not(:disabled) {
+  background: #7c3aed !important;
+  transform: translateY(-1px) !important;
+}
+
+.composer .composer-send-btn:disabled {
+  background: rgba(139, 92, 246, 0.3) !important;
+  cursor: not-allowed !important;
+}
+
+.composer .loading-icon {
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -6,6 +6,7 @@ interface ComposerProps {
   loading?: boolean;
   placeholder?: string;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 interface ComposerRef {
@@ -18,7 +19,8 @@ const Composer = forwardRef<ComposerRef, ComposerProps>(({
   onSend,
   loading = false,
   placeholder = "Paste a property description or type details…",
-  disabled = false
+  disabled = false,
+  compact = false
 }, ref) => {
   const [input, setInput] = useState('');
 
@@ -28,61 +30,42 @@ const Composer = forwardRef<ComposerRef, ComposerProps>(({
     focus: () => {
       const textarea = document.querySelector('textarea');
       if (textarea) textarea.focus();
-    },
-  }));
-
-  const handleSubmit = useCallback(() => {
-    const trimmed = input.trim();
-    if (!trimmed || loading || disabled) return;
-    onSend(trimmed);
-    setInput('');
-  }, [input, onSend, loading, disabled]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault();
-      handleSubmit();
     }
-  }, [handleSubmit]);
+  }), []);
 
-  const isSubmitDisabled = !input.trim() || loading || disabled;
+  const handleSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || loading || disabled) return;
+    
+    onSend(input.trim());
+    setInput('');
+  }, [input, loading, disabled, onSend]);
 
   return (
-    <section className="composer-field">
-      <div className="field-card">
+    <form onSubmit={handleSubmit} className={`composer ${compact ? 'composer-compact' : ''}`}>
+      <div className="composer-input-wrapper">
         <textarea
-          rows={4}
-          placeholder={placeholder}
+          ref={(el) => {
+            if (el) el.style.height = 'auto';
+            if (el) el.style.height = el.scrollHeight + 'px';
+          }}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          className="chat-textarea"
+          placeholder={placeholder}
+          disabled={disabled || loading}
+          className="composer-textarea"
+          rows={compact ? 2 : 4}
+          style={{ resize: 'none' }}
         />
-        <div className="field-actions">
-          <div className="keyboard-hint">
-            Press ⌘+Enter to send
-          </div>
-          <button
-            className={`send-btn ${isSubmitDisabled ? 'disabled' : ''}`}
-            disabled={isSubmitDisabled}
-            onClick={handleSubmit}
-          >
-            {loading ? (
-              <>
-                <FiLoader className="spinner" />
-                <span>Generating…</span>
-              </>
-            ) : (
-              <>
-                <FiSend className="send-icon" />
-                <span>Generate Listing</span>
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!input.trim() || loading || disabled}
+          className="composer-send-btn"
+        >
+          {loading ? <FiLoader className="loading-icon" /> : <FiSend />}
+        </button>
       </div>
-    </section>
+    </form>
   );
 });
 
