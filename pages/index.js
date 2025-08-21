@@ -534,6 +534,44 @@ export default function ChatPage() {
     { value: "abstract", label: "Abstract", description: "Creative abstract designs" }
   ];
 
+  // Show loading state while Clerk is loading
+  if (!isSignedIn === undefined) {
+    return (
+      <div className="chat-wrap">
+        <div className="loading">
+          <div className="loading-dots">
+            <div className="dot"></div>
+            <div className="dot"></div>
+            <div className="dot"></div>
+          </div>
+          <div className="loading-text">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // If not signed in, show sign-in prompt and BLOCK ALL CHAT ACCESS
+  if (!isSignedIn) {
+    return (
+      <div className="chat-page">
+        <div className="chat-wrap">
+          <div className="sign-in-prompt">
+            <div className="sign-in-card">
+              <h3>🔐 Sign In Required</h3>
+              <p>Please sign in to use the AI Listing Generator</p>
+              <button 
+                className="sign-in-btn"
+                onClick={() => window.location.href = "/sign-in"}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (planLoading) {
     return (
       <div className="chat-wrap">
