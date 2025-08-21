@@ -48,38 +48,34 @@ const Composer = forwardRef<ComposerRef, ComposerProps>(({
   const isSubmitDisabled = !input.trim() || loading || disabled;
 
   return (
-    <section className="composer bg-white border border-gray-200 rounded-lg shadow-sm">
-      <div className="p-4">
+    <section className="composer-field">
+      <div className="field-card">
         <textarea
-          rows={3}
+          rows={4}
           placeholder={placeholder}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled}
-          className="w-full resize-none border-0 focus:ring-0 focus:outline-none text-gray-900 placeholder-gray-500 disabled:bg-gray-50 disabled:text-gray-400"
+          className="chat-textarea"
         />
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-          <div className="text-xs text-gray-500">
+        <div className="field-actions">
+          <div className="keyboard-hint">
             Press ⌘+Enter to send
           </div>
           <button
-            className={`send flex items-center space-x-2 px-4 py-2 rounded-md font-medium transition-colors ${
-              isSubmitDisabled
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-            }`}
+            className={`send-btn ${isSubmitDisabled ? 'disabled' : ''}`}
             disabled={isSubmitDisabled}
             onClick={handleSubmit}
           >
             {loading ? (
               <>
-                <FiLoader className="w-4 h-4 animate-spin" />
+                <FiLoader className="spinner" />
                 <span>Generating…</span>
               </>
             ) : (
               <>
-                <FiSend className="w-4 h-4" />
+                <FiSend className="send-icon" />
                 <span>Generate Listing</span>
               </>
             )}

@@ -205,7 +205,9 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
         }
       }
     } catch (e) {
-      setError(e?.message || "Could not generate flyers");
+      console.error("Flyer generation error:", e);
+      const errorMessage = e?.message || e?.error || "Could not generate flyers";
+      setError(errorMessage);
     } finally {
       setFlyerBusy(false);
     }
