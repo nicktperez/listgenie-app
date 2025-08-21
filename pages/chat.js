@@ -708,7 +708,9 @@ export default function ChatPage() {
         });
       }
     } catch (e) {
-      setError(e?.message || "Failed to get response");
+      console.error("Modify listing error:", e);
+      const errorMessage = e?.message || e?.error || "Failed to get response";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
