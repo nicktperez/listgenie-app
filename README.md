@@ -4,7 +4,13 @@ A GPT-powered listing assistant for realtors, with Clerk authentication and Stri
 
 ## Setup
 
-1. Copy `.env.example` to `.env.local` and fill in the values.
+1. Create a `.env.local` file and include your Clerk publishable key:
+
+   ```
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your key>
+   ```
+
+   This prevents build errors like "Missing publishableKey".
 2. Run `npm install`
 3. Run `npm run dev`
 
