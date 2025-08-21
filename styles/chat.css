@@ -742,7 +742,7 @@
 .composer .composer-input-wrapper {
   display: flex !important;
   gap: 12px !important;
-  align-items: center !important;
+  align-items: flex-start !important;
   background: rgba(255, 255, 255, 0.08) !important;
   border: 1px solid rgba(255, 255, 255, 0.15) !important;
   border-radius: 12px !important;
@@ -750,6 +750,7 @@
   backdrop-filter: blur(10px) !important;
   min-height: 52px !important;
   width: 100% !important;
+  transition: all 0.2s ease !important;
 }
 
 .composer .composer-textarea {
@@ -758,14 +759,15 @@
   border: none !important;
   color: #fff !important;
   font-size: 16px !important;
-  line-height: 1.2 !important;
+  line-height: 1.4 !important;
   resize: none !important;
   outline: none !important;
   min-height: 28px !important;
-  max-height: 32px !important;
+  max-height: 200px !important;
   padding: 4px 0 !important;
-  display: flex !important;
-  align-items: center !important;
+  display: block !important;
+  overflow-y: auto !important;
+  transition: height 0.2s ease !important;
 }
 
 .composer .composer-textarea::placeholder {
@@ -787,6 +789,7 @@
   justify-content: center !important;
   min-width: 36px !important;
   height: 36px !important;
+  margin-top: 4px !important;
 }
 
 .composer .composer-send-btn:hover:not(:disabled) {
