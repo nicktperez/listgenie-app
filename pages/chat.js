@@ -243,18 +243,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* Flyer Modal */}
-        {flyerOpen && (
-          <FlyerModal
-            listing={currentListing}
-            onClose={() => setFlyerOpen(false)}
-            onError={(e) => {
-              console.error("Flyer generation error:", e);
-              const errorMessage = e?.message || e?.error || "Could not generate flyers";
-              setError(errorMessage);
-            }}
-          />
-        )}
+
       </div>
     );
   }
@@ -280,10 +269,7 @@ export default function ChatPage() {
       setMessages(prev => [...prev, { role: "user", content: trimmed }]);
       setError(null);
 
-      // Scroll to bottom after adding user message
-      setTimeout(() => {
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-      }, 100);
+      // Don't scroll - let the page stay where it is
 
       try {
         setLoading(true);
@@ -529,10 +515,7 @@ export default function ChatPage() {
     // Add new questions to the history
     setAllQuestionsAndAnswers(prev => [...prev, ...questionsData.questions]);
     
-    // Scroll to bottom to show the questions modal
-    setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
+    // Don't scroll - let the page stay where it is
   }
 
   function handleCopyListing(listingText) {
@@ -578,10 +561,7 @@ export default function ChatPage() {
       { role: "assistant", content: "", pretty: "" }
     ]);
 
-    // Scroll to bottom to show the modification request
-    setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
+    // Don't scroll - let the page stay where it is
 
     try {
       setLoading(true);
@@ -954,6 +934,7 @@ export default function ChatPage() {
         onClose={() => setFlyerOpen(false)}
         messages={messages}
         isPro={isPro}
+        listing={currentListing}
       />
       {questionsOpen && (
         <div className="questions-modal-overlay">
