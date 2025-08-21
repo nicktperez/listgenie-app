@@ -107,6 +107,13 @@ export default function ChatPage() {
   const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
   const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
 
+  // Ensure page stays at top when listing is displayed
+  React.useEffect(() => {
+    if (hasListing) {
+      window.scrollTo(0, 0);
+    }
+  }, [hasListing]);
+
   // Show loading state while Clerk is loading
   if (!isLoaded) {
     return (
@@ -152,7 +159,37 @@ export default function ChatPage() {
         <div className="listing-container">
           {/* Header - centered */}
           <div className="listing-header">
-            <h1 className="listing-title">Your Generated Listing</h1>
+            <div className="listing-title-container">
+              <svg 
+                className="listing-icon" 
+                width="48" 
+                height="48" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path 
+                  d="M12 3L2 12H4V21H20V12H22L12 3ZM18 19H6V10.91L12 5.41L18 10.91V19Z" 
+                  fill="url(#listingGradient)" 
+                />
+                <path 
+                  d="M9 14H15V16H9V14Z" 
+                  fill="url(#listingGradient)" 
+                />
+                <path 
+                  d="M9 17H15V19H9V17Z" 
+                  fill="url(#listingGradient)" 
+                />
+                <defs>
+                  <linearGradient id="listingGradient" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#8B5CF6"/>
+                    <stop offset="0.5" stopColor="#3B82F6"/>
+                    <stop offset="1" stopColor="#06B6D4"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <h1 className="listing-title">Your Generated Listing</h1>
+            </div>
           </div>
 
           {/* Main listing content */}
@@ -896,18 +933,20 @@ export default function ChatPage() {
             {!isListingMode && (
               <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
             )}
-            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+            <div className="chat-input-section">
+              <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+              {loading && (
+                <div className="generating-animation">
+                  <div className="generating-dots">
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </div>
+                  <div className="generating-text">Generating...</div>
+                </div>
+              )}
+            </div>
           </div>
-          {messages.length > 0 && (
-            <MessageThread
-              messages={messages}
-              loading={loading}
-              error={error}
-              onCopyListing={handleCopyListing}
-              onModifyListing={handleModifyListing}
-              onOpenFlyer={openFlyerModal}
-            />
-          )}
         </div>
       </main>
       <FlyerModal
