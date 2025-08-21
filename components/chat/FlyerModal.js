@@ -90,123 +90,70 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
       return;
     }
 
-    saveAgencyInfo();
-
+    // Get the current listing content
     const lastAssistant = [...messages].reverse().find(
-      (m) => m.role === "assistant" && m.pretty && m.pretty.includes("**")
+      (m) => m.role === "assistant" && m.content
     );
     if (!lastAssistant) {
       setError("No listing found to generate flyers from. Please generate a listing first.");
       return;
     }
-    const content = lastAssistant.pretty || lastAssistant.content || "";
+    const content = lastAssistant.content || "";
     if (!content.trim()) {
       setError("Listing content is empty. Please generate a listing first.");
       return;
     }
 
     const payload = {
-      flyers: Object.entries(flyerTypes)
-        .filter(([_, v]) => v)
-        .map(([k]) => k),
-      content: { single: content },
-      customization: {
-        agencyName: agencyName.trim(),
-        agentEmail: agentEmail.trim(),
-        agentPhone: agentPhone.trim(),
-        websiteLink: websiteLink.trim(),
-        officeAddress: officeAddress.trim(),
-        agencyLogo,
-        propertyPhotos,
-        primaryColor,
-        secondaryColor,
-        fontStyle,
-        showPrice,
-        customPrice,
-        openHouseDate,
-        openHouseTime,
-        openHouseAddress,
-        propertyDetails,
-        propertyHighlights,
-        useSignatureStyling,
-        backgroundPattern,
-        showAdvancedOptions,
-      },
+      listing: content,
+      propertyDetails: propertyDetails
     };
 
     try {
       setFlyerBusy(true);
       setError("");
+      console.log("🎨 Generating AI flyer...");
+      
       const res = await fetch("/api/flyer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || `Flyer API error: ${res.status} ${res.statusText}`);
       }
-      const contentType = res.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        const data = await res.json();
-        if (data.success && data.flyers) {
-          const downloadedFiles = [];
-          for (const [flyerType, htmlContent] of Object.entries(data.flyers)) {
-            const filename = flyerType === "standard" ? "property-flyer.html" : "open-house-flyer.html";
-            downloadedFiles.push(filename);
-            const blob = new Blob([htmlContent], { type: "text/html" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            URL.revokeObjectURL(url);
-            a.remove();
-            if (downloadedFiles.length < Object.keys(data.flyers).length) {
-              await new Promise((resolve) => setTimeout(resolve, 500));
-            }
-          }
-          alert(`✅ Successfully generated and downloaded: ${downloadedFiles.join(', ')}`);
-        } else {
-          throw new Error(data.message || "Failed to generate flyers");
+      
+      const data = await res.json();
+      
+      if (data.success && data.flyer && data.flyer.imageUrl) {
+        console.log("✅ Flyer generated successfully!");
+        
+        // Open the flyer image in a new tab for viewing/downloading
+        const newWindow = window.open(data.flyer.imageUrl, '_blank');
+        if (newWindow) {
+          newWindow.focus();
         }
-      } else if (contentType?.includes("text/html")) {
-        const htmlText = await res.text();
-        const blob = new Blob([htmlText], { type: "text/html" });
-        const url = URL.createObjectURL(blob);
+        
+        // Also trigger download
         const a = document.createElement("a");
-        a.href = url;
-        a.download = "flyer.html";
+        a.href = data.flyer.imageUrl;
+        a.download = "ai-generated-flyer.png";
         document.body.appendChild(a);
         a.click();
-        URL.revokeObjectURL(url);
         a.remove();
-      } else if (contentType?.includes("application/pdf")) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "flyer.pdf";
-        document.body.appendChild(a);
-        a.click();
-        URL.revokeObjectURL(url);
-        a.remove();
+        
+        alert("✅ AI flyer generated successfully! Opening in new tab and downloading...");
+        
+        // Close modal after successful generation
+        onClose();
       } else {
-        const data = await res.json();
-        const urls = data?.urls || (data?.url ? [data.url] : []);
-        for (const u of urls) {
-          const a = document.createElement("a");
-          a.href = u;
-          a.download = "";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        }
+        throw new Error(data.error || "Failed to generate flyer");
       }
     } catch (e) {
-      console.error("Flyer generation error:", e);
-      const errorMessage = e?.message || e?.error || "Could not generate flyers";
+      console.error("❌ Flyer generation error:", e);
+      const errorMessage = e?.message || e?.error || "Could not generate flyer";
       setError(errorMessage);
     } finally {
       setFlyerBusy(false);
@@ -293,7 +240,7 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
     <div className="flyer-modal">
       <div className="flyer-modal-content">
         <div className="flyer-modal-header">
-          <h2 className="flyer-modal-title">Create Beautiful Flyers</h2>
+          <h2 className="flyer-modal-title">🎨 AI Flyer Generator</h2>
           <button className="flyer-modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -306,309 +253,45 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
           )}
 
           <div className="flyer-section">
-            <h3 className="flyer-section-title">Flyer Types</h3>
-            <p className="flyer-section-description">
-              Select which types of flyers you'd like to generate. You can choose one or both.
-            </p>
-            <div className="flyer-options">
-              <label className="flyer-option">
-                <input
-                  type="checkbox"
-                  checked={flyerTypes.standard}
-                  onChange={(e) => setFlyerTypes((s) => ({ ...s, standard: e.target.checked }))}
-                />
-                <span className="flyer-option-text">
-                  <span className="flyer-option-icon">📄</span>
-                  Standard Property Flyer
-                </span>
-              </label>
-              <label className="flyer-option">
-                <input
-                  type="checkbox"
-                  checked={flyerTypes.openHouse}
-                  onChange={(e) => setFlyerTypes((s) => ({ ...s, openHouse: e.target.checked }))}
-                />
-                <span className="flyer-option-text">
-                  <span className="flyer-option-icon">🏠</span>
-                  Open House Flyer
-                </span>
-              </label>
+            <div className="ai-flyer-hero">
+              <div className="ai-flyer-icon">🎨</div>
+              <h3 className="ai-flyer-title">AI-Powered Flyer Generation</h3>
+              <p className="ai-flyer-description">
+                Our AI will automatically create a stunning, professional real estate flyer based on your listing content. 
+                No design skills required!
+              </p>
             </div>
-            <div className="flyer-selection-summary">
-              {flyerTypes.standard && flyerTypes.openHouse ? (
-                <span className="summary-both">✅ Both flyer types selected</span>
-              ) : flyerTypes.standard ? (
-                <span className="summary-standard">✅ Standard flyer only</span>
-              ) : flyerTypes.openHouse ? (
-                <span className="summary-openhouse">✅ Open house flyer only</span>
-              ) : (
-                <span className="summary-none">⚠️ Please select at least one flyer type</span>
-              )}
+            
+            <div className="ai-flyer-features">
+              <div className="feature-item">
+                <span className="feature-icon">✨</span>
+                <span>Professional design templates</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">🎯</span>
+                <span>Property details automatically extracted</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">📱</span>
+                <span>Optimized for both print and digital sharing</span>
+              </div>
+              <div className="feature-item">
+                <span className="feature-icon">⚡</span>
+                <span>Generated in seconds</span>
+              </div>
             </div>
           </div>
 
-          <div className="flyer-section">
-            <h3 className="flyer-section-title">Agency Information</h3>
-            <div className="flyer-form-grid">
-              <div className="form-group">
-                <label>Agency Name</label>
-                <input
-                  type="text"
-                  placeholder="Your Agency Name"
-                  value={agencyName}
-                  onChange={(e) => setAgencyName(e.target.value)}
-                  className="flyer-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Agent Email</label>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  value={agentEmail}
-                  onChange={(e) => setAgentEmail(e.target.value)}
-                  className="flyer-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Agent Phone</label>
-                <input
-                  type="tel"
-                  placeholder="123-456-7890"
-                  value={agentPhone}
-                  onChange={(e) => setAgentPhone(e.target.value)}
-                  className="flyer-input"
-                />
-              </div>
-              <div className="form-group">
-                <label>Listing Website Link</label>
-                <input
-                  type="url"
-                  placeholder="https://yourlisting.com or MLS listing URL"
-                  value={websiteLink}
-                  onChange={(e) => setWebsiteLink(e.target.value)}
-                  className="flyer-input"
-                />
-                <small className="input-hint">This will be displayed prominently in the flyer description</small>
-              </div>
-              <div className="form-group">
-                <label>Office Address</label>
-                <input
-                  type="text"
-                  placeholder="123 Main St, City, State ZIP"
-                  value={officeAddress}
-                  onChange={(e) => setOfficeAddress(e.target.value)}
-                  className="flyer-input"
-                />
-              </div>
-            </div>
-
-            <div className="flyer-section">
-              <h3 className="flyer-section-title">Property Details (Optional)</h3>
-              <p className="flyer-section-description">
-                Add key property specifications to display on your flyer.
-              </p>
-              <div className="flyer-form-grid">
-                <div className="form-group">
-                  <label>Bedrooms</label>
-                  <input
-                    type="number"
-                    placeholder="e.g., 3"
-                    value={propertyDetails.bedrooms || ""}
-                    onChange={(e) => setPropertyDetails((prev) => ({ ...prev, bedrooms: e.target.value }))}
-                    className="flyer-input"
-                    min="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Bathrooms</label>
-                  <input
-                    type="number"
-                    placeholder="e.g., 2"
-                    value={propertyDetails.bathrooms || ""}
-                    onChange={(e) => setPropertyDetails((prev) => ({ ...prev, bathrooms: e.target.value }))}
-                    className="flyer-input"
-                    min="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Square Feet</label>
-                  <input
-                    type="number"
-                    placeholder="e.g., 1650"
-                    value={propertyDetails.sqft || ""}
-                    onChange={(e) => setPropertyDetails((prev) => ({ ...prev, sqft: e.target.value }))}
-                    className="flyer-input"
-                    min="0"
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Year Built</label>
-                  <input
-                    type="number"
-                    placeholder="e.g., 1998"
-                    value={propertyDetails.yearBuilt || ""}
-                    onChange={(e) => setPropertyDetails((prev) => ({ ...prev, yearBuilt: e.target.value }))}
-                    className="flyer-input"
-                    min="0"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flyer-section">
-              <h3 className="flyer-section-title">Property Highlights (Optional)</h3>
-              <p className="flyer-section-description">
-                Select key features to showcase on your flyer.
-              </p>
-              <div className="highlights-grid">
-                {Object.entries(propertyHighlights).map(([key, value]) => (
-                  <label key={key} className="highlight-option">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={(e) =>
-                        setPropertyHighlights((prev) => ({ ...prev, [key]: e.target.checked }))
-                      }
-                    />
-                    <span>{key.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase())}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="flyer-section">
-              <h3 className="flyer-section-title">Photos (Optional)</h3>
-              <div className="form-group">
-                <label>Upload Property Photos</label>
-                <input type="file" accept="image/*" multiple onChange={handlePhotoUpload} />
-                <small className="input-hint">Up to 20MB total, 5MB per photo</small>
-              </div>
-              {propertyPhotos.length > 0 && (
-                <div className="photo-preview-grid">
-                  {propertyPhotos.map((photo) => (
-                    <div key={photo.id} className="photo-preview-item">
-                      <img src={photo.data} alt="Property" />
-                      <button className="remove-photo" onClick={() => removePhoto(photo.id)}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="flyer-section">
-              <h3 className="flyer-section-title">Agency Logo (Optional)</h3>
-              <div className="form-group">
-                <label>Upload Logo</label>
-                <input type="file" accept="image/*" onChange={handleLogoUpload} />
-                <small className="input-hint">Max 5MB, will be resized automatically</small>
-              </div>
-              {agencyLogo && (
-                <div className="logo-preview">
-                  <img src={agencyLogo} alt="Logo" />
-                </div>
-              )}
-            </div>
-
-            <div className="flyer-section">
-              <h3 className="flyer-section-title">Customization</h3>
-              <div className="flyer-form-grid">
-                <div className="form-group">
-                  <label>Primary Color</label>
-                  <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Secondary Color</label>
-                  <input type="color" value={secondaryColor} onChange={(e) => setSecondaryColor(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Font Style</label>
-                  <select value={fontStyle} onChange={(e) => setFontStyle(e.target.value)} className="flyer-input">
-                    <option value="modern">Modern</option>
-                    <option value="classic">Classic</option>
-                    <option value="elegant">Elegant</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Background Pattern</label>
-                  <select value={backgroundPattern} onChange={(e) => setBackgroundPattern(e.target.value)} className="flyer-input">
-                    <option value="none">None</option>
-                    <option value="dots">Dots</option>
-                    <option value="grid">Grid</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Show Price</label>
-                  <input
-                    type="checkbox"
-                    checked={showPrice}
-                    onChange={(e) => setShowPrice(e.target.checked)}
-                  />
-                </div>
-                {showPrice && (
-                  <div className="form-group">
-                    <label>Custom Price</label>
-                    <input
-                      type="text"
-                      value={customPrice}
-                      onChange={(e) => setCustomPrice(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                )}
-                <div className="form-group">
-                  <label>Signature Styling</label>
-                  <input
-                    type="checkbox"
-                    checked={useSignatureStyling}
-                    onChange={(e) => setUseSignatureStyling(e.target.checked)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {flyerTypes.openHouse && (
-              <div className="flyer-section">
-                <h3 className="flyer-section-title">Open House Details</h3>
-                <div className="flyer-form-grid">
-                  <div className="form-group">
-                    <label>Date</label>
-                    <input
-                      type="text"
-                      value={openHouseDate}
-                      onChange={(e) => setOpenHouseDate(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Time</label>
-                    <input
-                      type="text"
-                      value={openHouseTime}
-                      onChange={(e) => setOpenHouseTime(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Address</label>
-                    <input
-                      type="text"
-                      value={openHouseAddress}
-                      onChange={(e) => setOpenHouseAddress(e.target.value)}
-                      className="flyer-input"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="flyer-section">
-              <button className="save-info-btn" onClick={saveAgencyInfo}>Save Agency Info</button>
-              {showSaveConfirmation && (
-                <span className="save-confirmation">Saved!</span>
-              )}
+          <div className="flyer-preview-section">
+            <div className="preview-info">
+              <h4>🔍 Preview Information</h4>
+              <p>The AI will analyze your listing and automatically include:</p>
+              <ul>
+                <li>Property address and key details</li>
+                <li>Number of bedrooms and bathrooms</li>
+                <li>Square footage and special features</li>
+                <li>Professional styling and layout</li>
+              </ul>
             </div>
           </div>
 
@@ -619,9 +302,9 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
             <button
               className="flyer-modal-btn generate"
               onClick={generateFlyers}
-              disabled={flyerBusy || (!flyerTypes.standard && !flyerTypes.openHouse)}
+              disabled={flyerBusy}
             >
-              {flyerBusy ? "Generating..." : "Generate Flyers"}
+              {flyerBusy ? "🎨 Generating AI Flyer..." : "🚀 Generate AI Flyer"}
             </button>
           </div>
         </div>

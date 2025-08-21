@@ -109,8 +109,20 @@ export default function ChatPage() {
 
   // Ensure page stays at top when listing is displayed
   useEffect(() => {
+    console.log("useEffect triggered", { hasListing, messages: messages.length });
     if (hasListing) {
+      console.log("Scrolling to top");
+      // Use multiple methods to ensure scrolling works
       window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      
+      // Also prevent any automatic scrolling
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      }, 100);
     }
   }, [hasListing]);
 
@@ -234,8 +246,12 @@ export default function ChatPage() {
               </button>
               <button 
                 className="compact-action-btn flyer-btn"
-                onClick={openFlyerModal}
+                onClick={() => {
+                  console.log("Flyer button clicked directly");
+                  openFlyerModal();
+                }}
                 disabled={!isPro}
+                style={{ position: 'relative', zIndex: 10 }}
               >
                 Generate Flyer
               </button>
@@ -496,7 +512,13 @@ export default function ChatPage() {
   }
 
   function openFlyerModal() {
-    if (!isPro) { router.push("/upgrade"); return; }
+    console.log("openFlyerModal called", { isPro, flyerOpen });
+    if (!isPro) { 
+      console.log("User not Pro, redirecting to upgrade");
+      router.push("/upgrade"); 
+      return; 
+    }
+    console.log("Setting flyerOpen to true");
     setFlyerOpen(true);
   }
 
