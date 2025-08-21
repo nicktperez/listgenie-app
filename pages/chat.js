@@ -150,28 +150,9 @@ export default function ChatPage() {
     return (
       <div className="chat-page listing-focused">
         <div className="listing-container">
-          {/* Header with actions */}
+          {/* Header - centered */}
           <div className="listing-header">
             <h1 className="listing-title">Your Generated Listing</h1>
-            <div className="listing-actions">
-              <button 
-                className="action-btn new-listing-btn"
-                onClick={() => {
-                  setMessages([]);
-                  setOriginalInput("");
-                  setIsListingMode(false);
-                }}
-              >
-                New Listing
-              </button>
-              <button 
-                className="action-btn flyer-btn"
-                onClick={openFlyerModal}
-                disabled={!isPro}
-              >
-                Generate Flyer
-              </button>
-            </div>
           </div>
 
           {/* Main listing content */}
@@ -201,6 +182,27 @@ export default function ChatPage() {
               compact={true}
             />
             {error && <div className="error-message">{error}</div>}
+            
+            {/* Action buttons near chatbox */}
+            <div className="compact-actions">
+              <button 
+                className="compact-action-btn new-listing-btn"
+                onClick={() => {
+                  setMessages([]);
+                  setOriginalInput("");
+                  setIsListingMode(false);
+                }}
+              >
+                NEW LISTING
+              </button>
+              <button 
+                className="compact-action-btn flyer-btn"
+                onClick={openFlyerModal}
+                disabled={!isPro}
+              >
+                Generate Flyer
+              </button>
+            </div>
           </div>
         </div>
 
