@@ -7,11 +7,11 @@ export default function HomePage() {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Small delay to show the professional loading state
+    // Longer delay to appreciate the beautiful page
     const timer = setTimeout(() => {
       setRedirecting(true);
       router.replace("/chat");
-    }, 800);
+    }, 3500); // Increased from 800ms to 3.5 seconds
 
     return () => clearTimeout(timer);
   }, [router]);

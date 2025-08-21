@@ -14,11 +14,18 @@
     radial-gradient(1200px 600px at 10% -5%, rgba(86, 94, 222, 0.25), transparent 50%),
     radial-gradient(1200px 600px at 90% -10%, rgba(112, 59, 247, 0.25), transparent 55%),
     #0b1220 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .chat-page .chat-wrap {
-  max-width: 1080px !important;
+  max-width: 800px !important;
+  width: 100% !important;
   margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 /* Chat container spacing - HIGH PRIORITY */
@@ -36,53 +43,66 @@
 .chat-page .ai-chat-section {
   text-align: center !important;
   margin-bottom: 48px !important;
-}
-
-.chat-page .ai-chat-title {
-  font-size: 48px !important;
-  line-height: 1.1 !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.02em !important;
-  margin-bottom: 20px !important;
-  background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
-}
-
-.chat-page .ai-chat-subtitle {
-  font-size: 20px !important;
-  line-height: 1.5 !important;
-  opacity: 0.8 !important;
-  margin-bottom: 48px !important;
+  width: 100% !important;
   max-width: 600px !important;
   margin-left: auto !important;
   margin-right: auto !important;
 }
 
+.chat-page .ai-chat-title {
+  font-size: 56px !important;
+  line-height: 1.1 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 24px !important;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.chat-page .ai-chat-subtitle {
+  font-size: 22px !important;
+  line-height: 1.5 !important;
+  opacity: 0.9 !important;
+  margin-bottom: 56px !important;
+  max-width: 500px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  font-weight: 500 !important;
+  color: #e2e8f0 !important;
+}
+
 /* Composer Field - HIGH PRIORITY */
 .chat-page .composer-field {
   margin-bottom: 32px !important;
+  width: 100% !important;
+  max-width: 600px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 .chat-page .field-card {
   background: var(--field-bg) !important;
   border: 1px solid var(--field-border) !important;
-  border-radius: 16px !important;
+  border-radius: 20px !important;
   padding: 0 !important;
   overflow: hidden !important;
   margin-bottom: 24px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3) !important;
+  width: 100% !important;
 }
 
 .chat-page .chat-textarea {
   width: 100% !important;
-  min-height: 180px !important;
+  min-height: 200px !important;
   background: transparent !important;
   border: none !important;
   color: #fff !important;
-  padding: 28px 28px 24px !important;
-  font-size: 16px !important;
+  padding: 32px 32px 28px !important;
+  font-size: 18px !important;
   line-height: 1.6 !important;
   resize: vertical !important;
   outline: none !important;
@@ -168,8 +188,12 @@
   display: flex !important;
   gap: 16px !important;
   flex-wrap: wrap !important;
-  margin: 12px 0 32px !important;
+  margin: 16px 0 40px !important;
   justify-content: center !important;
+  width: 100% !important;
+  max-width: 600px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
 }
 
 .chat-page .example-chip {
