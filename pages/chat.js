@@ -711,9 +711,6 @@ export default function ChatPage() {
     }
   }
 
-    setPropertyPhotos(prev => prev.filter(photo => photo.id !== photoId));
-  }
-
   return (
     <div className="chat-page">
       <ChatHeader
@@ -802,12 +799,11 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-    </div>
-  );
-}
-}
+      </div>
+    );
+  }
 
-/** ---------------- Small bits ---------------- */
+  /** ---------------- Small bits ---------------- */
 function TonePill({ value, label, current, onChange }) {
   const active = current === value;
   return (
