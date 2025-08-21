@@ -6,7 +6,7 @@
 // - Pro-gated flyer modal (Standard + Open House)
 // - Downloads PDF via /api/flyer
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { useUser } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
@@ -108,7 +108,7 @@ export default function ChatPage() {
   const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
 
   // Ensure page stays at top when listing is displayed
-  React.useEffect(() => {
+  useEffect(() => {
     if (hasListing) {
       window.scrollTo(0, 0);
     }
