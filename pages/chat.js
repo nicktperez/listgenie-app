@@ -247,7 +247,8 @@ export default function ChatPage() {
               <button 
                 className="compact-action-btn flyer-btn"
                 onClick={() => {
-                  console.log("Flyer button clicked directly");
+                  console.log("🎨 Flyer button clicked directly");
+                  console.log("Current state:", { isPro, flyerOpen, hasListing, currentListing: currentListing.substring(0, 100) });
                   openFlyerModal();
                 }}
                 disabled={!isPro}
@@ -278,6 +279,9 @@ export default function ChatPage() {
       
       console.log("User authentication status:", { isSignedIn, isPro, isTrial }); // Debug log
       
+      // Check if we're modifying an existing listing
+      const isModifyingListing = hasListing && messages.length > 0;
+      
       const baseInput = messages.length === 0 ? trimmed : originalInput;
       if (messages.length === 0) setOriginalInput(trimmed);
 
@@ -297,14 +301,17 @@ export default function ChatPage() {
             { role: "user", content: `Original request: ${baseInput}` },
             { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
           ] : []),
-          // Include the previous listing if it exists
-          ...(messages.length > 0 ? [
-            { role: "assistant", content: `Previous listing: ${messages[messages.length - 1].content || messages[messages.length - 1].pretty || ''}` }
+          // If modifying a listing, include the current listing content
+          ...(isModifyingListing ? [
+            { role: "assistant", content: `Current listing: ${currentListing}` }
           ] : []),
           // Current message
           { role: "user", content: trimmed },
           // System instruction for edit requests
-          { role: "system", content: `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.` }
+          { role: "system", content: isModifyingListing 
+            ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
+            : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`
+          }
         ];
 
       console.log("Sending this context to AI:", conversationContext); // Debug log

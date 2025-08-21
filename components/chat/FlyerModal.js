@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 
-export default function FlyerModal({ open, onClose, messages, isPro }) {
+export default function FlyerModal({ open, onClose, messages, isPro, listing }) {
   const router = useRouter();
 
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
@@ -90,22 +90,16 @@ export default function FlyerModal({ open, onClose, messages, isPro }) {
       return;
     }
 
-    // Get the current listing content
-    const lastAssistant = [...messages].reverse().find(
-      (m) => m.role === "assistant" && m.content
-    );
-    if (!lastAssistant) {
+    // Use the listing prop directly
+    if (!listing || !listing.trim()) {
       setError("No listing found to generate flyers from. Please generate a listing first.");
       return;
     }
-    const content = lastAssistant.content || "";
-    if (!content.trim()) {
-      setError("Listing content is empty. Please generate a listing first.");
-      return;
-    }
+
+    console.log("🎨 Starting flyer generation with listing:", listing.substring(0, 100));
 
     const payload = {
-      listing: content,
+      listing: listing,
       propertyDetails: propertyDetails
     };
 
