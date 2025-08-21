@@ -75,7 +75,7 @@ async function copyToClipboard(text) {
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
-  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
+  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd, isSignedIn } = useUserPlan();
 
   // Input
   const [tone, setTone] = useState("mls");
@@ -106,6 +106,14 @@ export default function ChatPage() {
     async function handleSend(text) {
       const trimmed = text.trim();
       if (!trimmed || loading) return;
+      
+      // Check authentication first
+      if (!isSignedIn) {
+        setError("Please sign in to use the AI Listing Generator");
+        router.push("/sign-in");
+        return;
+      }
+      
       const baseInput = messages.length === 0 ? trimmed : originalInput;
       if (messages.length === 0) setOriginalInput(trimmed);
 
@@ -149,7 +157,17 @@ export default function ChatPage() {
         }),
       });
 
-      if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
+        if (resp.status === 401) {
+          throw new Error("Please sign in to use the AI Listing Generator");
+        } else if (resp.status === 400) {
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(`Server error: ${errorMessage}`);
+        }
+      }
 
       console.log("Response has getReader:", !!resp.body?.getReader); // Debug log
       console.log("Response headers:", Object.fromEntries(resp.headers.entries())); // Debug log
@@ -417,7 +435,17 @@ export default function ChatPage() {
         }),
       });
 
-      if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
+        if (resp.status === 401) {
+          throw new Error("Please sign in to use the AI Listing Generator");
+        } else if (resp.status === 400) {
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(`Server error: ${errorMessage}`);
+        }
+      }
 
       if (resp.body && resp.body.getReader) {
         // Handle streaming response
@@ -594,7 +622,17 @@ export default function ChatPage() {
         }),
       });
 
-      if (!resp.ok) throw new Error(`Chat API error: ${resp.status}`);
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
+        if (resp.status === 401) {
+          throw new Error("Please sign in to use the AI Listing Generator");
+        } else if (resp.status === 400) {
+          throw new Error(errorMessage);
+        } else {
+          throw new Error(`Server error: ${errorMessage}`);
+        }
+      }
 
       const data = await resp.json();
       console.log("Follow-up response:", data); // Debug log
@@ -732,7 +770,22 @@ export default function ChatPage() {
           <div className="ai-chat-section">
             <h1 className="ai-chat-title">AI Listing Generator</h1>
             <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
-            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+            {!isSignedIn ? (
+              <div className="sign-in-prompt">
+                <div className="sign-in-card">
+                  <h3>Sign In Required</h3>
+                  <p>Please sign in to use the AI Listing Generator</p>
+                  <button 
+                    className="sign-in-btn"
+                    onClick={() => router.push("/sign-in")}
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+            )}
           </div>
           {messages.length > 0 && (
             <MessageThread

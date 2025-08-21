@@ -29,13 +29,13 @@
 .chat-page .chat-wrap {
   display: flex !important;
   flex-direction: column !important;
-  gap: 32px !important;
+  gap: 40px !important;
 }
 
 /* AI Chat Section - HIGH PRIORITY */
 .chat-page .ai-chat-section {
   text-align: center !important;
-  margin-bottom: 40px !important;
+  margin-bottom: 48px !important;
 }
 
 .chat-page .ai-chat-title {
@@ -43,7 +43,7 @@
   line-height: 1.1 !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 20px !important;
   background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
   -webkit-background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -54,7 +54,7 @@
   font-size: 20px !important;
   line-height: 1.5 !important;
   opacity: 0.8 !important;
-  margin-bottom: 40px !important;
+  margin-bottom: 48px !important;
   max-width: 600px !important;
   margin-left: auto !important;
   margin-right: auto !important;
@@ -62,7 +62,7 @@
 
 /* Composer Field - HIGH PRIORITY */
 .chat-page .composer-field {
-  margin-bottom: 24px !important;
+  margin-bottom: 32px !important;
 }
 
 .chat-page .field-card {
@@ -71,17 +71,17 @@
   border-radius: 16px !important;
   padding: 0 !important;
   overflow: hidden !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 24px !important;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
 }
 
 .chat-page .chat-textarea {
   width: 100% !important;
-  min-height: 160px !important;
+  min-height: 180px !important;
   background: transparent !important;
   border: none !important;
   color: #fff !important;
-  padding: 24px 24px 20px !important;
+  padding: 28px 28px 24px !important;
   font-size: 16px !important;
   line-height: 1.6 !important;
   resize: vertical !important;
@@ -102,8 +102,8 @@
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
-  padding: 16px 24px 20px !important;
-  gap: 16px !important;
+  padding: 20px 28px 24px !important;
+  gap: 20px !important;
   border-top: 1px solid var(--field-border) !important;
   background: rgba(255, 255, 255, 0.02) !important;
 }
@@ -117,9 +117,9 @@
 .chat-page .send-btn {
   display: inline-flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  height: 48px !important;
-  padding: 0 24px !important;
+  gap: 12px !important;
+  height: 52px !important;
+  padding: 0 28px !important;
   border-radius: 12px !important;
   border: 1px solid var(--chip-border) !important;
   background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
@@ -148,14 +148,14 @@
 }
 
 .chat-page .send-btn .spinner {
-  width: 18px !important;
-  height: 18px !important;
+  width: 20px !important;
+  height: 20px !important;
   animation: spin 1s linear infinite !important;
 }
 
 .chat-page .send-btn .send-icon {
-  width: 18px !important;
-  height: 18px !important;
+  width: 20px !important;
+  height: 20px !important;
 }
 
 @keyframes spin {
@@ -166,15 +166,15 @@
 /* Examples - HIGH PRIORITY */
 .chat-page .examples-row {
   display: flex !important;
-  gap: 12px !important;
+  gap: 16px !important;
   flex-wrap: wrap !important;
-  margin: 8px 0 24px !important;
+  margin: 12px 0 32px !important;
   justify-content: center !important;
 }
 
 .chat-page .example-chip {
   height: unset !important;
-  padding: 12px 20px !important;
+  padding: 14px 24px !important;
   font-size: 15px !important;
   color: #fff !important;
   white-space: nowrap !important;
@@ -194,9 +194,9 @@
   background: rgba(244, 63, 94, 0.1) !important;
   border: 1px solid rgba(244, 63, 94, 0.3) !important;
   color: #fecaca !important;
-  padding: 16px 20px !important;
+  padding: 20px 24px !important;
   border-radius: 12px !important;
-  margin: 16px 0 !important;
+  margin: 24px 0 !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
   display: flex !important;
@@ -206,7 +206,7 @@
 
 .chat-page .error::before {
   content: "⚠️" !important;
-  font-size: 16px !important;
+  font-size: 18px !important;
   flex-shrink: 0 !important;
 }
 
@@ -320,6 +320,16 @@
   transform: translateY(-1px) !important;
 }
 
+/* Message spacing - HIGH PRIORITY */
+.chat-page .msg-card {
+  margin-bottom: 24px !important;
+  padding: 24px !important;
+}
+
+.chat-page .msg-card:last-child {
+  margin-bottom: 0 !important;
+}
+
 /* Responsive tweaks - HIGH PRIORITY */
 @media (max-width: 768px) {
   .chat-page {
@@ -387,4 +397,63 @@
   .chat-page .ai-chat-subtitle {
     font-size: 16px !important;
   }
+}
+
+/* Sign-in prompt - HIGH PRIORITY */
+.chat-page .sign-in-prompt {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin: 32px 0 !important;
+}
+
+.chat-page .sign-in-card {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px !important;
+  padding: 40px !important;
+  text-align: center !important;
+  max-width: 400px !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+.chat-page .sign-in-card h3 {
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  margin-bottom: 16px !important;
+  color: #fff !important;
+}
+
+.chat-page .sign-in-card p {
+  font-size: 16px !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  margin-bottom: 24px !important;
+  line-height: 1.5 !important;
+}
+
+.chat-page .sign-in-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  height: 48px !important;
+  padding: 0 32px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  transition: all 200ms ease !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3) !important;
+}
+
+.chat-page .sign-in-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4) !important;
+}
+
+.chat-page .sign-in-btn:active {
+  transform: translateY(0) !important;
 }
