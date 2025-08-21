@@ -888,12 +888,12 @@ export default function ChatPage() {
       />
       <main className="chat-container">
         <div className="chat-wrap">
-          {!isListingMode && (
-            <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
-          )}
           <div className="ai-chat-section">
             <h1 className="ai-chat-title">AI Listing Generator</h1>
             <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
+            {!isListingMode && (
+              <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
+            )}
             <Composer ref={composerRef} onSend={handleSend} loading={loading} />
           </div>
           {messages.length > 0 && (
