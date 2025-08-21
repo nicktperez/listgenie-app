@@ -186,6 +186,11 @@
   margin-top: 12px;
 }
 
+/* Chat-specific listing actions */
+.msg-card .listing-actions {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 /* Thinking bubbles */
 .thinking {
   display: inline-flex;
