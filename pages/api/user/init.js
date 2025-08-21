@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       .from("users")
       .insert({
         clerk_id: userId,
-        email: email,
+        email,
         plan: "trial",
         trial_end_date: trialEndDate.toISOString(),
         created_at: new Date().toISOString(),

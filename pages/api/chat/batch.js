@@ -86,7 +86,7 @@ Be specific, professional, and engaging.`;
           
           results.push({
             property: property.description || property.address || `Property ${results.length + 1}`,
-            content: content,
+            content,
             success: true
           });
         } else {

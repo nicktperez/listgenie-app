@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "Bad payload" });
     }
 
-    let update = { plan, trial_end_date: null };
+    const update = { plan, trial_end_date: null };
     if (plan === "trial") {
       update.trial_end_date = new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000).toISOString();
     }

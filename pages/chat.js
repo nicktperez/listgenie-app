@@ -145,7 +145,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversationContext,
-          tone: tone
+          tone
         }),
       });
 
@@ -185,7 +185,7 @@ export default function ChatPage() {
             }
             
             if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
             }
             
             if (listing.variants && listing.variants.length > 0) {
@@ -237,7 +237,7 @@ export default function ChatPage() {
           }
 
           if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-            displayContent += listing.mls.bullets.join('\n') + '\n\n';
+            displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
           }
 
           if (listing.variants && listing.variants.length > 0) {
@@ -446,7 +446,7 @@ export default function ChatPage() {
             }
             
             if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
             }
             
             if (listing.variants && listing.variants.length > 0) {
@@ -497,7 +497,7 @@ export default function ChatPage() {
             }
             
             if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += listing.mls.bullets.join('\n') + '\n\n';
+              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
             }
             
             if (listing.variants && listing.variants.length > 0) {
@@ -587,7 +587,7 @@ export default function ChatPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           messages: conversationContext,
-          tone: tone
+          tone
         }),
       });
 
@@ -615,7 +615,7 @@ export default function ChatPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               messages: forceListingContext,
-              tone: tone
+              tone
             }),
           });
           
@@ -635,7 +635,7 @@ export default function ChatPage() {
               }
               
               if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-                displayContent += listing.mls.bullets.join('\n') + '\n\n';
+                displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
               }
               
               if (listing.variants && listing.variants.length > 0) {
@@ -680,7 +680,7 @@ export default function ChatPage() {
         }
 
         if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-          displayContent += listing.mls.bullets.join('\n') + '\n\n';
+          displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
         }
 
         if (listing.variants && listing.variants.length > 0) {

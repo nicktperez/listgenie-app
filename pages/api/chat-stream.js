@@ -109,7 +109,7 @@ export default async function handler(req, res) {
     let buffer = "";
 
     // Simple usage counters (approx)
-    let promptTokens = estimateTokensFromChars(getTextFromMessages(messages).length);
+    const promptTokens = estimateTokensFromChars(getTextFromMessages(messages).length);
     let completionTokens = 0;
 
     while (true) {
@@ -133,7 +133,7 @@ export default async function handler(req, res) {
             }
           } catch {}
         }
-        res.write(line + "\n");
+        res.write(`${line  }\n`);
       }
     }
 

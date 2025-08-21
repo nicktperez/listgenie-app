@@ -37,7 +37,7 @@ export default function ListingRender({ title, content = "", meta = {}, onSave }
     const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const filename = (title || "listing").toLowerCase().replace(/[^a-z0-9]+/gi, "-") + ".txt";
+    const filename = `${(title || "listing").toLowerCase().replace(/[^a-z0-9]+/gi, "-")  }.txt`;
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -182,7 +182,7 @@ function bulletOnlyLines(bulleted) {
 /** Lightweight sentence splitter (keeps abbreviations a bit safer). */
 function sentenceSplit(t) {
   // First, normalize whitespace
-  let s = t.replace(/\s+/g, " ").trim();
+  const s = t.replace(/\s+/g, " ").trim();
 
   // Split on punctuation followed by a space + capital or digit (very heuristic)
   const parts = s.split(/(?<=[.!?])\s+(?=[A-Z0-9])/g);

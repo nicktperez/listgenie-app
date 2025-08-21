@@ -132,7 +132,7 @@ export default async function handler(req, res) {
           clerk_id: userId,
           prompt: messages[messages.length - 1]?.content || "",
           response: finalText,
-          model: model,
+          model,
           created_at: new Date().toISOString()
         });
     } catch (e) {
