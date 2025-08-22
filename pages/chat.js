@@ -271,14 +271,30 @@ export default function ChatPage() {
                           
                           try {
                             console.log("🎨 Making direct API call to /api/flyer");
+                            console.log("🎨 Request payload:", { listing: currentListing.substring(0, 200) });
+                            
+                            // Test with a simple GET request first
+                            console.log("🎨 Testing API routing with GET request...");
+                            try {
+                              const testResponse = await fetch("/api/flyer");
+                              console.log("🎨 GET test response status:", testResponse.status);
+                            } catch (e) {
+                              console.log("🎨 GET test failed:", e);
+                            }
+                            
                             const response = await fetch("/api/flyer", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ listing: currentListing })
                             });
                             
+                            console.log("🎨 Response status:", response.status);
+                            console.log("🎨 Response headers:", response.headers);
+                            
                             if (!response.ok) {
-                              throw new Error(`API error: ${response.status}`);
+                              const errorText = await response.text();
+                              console.log("🎨 Error response body:", errorText);
+                              throw new Error(`API error: ${response.status} - ${errorText}`);
                             }
                             
                             const data = await response.json();
