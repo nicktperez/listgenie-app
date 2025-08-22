@@ -37,18 +37,7 @@ export default async function handler(req, res) {
     });
 
     if (flyerResult.success) {
-      return res.status(200).json({
-        success: true,
-        message: 'Professional flyer generated successfully',
-        flyerUrl: flyerResult.flyerUrl,
-        metadata: {
-          style,
-          agent: agentInfo.name,
-          agency: agentInfo.agency,
-          propertyType: propertyInfo.type || 'Residential',
-          generatedAt: new Date().toISOString()
-        }
-      });
+      return res.status(200).json(flyerResult);
     } else {
       throw new Error(flyerResult.error || 'Failed to generate flyer');
     }

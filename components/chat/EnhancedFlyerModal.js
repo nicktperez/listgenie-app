@@ -300,8 +300,8 @@ export default function EnhancedFlyerModal({
           background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
           borderRadius: '20px',
           width: '90%',
-          maxWidth: '700px',
-          maxHeight: '90vh',
+          maxWidth: '600px',
+          maxHeight: '80vh',
           overflow: 'hidden',
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
           position: 'relative',
@@ -314,7 +314,7 @@ export default function EnhancedFlyerModal({
           style={{
             background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
             color: 'white',
-            padding: '24px 32px',
+            padding: '20px 24px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -323,7 +323,7 @@ export default function EnhancedFlyerModal({
         >
                           <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <Icons.Generate />
-                  Generate Canva Project
+                  Generate Flyer
                 </h2>
           <button 
             onClick={onClose}
@@ -347,29 +347,16 @@ export default function EnhancedFlyerModal({
         </div>
 
         {/* Modal Content */}
-        <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
+                  <div style={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Service Status Indicator */}
-                            <div style={{ 
-                    background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', 
-                    color: '#ffffff', 
-                    padding: '12px 16px', 
-                    borderRadius: '8px', 
-                    marginBottom: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px'
-                  }}>
-                    <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%' }}></div>
-                    <strong>Canva Hybrid Service:</strong> Professional templates with guided customization
-                  </div>
+                            
           
           {step === 1 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 1: Agent Information
               </h3>
-              <p style={{ margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '14px' }}>
+              <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: '14px' }}>
                 Let's personalize your flyer with your branding
               </p>
               
@@ -890,7 +877,7 @@ export default function EnhancedFlyerModal({
                   {loading ? (
                                     <>
                   <div style={{ width: '16px', height: '16px', border: '2px solid #ffffff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                  Creating Canva Project...
+                  Generating Flyer...
                 </>
                   ) : (
                     <>
