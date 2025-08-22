@@ -991,103 +991,17 @@ export default function ChatPage() {
           </div>
         </div>
       </main>
-      {/* Debug indicator for modal state */}
-      <div style={{ 
-        position: 'fixed', 
-        top: '10px', 
-        right: '10px', 
-        background: 'red', 
-        color: 'white', 
-        padding: '10px', 
-        zIndex: 9999,
-        fontSize: '12px',
-        fontFamily: 'monospace'
-      }}>
-        DEBUG: flyerOpen={String(flyerOpen)}
-      </div>
+
       
-      {/* Test if FlyerModal is being rendered */}
       {flyerOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'red',
-          color: 'white',
-          padding: '20px',
-          zIndex: 10000,
-          fontSize: '16px',
-          fontFamily: 'monospace'
-        }}>
-          🎭 FLYER MODAL SHOULD BE HERE!<br/>
-          flyerOpen: {String(flyerOpen)}<br/>
-          isPro: {String(isPro)}<br/>
-          hasListing: {String(hasListing)}
-        </div>
+        <FlyerModal
+          open={true}
+          onClose={() => setFlyerOpen(false)}
+          messages={messages}
+          isPro={isPro}
+          listing={currentListing}
+        />
       )}
-      
-      {/* Test if FlyerModal is being rendered but hidden */}
-      {flyerOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          left: '10px',
-          background: 'lime',
-          color: 'black',
-          padding: '10px',
-          zIndex: 10001,
-          fontSize: '12px',
-          fontFamily: 'monospace'
-        }}>
-          🎭 FlyerModal should be rendered below this
-        </div>
-      )}
-      
-      {/* Test if FlyerModal is being rendered but hidden */}
-      {flyerOpen && (
-        <div style={{
-          position: 'fixed',
-          top: '10px',
-          left: '10px',
-          background: 'lime',
-          color: 'black',
-          padding: '10px',
-          zIndex: 10001,
-          fontSize: '12px',
-          fontFamily: 'monospace'
-        }}>
-          🎭 FlyerModal should be rendered below this
-        </div>
-      )}
-      
-      {/* Force render FlyerModal for testing */}
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        background: 'blue',
-        color: 'white',
-        padding: '20px',
-        zIndex: 10002,
-        fontSize: '16px',
-        fontFamily: 'monospace'
-      }}>
-        🎭 FORCED FLYER MODAL TEST
-        <br/>flyerOpen: {String(flyerOpen)}
-        <br/>isPro: {String(isPro)}
-        <br/>hasListing: {String(hasListing)}
-        <br/>listingLength: {currentListing ? currentListing.length : 0}
-      </div>
-      
-      <FlyerModal
-        open={flyerOpen}
-        onClose={() => setFlyerOpen(false)}
-        messages={messages}
-        isPro={isPro}
-        listing={currentListing}
-      />
       {questionsOpen && (
         <div className="questions-modal-overlay">
           <div className="questions-modal">
