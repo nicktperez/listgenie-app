@@ -74,7 +74,9 @@ export default async function handler(req, res) {
     // Create a detailed prompt for DALL-E 3 to generate a professional real estate flyer image
     const imagePrompt = `Create a professional, modern real estate flyer design with elegant typography and premium layout. 
 
-Key property details to incorporate:
+IMPORTANT: This is a real estate flyer for an actual property. The design should be clean and professional, with clear areas for text content, but DO NOT generate any text content yourself. Focus on creating a beautiful layout with placeholder areas for the property information.
+
+Property details to incorporate in the design layout:
 - Property: ${propertyInfo.address}
 - ${propertyInfo.bedrooms ? `${propertyInfo.bedrooms} Bedrooms` : ''}
 - ${propertyInfo.bathrooms ? `${propertyInfo.bathrooms} Bathrooms` : ''}
@@ -82,16 +84,18 @@ Key property details to incorporate:
 
 Design requirements:
 - High-end, professional real estate marketing style
-- Clean, modern typography with elegant fonts
+- Clean, modern layout with elegant design elements
 - Sophisticated color scheme (deep blues, golds, or classic black/white)
-- Include property photo placeholder area
-- Add "FOR SALE" or "AVAILABLE" prominently
+- Include a prominent property photo placeholder area at the top
+- Add "FOR SALE" or "AVAILABLE" prominently in the design
+- Create clear, well-defined text areas for property details
 - Space for contact information at bottom
 - Premium branding feel with subtle gradients or textures
 - Layout suitable for both digital sharing and printing
 - Professional real estate agency aesthetic
+- Focus on visual design and layout, NOT text generation
 
-Style: Ultra-modern, luxury real estate marketing material, photorealistic quality, clean design, sophisticated typography`;
+Style: Ultra-modern, luxury real estate marketing material, photorealistic quality, clean design, sophisticated layout with clear text placement areas.`;
 
     console.log('🎯 Generating flyer image with DALL-E 3...');
     console.log('🎯 Image prompt:', imagePrompt.substring(0, 200) + '...');
