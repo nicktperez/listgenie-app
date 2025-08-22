@@ -646,8 +646,8 @@ export default function ChatPage() {
           alert(`✅ Canva project created successfully!\n\nTemplate: ${canvaProject.template}\n\nYour project is ready to customize in Canva.`);
           
           // Close modal after successful generation
-          setShowEnhancedFlyerModal(false);
-          setLoading(false);
+          setFlyerOpen(false);
+          setFlyerGenerating(false);
         } else {
           // Fallback to simple flyer download
           const fallbackUrl = generateFallbackFlyer(flyerData);
@@ -660,8 +660,8 @@ export default function ChatPage() {
             a.remove();
           }
           
-          setShowEnhancedFlyerModal(false);
-          setLoading(false);
+          setFlyerOpen(false);
+          setFlyerGenerating(false);
         }
         
       } else {
