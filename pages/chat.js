@@ -262,6 +262,7 @@ export default function ChatPage() {
                           }
                           
                           // Open the enhanced flyer modal
+                          console.log('🎨 Opening flyer modal, current state:', { flyerOpen, hasListing, currentListing: currentListing?.substring(0, 50) });
                           setFlyerOpen(true);
                         }}
                         disabled={!isPro || !hasListing}
@@ -283,6 +284,13 @@ export default function ChatPage() {
           listing={currentListing}
           loading={flyerGenerating}
         />
+        
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div style={{ position: 'fixed', top: 10, right: 10, background: 'red', color: 'white', padding: '10px', zIndex: 999999 }}>
+            Modal State: {flyerOpen ? 'OPEN' : 'CLOSED'}
+          </div>
+        )}
 
       </div>
     );

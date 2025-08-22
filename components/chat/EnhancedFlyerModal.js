@@ -18,6 +18,9 @@ export default function EnhancedFlyerModal({
   const [selectedStyle, setSelectedStyle] = useState('modern');
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [photoFiles, setPhotoFiles] = useState([]);
+  const [aiPhotos, setAiPhotos] = useState([]);
+  const [aiPhotoLoading, setAiPhotoLoading] = useState(false);
+  const [useAiPhotos, setUseAiPhotos] = useState(false);
   const fileInputRef = useRef(null);
 
   const flyerStyles = [
@@ -46,6 +49,54 @@ export default function EnhancedFlyerModal({
       preview: '✨'
     }
   ];
+
+  // Extract property information from listing for AI photo generation
+  const extractPropertyInfo = (listingText) => {
+    if (!listingText) return {};
+    
+    const lines = listingText.split('\n');
+    let address = 'Beautiful Property';
+    let bedrooms = '';
+    let bathrooms = '';
+    let sqft = '';
+    let features = [];
+
+    lines.forEach(line => {
+      const lowerLine = line.toLowerCase();
+      
+      if (lowerLine.includes('bedroom')) {
+        const match = line.match(/(\d+)\s*bedroom/i);
+        if (match) bedrooms = match[1];
+      }
+      
+      if (lowerLine.includes('bathroom')) {
+        const match = line.match(/(\d+)\s*bathroom/i);
+        if (match) bathrooms = match[1];
+      }
+      
+      if (lowerLine.includes('sq ft') || lowerLine.includes('square feet')) {
+        const match = line.match(/(\d+[\d,]*)\s*(sq ft|square feet)/i);
+        if (match) sqft = match[1];
+      }
+      
+      // Extract features
+      if (lowerLine.includes('feature') || lowerLine.includes('amenity') || 
+          lowerLine.includes('pool') || lowerLine.includes('garage') ||
+          lowerLine.includes('garden') || lowerLine.includes('fireplace') ||
+          lowerLine.includes('deck') || lowerLine.includes('patio') ||
+          lowerLine.includes('kitchen') || lowerLine.includes('bathroom') ||
+          lowerLine.includes('bedroom') || lowerLine.includes('living')) {
+        features.push(line.trim());
+      }
+      
+      // Extract first line as potential address/title
+      if (lines.indexOf(line) === 0 && line.length > 10 && !line.includes(':')) {
+        address = line.trim();
+      }
+    });
+
+    return { address, bedrooms, bathrooms, sqft, features };
+  };
 
   const handlePhotoUpload = (event) => {
     const files = Array.from(event.target.files);
@@ -78,17 +129,73 @@ export default function EnhancedFlyerModal({
     ));
   };
 
+  const removeAiPhoto = (photoId) => {
+    setAiPhotos(prev => prev.filter(p => p.id !== photoId));
+  };
+
+  // Generate AI property photos
+  const generateAiPhotos = async () => {
+    if (!listing) {
+      alert('Please generate a listing first');
+      return;
+    }
+
+    setAiPhotoLoading(true);
+    try {
+      const propertyInfo = extractPropertyInfo(listing);
+      
+      const response = await fetch('/api/generate-property-photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          propertyInfo, 
+          style: selectedStyle, 
+          count: 3 
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.photos) {
+        const photosWithIds = data.photos.map((photo, index) => ({
+          ...photo,
+          id: `ai-${Date.now()}-${index}`,
+          isAiGenerated: true
+        }));
+        setAiPhotos(photosWithIds);
+        setUseAiPhotos(true);
+        alert(`✅ Generated ${data.photos.length} AI property photos!`);
+      } else {
+        throw new Error('No photos received from AI generation');
+      }
+    } catch (error) {
+      console.error('AI photo generation error:', error);
+      alert(`❌ Error generating AI photos: ${error.message}`);
+    } finally {
+      setAiPhotoLoading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (!agentInfo.name || !agentInfo.agency) {
       alert('Please fill in at least your name and agency');
       return;
     }
 
+    // Combine user photos and AI photos if both are available
+    const finalPhotos = useAiPhotos ? [...aiPhotos, ...photoFiles] : photoFiles;
+
     onGenerate({
       agentInfo,
       style: selectedStyle,
-      photos: photoFiles,
-      listing
+      photos: finalPhotos,
+      listing,
+      aiPhotos: useAiPhotos ? aiPhotos : []
     });
   };
 
@@ -104,9 +211,13 @@ export default function EnhancedFlyerModal({
     setSelectedStyle('modern');
     setUploadedPhotos([]);
     setPhotoFiles([]);
+    setAiPhotos([]);
+    setUseAiPhotos(false);
   };
 
   if (!isOpen) return null;
+
+  console.log('🎨 EnhancedFlyerModal rendering:', { isOpen, step, agentInfo, selectedStyle });
 
   return (
     <div className="enhanced-flyer-modal-overlay">
@@ -211,7 +322,7 @@ export default function EnhancedFlyerModal({
                   className="next-btn"
                   onClick={() => setStep(3)}
                 >
-                  Next: Upload Photos
+                  Next: Property Photos
                 </button>
               </div>
             </div>
@@ -220,9 +331,47 @@ export default function EnhancedFlyerModal({
           {step === 3 && (
             <div className="step-content">
               <h3>Step 3: Property Photos</h3>
-              <p>Upload photos of the property (optional - we can generate AI photos too)</p>
+              <p>Choose between AI-generated photos or upload your own</p>
               
+              {/* AI Photo Generation Section */}
+              <div className="ai-photo-section">
+                <h4>🤖 AI-Generated Property Photos</h4>
+                <p>Let AI create beautiful, professional property photos based on your listing</p>
+                
+                <button 
+                  className="ai-generate-btn"
+                  onClick={generateAiPhotos}
+                  disabled={aiPhotoLoading || !listing}
+                >
+                  {aiPhotoLoading ? '🔄 Generating AI Photos...' : '🤖 Generate AI Property Photos'}
+                </button>
+                
+                {aiPhotos.length > 0 && (
+                  <div className="photo-preview">
+                    <h4>AI-Generated Photos ({aiPhotos.length})</h4>
+                    <div className="photo-grid">
+                      {aiPhotos.map((photo) => (
+                        <div key={photo.id} className="photo-item ai-photo">
+                          <img src={photo.url} alt={photo.description} />
+                          <div className="photo-label">AI Generated</div>
+                          <button 
+                            className="remove-photo"
+                            onClick={() => removeAiPhoto(photo.id)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* User Photo Upload Section */}
               <div className="photo-upload-section">
+                <h4>📸 Upload Your Own Photos</h4>
+                <p>Upload photos of the property (optional)</p>
+                
                 <input
                   ref={fileInputRef}
                   type="file"

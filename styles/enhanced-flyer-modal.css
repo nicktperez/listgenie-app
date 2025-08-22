@@ -9,7 +9,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 99999 !important;
   backdrop-filter: blur(8px);
 }
 
@@ -17,11 +17,13 @@
   background: #ffffff;
   border-radius: 20px;
   width: 90%;
-  max-width: 600px;
+  max-width: 700px;
   max-height: 90vh;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: modalSlideIn 0.3s ease-out;
+  position: relative;
+  z-index: 100000 !important;
 }
 
 @keyframes modalSlideIn {
@@ -87,6 +89,13 @@
   margin: 0 0 24px 0;
   color: #6b7280;
   font-size: 14px;
+}
+
+.step-content h4 {
+  margin: 24px 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .form-group {
@@ -217,9 +226,69 @@
   flex: 2;
 }
 
+/* AI Photo Generation Section */
+.ai-photo-section {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.ai-photo-section h4 {
+  margin: 0 0 8px 0;
+  color: #1e40af;
+}
+
+.ai-photo-section p {
+  margin: 0 0 16px 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.ai-generate-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.ai-generate-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+}
+
+.ai-generate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 .photo-upload-section {
   text-align: center;
   margin-bottom: 24px;
+  padding: 20px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.photo-upload-section h4 {
+  margin: 0 0 8px 0;
+  color: #374151;
+}
+
+.photo-upload-section p {
+  margin: 0 0 16px 0;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .upload-btn {
@@ -268,12 +337,29 @@
   border-radius: 8px;
   overflow: hidden;
   aspect-ratio: 4/3;
+  border: 2px solid #e5e7eb;
+}
+
+.photo-item.ai-photo {
+  border-color: #3b82f6;
 }
 
 .photo-item img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.photo-label {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(59, 130, 246, 0.9);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .remove-photo {
@@ -341,5 +427,9 @@
   
   .next-btn, .back-btn {
     flex: none;
+  }
+  
+  .photo-grid {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   }
 }
