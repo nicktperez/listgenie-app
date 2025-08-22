@@ -663,72 +663,106 @@ export default function ChatPage() {
 
   // Generate flyer using our template system
   async function generateFlyerWithTemplates(flyerData) {
-    return new Promise((resolve) => {
-      // Dynamically import the template system
-      import('@/lib/flyerTemplates').then(({ FlyerGenerator, extractPropertyInfo }) => {
-        // Create a hidden canvas element
-        const canvas = document.createElement('canvas');
-        canvas.style.display = 'none';
-        document.body.appendChild(canvas);
-        
-        // Initialize the flyer generator
-        const generator = new FlyerGenerator(canvas, flyerData.style);
-        
-        // Extract property information
-        const propertyInfo = extractPropertyInfo(flyerData.listing);
-        
-        // Generate the flyer
-        generator.generateFlyer({
-          agentInfo: flyerData.agentInfo,
-          photos: flyerData.photos || [],
-          listing: flyerData.listing,
-          propertyInfo
-        }).then((imageUrl) => {
-          // Clean up
-          document.body.removeChild(canvas);
-          resolve(imageUrl);
-        }).catch((error) => {
-          console.error('🎨 Template generation error:', error);
-          document.body.removeChild(canvas);
-          // Fallback to a simple generated image
-          resolve(generateFallbackFlyer(flyerData));
-        });
-      }).catch((error) => {
-        console.error('🎨 Failed to load template system:', error);
-        // Fallback to a simple generated image
-        resolve(generateFallbackFlyer(flyerData));
-      });
-    });
+    try {
+      console.log('🎨 Starting flyer generation with templates:', flyerData);
+      
+      // Dynamically import the generateFlyer function
+      const { generateFlyer } = await import('@/lib/flyerTemplates');
+      
+      // Generate the flyer
+      const dataUrl = await generateFlyer(flyerData, flyerData.style);
+      
+      if (dataUrl) {
+        console.log('✅ Professional flyer generated successfully!');
+        return dataUrl;
+      } else {
+        console.error('❌ Flyer generation failed');
+        // Fallback to simple flyer
+        return generateFallbackFlyer(flyerData);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in flyer generation:', error);
+      // Fallback to simple flyer
+      return generateFallbackFlyer(flyerData);
+    }
   }
 
   // Fallback flyer generation if templates fail
   function generateFallbackFlyer(flyerData) {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1792;
+    canvas.width = 1200;
+    canvas.height = 800;
     const ctx = canvas.getContext('2d');
     
-    // Simple fallback design
-    ctx.fillStyle = '#1E40AF';
-    ctx.fillRect(0, 0, 1024, 1792);
+    // Professional fallback design
+    const gradient = ctx.createLinearGradient(0, 0, 0, 800);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(1, '#f8fafc');
     
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 48px Arial';
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, 1200, 800);
+    
+    // Header
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, 1200, 120);
+    
+    // FOR SALE badge
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(40, 30, 120, 40);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 16px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('FOR SALE', 512, 200);
+    ctx.fillText('FOR SALE', 100, 55);
     
-    ctx.font = '32px Arial';
-    ctx.fillText(flyerData.agentInfo.name, 512, 300);
-    ctx.fillText(flyerData.agentInfo.agency, 512, 350);
+    // Property title
+    const title = flyerData.listing ? flyerData.listing.split('\n')[0].substring(0, 35) : 'Beautiful Property';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 32px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(title, 200, 60);
     
-    ctx.font = '24px Arial';
-    ctx.fillText('Professional flyer generation coming soon!', 512, 500);
+    // Photo placeholder
+    ctx.fillStyle = '#f3f4f6';
+    ctx.fillRect(40, 140, 1120, 300);
+    ctx.strokeStyle = '#d1d5db';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(40, 140, 1120, 300);
     
-    // Clean up
-    const imageUrl = canvas.toDataURL('image/png');
-    document.body.removeChild(canvas);
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '16px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Property Photos', 600, 290);
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('(AI Generated)', 600, 310);
     
-    return imageUrl;
+    // Property details
+    ctx.fillStyle = '#1f2937';
+    ctx.font = 'bold 20px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Property Details', 40, 580);
+    
+    // Agent info
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 600, 1200, 200);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(flyerData.agentInfo?.name || 'Your Name', 40, 640);
+    
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillText(flyerData.agentInfo?.agency || 'Your Agency', 40, 665);
+    
+    // Generated by
+    ctx.fillStyle = '#64748b';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Generated by ListGenie.ai', 600, 770);
+    
+    return canvas.toDataURL('image/png', 0.95);
   }
 
   async function handleModifyListing(listingText, modificationType) {
