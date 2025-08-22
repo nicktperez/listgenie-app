@@ -15,6 +15,7 @@ import ExamplesRow from "@/components/chat/ExamplesRow";
 import Composer from "@/components/chat/Composer";
 import MessageThread from "@/components/chat/MessageThread";
 import EnhancedFlyerModal from "@/components/chat/EnhancedFlyerModal";
+import ProfessionalFlyerPreview from '../components/chat/ProfessionalFlyerPreview';
 
 // Test if EnhancedFlyerModal is imported correctly
 console.log("🔧 EnhancedFlyerModal import test:", typeof EnhancedFlyerModal, EnhancedFlyerModal);
@@ -106,6 +107,22 @@ export default function ChatPage() {
 
   const composerRef = useRef(null);
   const [originalInput, setOriginalInput] = useState("");
+
+  // State for flyer preview
+  const [showFlyerPreview, setShowFlyerPreview] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+
+  // Handle flyer preview
+  const handleFlyerPreview = (flyerData) => {
+    setPreviewData(flyerData);
+    setShowFlyerPreview(true);
+  };
+
+  // Close flyer preview
+  const closeFlyerPreview = () => {
+    setShowFlyerPreview(false);
+    setPreviewData(null);
+  };
 
   // Check if we have a listing to display
   const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
@@ -277,12 +294,21 @@ export default function ChatPage() {
         </div>
 
         {/* Enhanced Flyer Modal */}
-        <EnhancedFlyerModal
-          isOpen={flyerOpen}
-          onClose={() => setFlyerOpen(false)}
-          onGenerate={handleEnhancedFlyerGeneration}
-          listing={currentListing}
-          loading={flyerGenerating}
+        {flyerOpen && (
+          <EnhancedFlyerModal
+            onClose={() => setFlyerOpen(false)}
+            onGenerate={handleEnhancedFlyerGeneration}
+            listing={currentListing}
+            loading={flyerGenerating}
+            onPreview={handleFlyerPreview}
+          />
+        )}
+
+        {/* Professional Flyer Preview */}
+        <ProfessionalFlyerPreview
+          flyerData={previewData}
+          isVisible={showFlyerPreview}
+          onClose={closeFlyerPreview}
         />
         
         {/* Debug info */}
@@ -609,131 +635,165 @@ export default function ChatPage() {
     });
   }
 
-  // Enhanced flyer generation handler
-  async function handleEnhancedFlyerGeneration(flyerData) {
-    const { agentInfo, style, photos, listing } = flyerData;
-    
-    console.log('🎨 Starting enhanced flyer generation:', { agentInfo, style, photos: photos?.length });
-    
+  // Generate professional flyer using our custom engine
+  const generateProfessionalFlyer = async (flyerData) => {
     try {
-      setFlyerGenerating(true);
-      
-      // First, call our API to validate the data
-      const response = await fetch("/api/flyer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentInfo, style, photos, listing })
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('🎨 API response:', data);
-      
-      if (data.success) {
-        // Now generate the Canva project using our hybrid integration
-        const canvaProject = await generateAIFlyer(flyerData);
-        console.log('🎨 Canva Project Result:', canvaProject);
-        
-        if (canvaProject && canvaProject.type === 'canva-hybrid') {
-          // Show Canva project information instead of downloading
-          console.log('🎨 Canva project created:', canvaProject);
-          
-          // Show detailed success message with Canva project information
-          const message = `✅ Canva project created successfully!
+      console.log('🎨 Generating professional flyer with data:', flyerData);
 
-Template: ${canvaProject.template}
-Project ID: ${canvaProject.canvaProject.projectId}
-Status: ${canvaProject.canvaProject.status}
-
-Your project is ready to customize in Canva!
-Click the link below to open your project:
-${canvaProject.canvaProject.url}
-
-You'll receive step-by-step instructions for customization.`;
-          
-          alert(message);
-          
-          // Close modal after successful generation
-          setFlyerOpen(false);
-          setFlyerGenerating(false);
-        } else {
-          // Fallback to simple flyer download
-          const fallbackUrl = generateFallbackFlyer(flyerData);
-          if (fallbackUrl) {
-            const a = document.createElement('a');
-            a.href = fallbackUrl;
-            a.download = `flyer-${style}-${Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-          }
-          
-          setFlyerOpen(false);
-          setFlyerGenerating(false);
-        }
-        
-      } else {
-        throw new Error("Failed to generate flyer");
-      }
-      
-    } catch (error) {
-      console.error('🎨 Enhanced flyer generation error:', error);
-      alert(`❌ Error generating flyer: ${error.message}`);
-    } finally {
-      setFlyerGenerating(false);
-    }
-  }
-
-  // Generate professional flyer using Canva Hybrid Integration
-  async function generateAIFlyer(flyerData) {
-    try {
-      console.log('🎨 Starting Canva Hybrid flyer generation:', flyerData);
-      
-      // Call our Canva Hybrid flyer API
       const response = await fetch('/api/flyer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(flyerData)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(flyerData),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `API error: ${response.status}`);
-      }
-
       const data = await response.json();
-      console.log('🎨 API Response Data:', data);
-      
-      if (data.success && data.type === 'canva-hybrid') {
-        console.log('✅ Canva Hybrid project created successfully!', {
-          template: data.template || 'Unknown',
+
+      if (data.success && data.type === 'professional-flyer') {
+        console.log('✅ Professional flyer created successfully!', {
+          designSystem: data.designSystem,
           type: data.type,
-          canvaProject: data.canvaProject
+          quality: data.quality
         });
-        
-        // Return the Canva project data instead of a direct URL
+
+        // Return the professional flyer data
         return {
-          type: 'canva-hybrid',
-          canvaProject: data.canvaProject,
-          instructions: data.instructions,
-          template: data.template,
-          metadata: data.metadata
+          type: 'professional-flyer',
+          flyer: data.flyer,
+          designSystem: data.designSystem,
+          quality: data.quality,
+          message: data.message
         };
       } else {
         console.log('❌ Unexpected API response format:', data);
-        throw new Error(`No Canva project received from Hybrid service. Response: ${JSON.stringify(data)}`);
+        throw new Error(`No professional flyer received from service. Response: ${JSON.stringify(data)}`);
       }
-      
     } catch (error) {
-      console.error('❌ Error in Canva Hybrid flyer generation:', error);
-      // Fallback to simple flyer
-      return generateFallbackFlyer(flyerData);
+      console.error('❌ Professional flyer generation failed:', error);
+      throw error;
     }
-  }
+  };
+
+  // Handle enhanced flyer generation with our professional engine
+  const handleEnhancedFlyerGeneration = async (flyerData) => {
+    try {
+      setFlyerGenerating(true);
+      console.log('🎨 Starting professional flyer generation...');
+
+      // Generate the professional flyer
+      const canvaProject = await generateProfessionalFlyer(flyerData);
+
+      if (canvaProject && canvaProject.type === 'professional-flyer') {
+        // Show professional flyer success and provide download
+        console.log('🎨 Professional flyer created:', canvaProject);
+
+        // Create download link for the professional flyer
+        const downloadProfessionalFlyer = () => {
+          try {
+            // Create a complete HTML document with the flyer
+            const htmlDocument = `
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Professional Real Estate Flyer</title>
+                <style>
+                  ${canvaProject.flyer.css}
+                </style>
+              </head>
+              <body>
+                ${canvaProject.flyer.html}
+                <script>
+                  ${canvaProject.flyer.animations}
+                  
+                  // Initialize animations when page loads
+                  document.addEventListener('DOMContentLoaded', function() {
+                    // Add entrance animations to all flyer cards
+                    const cards = document.querySelectorAll('.flyer-card');
+                    cards.forEach((card, index) => {
+                      card.style.opacity = '0';
+                      card.style.transform = 'translateY(30px)';
+                      
+                      setTimeout(() => {
+                        card.style.transition = 'all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                      }, index * 100);
+                    });
+                  });
+                </script>
+              </body>
+              </html>
+            `;
+
+            // Create blob and download
+            const blob = new Blob([htmlDocument], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `professional-flyer-${flyerData.style}-${Date.now()}.html`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Show success message
+            alert(`✅ Professional Marketing Flyer Created Successfully!\n\nDesign System: ${canvaProject.designSystem}\nQuality: ${canvaProject.quality}\n\nYour professional flyer has been downloaded as an HTML file!\n\nYou can now:\n• Open it in any web browser\n• Print it for physical distribution\n• Share it digitally\n• Further customize if needed`);
+
+          } catch (error) {
+            console.error('❌ Download error:', error);
+            alert('❌ Error downloading flyer. Please try again.');
+          }
+        };
+
+        // Show success message with download option
+        const message = `✅ Professional Marketing Flyer Created!
+
+Design System: ${canvaProject.designSystem}
+Quality: ${canvaProject.quality}
+
+🎯 Your professional flyer is ready! This flyer was created using our advanced design engine to ensure marketing professional quality.
+
+💡 Professional Features:
+• Advanced typography systems
+• Marketing psychology layouts
+• Professional color schemes
+• Premium animations
+• Responsive design
+• Print-ready output
+• Marketing agency quality`;
+
+        // Show custom alert with download button
+        if (confirm(message + '\n\nClick OK to download your professional flyer now!')) {
+          downloadProfessionalFlyer();
+        }
+
+        // Close modal after successful generation
+        setFlyerOpen(false);
+        setFlyerGenerating(false);
+      } else {
+        // Fallback to simple flyer download
+        const fallbackUrl = generateFallbackFlyer(flyerData);
+        if (fallbackUrl) {
+          const a = document.createElement('a');
+          a.href = fallbackUrl;
+          a.download = `flyer-${flyerData.style}-${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        }
+
+        setFlyerOpen(false);
+        setFlyerGenerating(false);
+      }
+    } catch (error) {
+      console.error('❌ Professional flyer generation failed:', error);
+      alert(`❌ Error generating professional flyer: ${error.message}`);
+      setFlyerGenerating(false);
+    }
+  };
 
   // Fallback flyer generation if templates fail
   function generateFallbackFlyer(flyerData) {
