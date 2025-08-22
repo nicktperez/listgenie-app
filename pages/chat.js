@@ -249,21 +249,65 @@ export default function ChatPage() {
                       </button>
                       <button 
                         className="compact-action-btn flyer-btn"
-                        onClick={() => {
-                          alert("🎨 Button clicked! Check console for details.");
-                          console.log("🎨 ===== FLYER BUTTON DEBUG START =====");
-                          console.log("🎨 Flyer button clicked directly");
+                        onClick={async () => {
+                          console.log("🎨 ===== DIRECT FLYER GENERATION START =====");
+                          console.log("🎨 Direct flyer generation clicked");
                           console.log("🎨 Current state:", { 
                             isPro, 
-                            flyerOpen, 
                             hasListing, 
                             currentListing: currentListing ? currentListing.substring(0, 100) : 'NO LISTING',
-                            messagesLength: messages.length,
-                            isSignedIn
+                            messagesLength: messages.length
                           });
-                          console.log("🎨 About to call openFlyerModal()");
-                          openFlyerModal();
-                          console.log("🎨 ===== FLYER BUTTON DEBUG END =====");
+                          
+                          if (!isPro) {
+                            alert("Please upgrade to Pro to generate flyers");
+                            return;
+                          }
+                          
+                          if (!currentListing || !currentListing.trim()) {
+                            alert("Please generate a listing first");
+                            return;
+                          }
+                          
+                          try {
+                            console.log("🎨 Making direct API call to /api/flyer");
+                            const response = await fetch("/api/flyer", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ listing: currentListing })
+                            });
+                            
+                            if (!response.ok) {
+                              throw new Error(`API error: ${response.status}`);
+                            }
+                            
+                            const data = await response.json();
+                            console.log("🎨 API response:", data);
+                            
+                            if (data.success && data.flyer && data.flyer.imageUrl) {
+                              console.log("🎨 Flyer generated successfully!");
+                              
+                              // Open in new tab
+                              window.open(data.flyer.imageUrl, '_blank');
+                              
+                              // Download
+                              const a = document.createElement('a');
+                              a.href = data.flyer.imageUrl;
+                              a.download = 'ai-generated-flyer.png';
+                              document.body.appendChild(a);
+                              a.click();
+                              a.remove();
+                              
+                              alert("✅ Flyer generated! Opening in new tab and downloading...");
+                            } else {
+                              throw new Error("No flyer data received");
+                            }
+                          } catch (error) {
+                            console.error("🎨 Flyer generation error:", error);
+                            alert(`❌ Error generating flyer: ${error.message}`);
+                          }
+                          
+                          console.log("🎨 ===== DIRECT FLYER GENERATION END =====");
                         }}
                         disabled={!isPro || !hasListing}
                         style={{ position: 'relative', zIndex: 10 }}
@@ -993,15 +1037,7 @@ export default function ChatPage() {
       </main>
 
       
-      {flyerOpen && (
-        <FlyerModal
-          open={true}
-          onClose={() => setFlyerOpen(false)}
-          messages={messages}
-          isPro={isPro}
-          listing={currentListing}
-        />
-      )}
+
       {questionsOpen && (
         <div className="questions-modal-overlay">
           <div className="questions-modal">
