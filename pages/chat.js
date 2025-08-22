@@ -636,14 +636,26 @@ export default function ChatPage() {
       if (data.success) {
         // Now generate the Canva project using our hybrid integration
         const canvaProject = await generateAIFlyer(flyerData);
+        console.log('🎨 Canva Project Result:', canvaProject);
         
         if (canvaProject && canvaProject.type === 'canva-hybrid') {
           // Show Canva project information instead of downloading
           console.log('🎨 Canva project created:', canvaProject);
           
-          // For now, show success message and close modal
-          // In the future, we could show the Canva project details
-          alert(`✅ Canva project created successfully!\n\nTemplate: ${canvaProject.template}\n\nYour project is ready to customize in Canva.`);
+          // Show detailed success message with Canva project information
+          const message = `✅ Canva project created successfully!
+
+Template: ${canvaProject.template}
+Project ID: ${canvaProject.canvaProject.projectId}
+Status: ${canvaProject.canvaProject.status}
+
+Your project is ready to customize in Canva!
+Click the link below to open your project:
+${canvaProject.canvaProject.url}
+
+You'll receive step-by-step instructions for customization.`;
+          
+          alert(message);
           
           // Close modal after successful generation
           setFlyerOpen(false);
@@ -694,6 +706,7 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
+      console.log('🎨 API Response Data:', data);
       
       if (data.success && data.type === 'canva-hybrid') {
         console.log('✅ Canva Hybrid project created successfully!', {
@@ -711,7 +724,8 @@ export default function ChatPage() {
           metadata: data.metadata
         };
       } else {
-        throw new Error('No Canva project received from Hybrid service');
+        console.log('❌ Unexpected API response format:', data);
+        throw new Error(`No Canva project received from Hybrid service. Response: ${JSON.stringify(data)}`);
       }
       
     } catch (error) {

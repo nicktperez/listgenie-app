@@ -140,39 +140,45 @@ async function generateAIFlyer(data) {
       photos: data.photos.length + data.aiPhotos.length
     });
 
-    // Import and use Canva Hybrid integration
-    const { canvaHybridIntegration } = await import('@/lib/canvaHybridIntegration');
+    // For now, return a hardcoded Canva Hybrid response to test the flow
+    console.log('🎨 Returning hardcoded Canva Hybrid response for testing');
     
-    // Check if Canva Hybrid integration is available
-    const availability = await canvaHybridIntegration.checkAvailability();
-    console.log('🎨 Canva Hybrid Availability:', availability);
-
-    if (!availability.available) {
-      throw new Error(`Canva Hybrid service unavailable: ${availability.error}`);
-    }
-
-    // Generate Canva project using Hybrid integration
-    const projectResult = await canvaHybridIntegration.generateCanvaProject(data);
-    
-    if (projectResult.success) {
-      console.log('✅ Canva Hybrid project generated successfully:', {
-        template: projectResult.template,
-        type: projectResult.type,
-        canvaProject: projectResult.canvaProject
-      });
-      
-      return {
-        success: true,
-        message: 'Canva project created successfully',
-        type: 'canva-hybrid',
-        canvaProject: projectResult.canvaProject,
-        instructions: projectResult.instructions,
-        template: projectResult.template,
-        metadata: projectResult.metadata
-      };
-    } else {
-      throw new Error(projectResult.error || 'Canva Hybrid generation failed');
-    }
+    return {
+      success: true,
+      message: 'Canva project created successfully',
+      type: 'canva-hybrid',
+      canvaProject: {
+        url: 'https://canva.com/design/test-project',
+        projectId: 'test_project_123',
+        status: 'ready',
+        accessType: 'edit',
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      },
+      instructions: {
+        title: 'Create Your Modern Luxury Real Estate Flyer',
+        steps: [
+          {
+            step: 1,
+            title: 'Open Your Project',
+            description: 'Click the link below to open your pre-configured Modern Luxury Real Estate Flyer in Canva',
+            action: 'Click the "Open in Canva" button above'
+          }
+        ],
+        tips: ['Use Canva\'s AI tools to enhance your photos', 'Try different color combinations within the suggested palette'],
+        support: {
+          canvaHelp: 'https://help.canva.com',
+          realEstateTemplates: 'https://canva.com/templates/real-estate'
+        }
+      },
+      template: 'Modern Luxury Real Estate Flyer',
+      metadata: {
+        style: 'contemporary',
+        colors: ['#1e293b', '#f59e0b', '#ffffff'],
+        features: ['Hero image', 'Property details', 'Agent section', 'Professional typography'],
+        agent: data.agentInfo.name,
+        agency: data.agentInfo.agency
+      }
+    };
 
   } catch (error) {
     console.error('❌ Canva Hybrid generation failed:', error);
