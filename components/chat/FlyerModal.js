@@ -3,6 +3,12 @@ import { useRouter } from "next/router";
 
 export default function FlyerModal({ open, onClose, messages, isPro, listing }) {
   const router = useRouter();
+  
+  // Debug logging
+  console.log("🎭 ===== FLYERMODAL RENDER DEBUG =====");
+  console.log("🎭 FlyerModal props received:", { open, isPro, listing: listing ? listing.substring(0, 50) : 'NO LISTING', messagesLength: messages?.length });
+  console.log("🎭 Modal should be:", open ? 'OPEN' : 'CLOSED');
+  console.log("🎭 ===== FLYERMODAL RENDER DEBUG END =====");
 
   const [flyerTypes, setFlyerTypes] = useState({ standard: true, openHouse: false });
   const [flyerBusy, setFlyerBusy] = useState(false);
@@ -85,28 +91,39 @@ export default function FlyerModal({ open, onClose, messages, isPro, listing }) 
   };
 
   async function generateFlyers() {
+    console.log("🎨 ===== GENERATEFLYERS DEBUG START =====");
+    console.log("🎨 generateFlyers called with:", { isPro, listing: listing ? listing.substring(0, 100) : 'NO LISTING' });
+    
     if (!isPro) {
+      console.log("❌ User not Pro, redirecting to upgrade");
       router.push("/upgrade");
       return;
     }
 
     // Use the listing prop directly
     if (!listing || !listing.trim()) {
+      console.log("❌ No listing found, setting error");
       setError("No listing found to generate flyers from. Please generate a listing first.");
       return;
     }
 
+    console.log("✅ Listing found, proceeding with generation");
     console.log("🎨 Starting flyer generation with listing:", listing.substring(0, 100));
 
     const payload = {
       listing: listing,
       propertyDetails: propertyDetails
     };
+    
+    console.log("🎨 Payload prepared:", { listingLength: listing.length, propertyDetails });
 
     try {
+      console.log("🎨 ===== API CALL DEBUG START =====");
       setFlyerBusy(true);
       setError("");
       console.log("🎨 Generating AI flyer...");
+      console.log("🎨 Making API call to /api/flyer");
+      console.log("🎨 Payload being sent:", JSON.stringify(payload, null, 2));
       
       const res = await fetch("/api/flyer", {
         method: "POST",
@@ -114,43 +131,62 @@ export default function FlyerModal({ open, onClose, messages, isPro, listing }) 
         body: JSON.stringify(payload),
       });
       
+      console.log("🎨 API response received:", { status: res.status, statusText: res.statusText, ok: res.ok });
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
+        console.log("❌ API error response:", errorData);
         throw new Error(errorData.error || `Flyer API error: ${res.status} ${res.statusText}`);
       }
       
       const data = await res.json();
+      console.log("🎨 API success response:", data);
       
       if (data.success && data.flyer && data.flyer.imageUrl) {
         console.log("✅ Flyer generated successfully!");
+        console.log("🎨 Image URL:", data.flyer.imageUrl);
         
         // Open the flyer image in a new tab for viewing/downloading
+        console.log("🎨 Opening flyer in new tab...");
         const newWindow = window.open(data.flyer.imageUrl, '_blank');
         if (newWindow) {
           newWindow.focus();
+          console.log("✅ New tab opened successfully");
+        } else {
+          console.log("⚠️ New tab blocked by popup blocker");
         }
         
         // Also trigger download
+        console.log("🎨 Triggering download...");
         const a = document.createElement("a");
         a.href = data.flyer.imageUrl;
         a.download = "ai-generated-flyer.png";
         document.body.appendChild(a);
         a.click();
         a.remove();
+        console.log("✅ Download triggered");
         
         alert("✅ AI flyer generated successfully! Opening in new tab and downloading...");
         
         // Close modal after successful generation
+        console.log("🎨 Closing modal...");
         onClose();
       } else {
+        console.log("❌ API response missing required data:", data);
         throw new Error(data.error || "Failed to generate flyer");
       }
     } catch (e) {
-      console.error("❌ Flyer generation error:", e);
+      console.error("❌ ===== FLYER GENERATION ERROR =====");
+      console.error("❌ Error details:", e);
+      console.error("❌ Error message:", e?.message);
+      console.error("❌ Error stack:", e?.stack);
       const errorMessage = e?.message || e?.error || "Could not generate flyer";
+      console.error("❌ Setting error message:", errorMessage);
       setError(errorMessage);
     } finally {
+      console.log("🎨 Setting flyerBusy to false");
       setFlyerBusy(false);
+      console.log("🎨 ===== API CALL DEBUG END =====");
     }
   }
 
@@ -228,7 +264,12 @@ export default function FlyerModal({ open, onClose, messages, isPro, listing }) 
     setPropertyPhotos((prev) => prev.filter((photo) => photo.id !== photoId));
   }
 
-  if (!open) return null;
+  if (!open) {
+    console.log("🎭 Modal not open, returning null");
+    return null;
+  }
+  
+  console.log("🎭 Modal is open, rendering content");
 
   return (
     <div className="flyer-modal">

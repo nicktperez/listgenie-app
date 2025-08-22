@@ -247,9 +247,19 @@ export default function ChatPage() {
               <button 
                 className="compact-action-btn flyer-btn"
                 onClick={() => {
+                  console.log("🎨 ===== FLYER BUTTON DEBUG START =====");
                   console.log("🎨 Flyer button clicked directly");
-                  console.log("Current state:", { isPro, flyerOpen, hasListing, currentListing: currentListing.substring(0, 100) });
+                  console.log("🎨 Current state:", { 
+                    isPro, 
+                    flyerOpen, 
+                    hasListing, 
+                    currentListing: currentListing ? currentListing.substring(0, 100) : 'NO LISTING',
+                    messagesLength: messages.length,
+                    isSignedIn
+                  });
+                  console.log("🎨 About to call openFlyerModal()");
                   openFlyerModal();
+                  console.log("🎨 ===== FLYER BUTTON DEBUG END =====");
                 }}
                 disabled={!isPro}
                 style={{ position: 'relative', zIndex: 10 }}
@@ -519,14 +529,20 @@ export default function ChatPage() {
   }
 
   function openFlyerModal() {
-    console.log("openFlyerModal called", { isPro, flyerOpen });
+    console.log("🚀 ===== OPENFLYERMODAL DEBUG START =====");
+    console.log("🚀 openFlyerModal called", { isPro, flyerOpen, hasListing, currentListing: currentListing ? currentListing.substring(0, 50) : 'NO LISTING' });
+    
     if (!isPro) { 
-      console.log("User not Pro, redirecting to upgrade");
+      console.log("❌ User not Pro, redirecting to upgrade");
       router.push("/upgrade"); 
       return; 
     }
-    console.log("Setting flyerOpen to true");
+    
+    console.log("✅ User is Pro, proceeding...");
+    console.log("🚀 Setting flyerOpen to true");
     setFlyerOpen(true);
+    console.log("🚀 flyerOpen state should now be true");
+    console.log("🚀 ===== OPENFLYERMODAL DEBUG END =====");
   }
 
   function handleNewListing() {
