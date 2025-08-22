@@ -16,6 +16,9 @@ import Composer from "@/components/chat/Composer";
 import MessageThread from "@/components/chat/MessageThread";
 import FlyerModal from "@/components/chat/FlyerModal";
 
+// Test if FlyerModal is imported correctly
+console.log("🔧 FlyerModal import test:", typeof FlyerModal, FlyerModal);
+
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
   return s
@@ -247,6 +250,7 @@ export default function ChatPage() {
                       <button 
                         className="compact-action-btn flyer-btn"
                         onClick={() => {
+                          alert("🎨 Button clicked! Check console for details.");
                           console.log("🎨 ===== FLYER BUTTON DEBUG START =====");
                           console.log("🎨 Flyer button clicked directly");
                           console.log("🎨 Current state:", { 
@@ -987,6 +991,42 @@ export default function ChatPage() {
           </div>
         </div>
       </main>
+      {/* Debug indicator for modal state */}
+      <div style={{ 
+        position: 'fixed', 
+        top: '10px', 
+        right: '10px', 
+        background: 'red', 
+        color: 'white', 
+        padding: '10px', 
+        zIndex: 9999,
+        fontSize: '12px',
+        fontFamily: 'monospace'
+      }}>
+        DEBUG: flyerOpen={String(flyerOpen)}
+      </div>
+      
+      {/* Test if FlyerModal is being rendered */}
+      {flyerOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'red',
+          color: 'white',
+          padding: '20px',
+          zIndex: 10000,
+          fontSize: '16px',
+          fontFamily: 'monospace'
+        }}>
+          🎭 FLYER MODAL SHOULD BE HERE!<br/>
+          flyerOpen: {String(flyerOpen)}<br/>
+          isPro: {String(isPro)}<br/>
+          hasListing: {String(hasListing)}
+        </div>
+      )}
+      
       <FlyerModal
         open={flyerOpen}
         onClose={() => setFlyerOpen(false)}
