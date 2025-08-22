@@ -3,8 +3,8 @@
 // - Streaming chat with readable output cleanup
 // - Variant detection & styled cards (MLS / Social / Luxury / Concise)
 // - Copy-to-clipboard buttons for each variant and full response (with "Copied!" state)
-// - Pro-gated flyer modal (Standard + Open House)
-// - Downloads PDF via /api/flyer
+// - Enhanced Professional Flyer Generator with Template System
+// - User photo uploads and agent customization
 
 import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/router";
@@ -14,10 +14,10 @@ import ChatHeader from "@/components/chat/Header";
 import ExamplesRow from "@/components/chat/ExamplesRow";
 import Composer from "@/components/chat/Composer";
 import MessageThread from "@/components/chat/MessageThread";
-import FlyerModal from "@/components/chat/FlyerModal";
+import EnhancedFlyerModal from "@/components/chat/EnhancedFlyerModal";
 
-// Test if FlyerModal is imported correctly
-console.log("🔧 FlyerModal import test:", typeof FlyerModal, FlyerModal);
+// Test if EnhancedFlyerModal is imported correctly
+console.log("🔧 EnhancedFlyerModal import test:", typeof EnhancedFlyerModal, EnhancedFlyerModal);
 
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
@@ -250,7 +250,7 @@ export default function ChatPage() {
                       </button>
                       <button 
                         className="compact-action-btn flyer-btn"
-                        onClick={async () => {
+                        onClick={() => {
                           if (!isPro) {
                             alert("Please upgrade to Pro to generate flyers");
                             return;
@@ -261,69 +261,28 @@ export default function ChatPage() {
                             return;
                           }
                           
-                          // Set loading state
-                          setFlyerGenerating(true);
-                          
-                          try {
-                            const response = await fetch("/api/flyer", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ listing: currentListing })
-                            });
-                            
-                            if (!response.ok) {
-                              const errorData = await response.json().catch(() => ({}));
-                              throw new Error(errorData.error || `API error: ${response.status}`);
-                            }
-                            
-                            const data = await response.json();
-                            
-                            if (data.success && data.flyer && data.flyer.imageUrl) {
-                              // Try to open in new tab (handle popup blockers)
-                              const newWindow = window.open(data.flyer.imageUrl, '_blank');
-                              if (!newWindow) {
-                                // Popup was blocked, show instructions
-                                alert("✅ AI flyer generated! Popup was blocked. The flyer is downloading automatically. Check your downloads folder!");
-                              } else {
-                                alert("✅ AI flyer generated! Opening in new tab and downloading...");
-                              }
-                              
-                              // Download
-                              const a = document.createElement('a');
-                              a.href = data.flyer.imageUrl;
-                              a.download = 'ai-generated-flyer.png';
-                              document.body.appendChild(a);
-                              a.click();
-                              a.remove();
-                            } else {
-                              throw new Error("No flyer data received");
-                            }
-                          } catch (error) {
-                            console.error("🎨 Flyer generation error:", error);
-                            alert(`❌ Error generating flyer: ${error.message}`);
-                          } finally {
-                            // Clear loading state
-                            setFlyerGenerating(false);
-                          }
+                          // Open the enhanced flyer modal
+                          setFlyerOpen(true);
                         }}
-                                                disabled={!isPro || !hasListing || flyerGenerating}
+                        disabled={!isPro || !hasListing}
                         style={{ position: 'relative', zIndex: 10 }}
-                        >
-                        {flyerGenerating ? (
-                          <>
-                            <span className="flyer-loading-spinner"></span>
-                            Generating Flyer...
-                          </>
-                        ) : (
-                          'Generate Flyer'
-                        )}
-                        </button>
+                      >
+                        🎨 Generate Flyer
+                      </button>
                       
 
                     </div>
           </div>
         </div>
 
+        {/* Enhanced Flyer Modal */}
+        <EnhancedFlyerModal
+          isOpen={flyerOpen}
+          onClose={() => setFlyerOpen(false)}
+          onGenerate={handleEnhancedFlyerGeneration}
+          listing={currentListing}
+          loading={flyerGenerating}
+        />
 
       </div>
     );
@@ -640,6 +599,128 @@ export default function ChatPage() {
       document.execCommand('copy');
       document.body.removeChild(textArea);
     });
+  }
+
+  // Enhanced flyer generation handler
+  async function handleEnhancedFlyerGeneration(flyerData) {
+    const { agentInfo, style, photos, listing } = flyerData;
+    
+    console.log('🎨 Starting enhanced flyer generation:', { agentInfo, style, photos: photos?.length });
+    
+    try {
+      setFlyerGenerating(true);
+      
+      // First, call our API to validate the data
+      const response = await fetch("/api/flyer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentInfo, style, photos, listing })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('🎨 API response:', data);
+      
+      if (data.success) {
+        // Now generate the actual flyer using our template system
+        const flyerImageUrl = await generateFlyerWithTemplates(flyerData);
+        
+        // Download the generated flyer
+        const a = document.createElement('a');
+        a.href = flyerImageUrl;
+        a.download = `flyer-${style}-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        
+        // Close modal and show success
+        setFlyerOpen(false);
+        alert('✅ Professional flyer generated successfully! Check your downloads folder.');
+        
+      } else {
+        throw new Error("Failed to generate flyer");
+      }
+      
+    } catch (error) {
+      console.error('🎨 Enhanced flyer generation error:', error);
+      alert(`❌ Error generating flyer: ${error.message}`);
+    } finally {
+      setFlyerGenerating(false);
+    }
+  }
+
+  // Generate flyer using our template system
+  async function generateFlyerWithTemplates(flyerData) {
+    return new Promise((resolve) => {
+      // Dynamically import the template system
+      import('@/lib/flyerTemplates').then(({ FlyerGenerator, extractPropertyInfo }) => {
+        // Create a hidden canvas element
+        const canvas = document.createElement('canvas');
+        canvas.style.display = 'none';
+        document.body.appendChild(canvas);
+        
+        // Initialize the flyer generator
+        const generator = new FlyerGenerator(canvas, flyerData.style);
+        
+        // Extract property information
+        const propertyInfo = extractPropertyInfo(flyerData.listing);
+        
+        // Generate the flyer
+        generator.generateFlyer({
+          agentInfo: flyerData.agentInfo,
+          photos: flyerData.photos || [],
+          listing: flyerData.listing,
+          propertyInfo
+        }).then((imageUrl) => {
+          // Clean up
+          document.body.removeChild(canvas);
+          resolve(imageUrl);
+        }).catch((error) => {
+          console.error('🎨 Template generation error:', error);
+          document.body.removeChild(canvas);
+          // Fallback to a simple generated image
+          resolve(generateFallbackFlyer(flyerData));
+        });
+      }).catch((error) => {
+        console.error('🎨 Failed to load template system:', error);
+        // Fallback to a simple generated image
+        resolve(generateFallbackFlyer(flyerData));
+      });
+    });
+  }
+
+  // Fallback flyer generation if templates fail
+  function generateFallbackFlyer(flyerData) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1792;
+    const ctx = canvas.getContext('2d');
+    
+    // Simple fallback design
+    ctx.fillStyle = '#1E40AF';
+    ctx.fillRect(0, 0, 1024, 1792);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 48px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('FOR SALE', 512, 200);
+    
+    ctx.font = '32px Arial';
+    ctx.fillText(flyerData.agentInfo.name, 512, 300);
+    ctx.fillText(flyerData.agentInfo.agency, 512, 350);
+    
+    ctx.font = '24px Arial';
+    ctx.fillText('Professional flyer generation coming soon!', 512, 500);
+    
+    // Clean up
+    const imageUrl = canvas.toDataURL('image/png');
+    document.body.removeChild(canvas);
+    
+    return imageUrl;
   }
 
   async function handleModifyListing(listingText, modificationType) {

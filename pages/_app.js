@@ -3,6 +3,7 @@ import "@/styles/globals.css";
 import "@/styles/components.css";
 import "@/styles/flyer-modal.css";
 import "@/styles/chat.css";
+import "@/styles/enhanced-flyer-modal.css";
 import { ClerkProvider, useAuth, useUser } from "@clerk/nextjs";
 import { useEffect } from "react";
 
