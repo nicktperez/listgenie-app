@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     res.status(200).json({
       success: true,
       flyer: {
-        imageUrl: 'https://via.placeholder.com/1024x1792/8B5CF6/FFFFFF?text=Test+Flyer',
+        imageUrl: 'https://picsum.photos/1024/1792?random=1',
         propertyDetails: { address: 'Test Property' },
         listing: listing,
         generatedAt: new Date().toISOString(),
