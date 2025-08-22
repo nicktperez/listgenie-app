@@ -162,7 +162,7 @@ const ProfessionalFlyerPreview = ({ flyerData, isVisible, onClose }) => {
             color: '#cbd5e1',
             fontSize: '14px'
           }}>
-            This is a preview of your professional flyer. Click "Generate Professional Flyer" to create the final version.
+            This is a preview of your professional flyer. Click &quot;Generate Professional Flyer&quot; to create the final version.
           </p>
         </div>
       </motion.div>
