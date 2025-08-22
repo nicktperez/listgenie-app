@@ -1,29 +1,76 @@
 /* Enhanced Flyer Modal Styles */
 .enhanced-flyer-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 99999 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
   backdrop-filter: blur(8px);
+  width: 100vw !important;
+  height: 100vh !important;
+  /* Ensure it's above everything */
+  isolation: isolate !important;
+  /* Prevent any interference */
+  pointer-events: auto !important;
+  overflow: hidden !important;
 }
 
 .enhanced-flyer-modal {
-  background: #ffffff;
-  border-radius: 20px;
-  width: 90%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  animation: modalSlideIn 0.3s ease-out;
-  position: relative;
-  z-index: 100000 !important;
+  background: #ffffff !important;
+  border-radius: 20px !important;
+  width: 90% !important;
+  max-width: 700px !important;
+  max-height: 90vh !important;
+  overflow: hidden !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  animation: modalSlideIn 0.3s ease-out !important;
+  position: relative !important;
+  z-index: 1000000 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  /* Ensure modal content is properly contained */
+  box-sizing: border-box !important;
+  /* Prevent any interference */
+  pointer-events: auto !important;
+}
+
+/* Force modal to be above all other content */
+.enhanced-flyer-modal-overlay,
+.enhanced-flyer-modal-overlay * {
+  position: relative !important;
+  z-index: 999999 !important;
+}
+
+.enhanced-flyer-modal,
+.enhanced-flyer-modal * {
+  position: relative !important;
+  z-index: 1000000 !important;
+}
+
+/* Ensure modal content is properly styled */
+.modal-content {
+  padding: 32px !important;
+  max-height: 60vh !important;
+  overflow-y: auto !important;
+  /* Prevent any interference */
+  pointer-events: auto !important;
+}
+
+/* Ensure all modal elements are properly positioned */
+.modal-header,
+.modal-footer,
+.step-content,
+.form-group,
+.style-grid,
+.photo-upload-section,
+.photo-preview {
+  position: relative !important;
+  z-index: 1000001 !important;
 }
 
 @keyframes modalSlideIn {
@@ -35,6 +82,26 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
+}
+
+@keyframes modalSlideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+}
+
+/* Modal close animation */
+.enhanced-flyer-modal-overlay.closing {
+  animation: modalSlideOut 0.2s ease-in forwards;
+}
+
+.enhanced-flyer-modal-overlay.closing .enhanced-flyer-modal {
+  animation: modalSlideOut 0.2s ease-in forwards;
 }
 
 .modal-header {
@@ -70,12 +137,6 @@
 
 .close-btn:hover {
   background: rgba(255, 255, 255, 0.2);
-}
-
-.modal-content {
-  padding: 32px;
-  max-height: 60vh;
-  overflow-y: auto;
 }
 
 .step-content h3 {

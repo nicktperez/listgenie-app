@@ -1,4 +1,5 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function EnhancedFlyerModal({ 
   isOpen, 
@@ -21,7 +22,38 @@ export default function EnhancedFlyerModal({
   const [aiPhotos, setAiPhotos] = useState([]);
   const [aiPhotoLoading, setAiPhotoLoading] = useState(false);
   const [useAiPhotos, setUseAiPhotos] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Ensure component is mounted before rendering portal
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Small delay to allow for close animation
+      const timer = setTimeout(() => {
+        resetForm();
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  // Handle close with animation
+  const handleClose = () => {
+    const overlay = document.querySelector('.enhanced-flyer-modal-overlay');
+    if (overlay) {
+      overlay.classList.add('closing');
+      setTimeout(() => {
+        onClose();
+      }, 200);
+    } else {
+      onClose();
+    }
+  };
 
   const flyerStyles = [
     {
@@ -215,16 +247,17 @@ export default function EnhancedFlyerModal({
     setUseAiPhotos(false);
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   console.log('🎨 EnhancedFlyerModal rendering:', { isOpen, step, agentInfo, selectedStyle });
 
-  return (
+  // Use portal to render modal at document body level
+  return createPortal(
     <div className="enhanced-flyer-modal-overlay">
       <div className="enhanced-flyer-modal">
         <div className="modal-header">
           <h2>🎨 Generate Professional Flyer</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <button className="close-btn" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-content">
@@ -429,11 +462,12 @@ export default function EnhancedFlyerModal({
         </div>
 
         <div className="modal-footer">
-          <button className="cancel-btn" onClick={() => { resetForm(); onClose(); }}>
+          <button className="cancel-btn" onClick={() => { resetForm(); handleClose(); }}>
             Cancel
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body // Render the modal at the document body level
   );
 }
