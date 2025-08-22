@@ -323,7 +323,7 @@ export default function EnhancedFlyerModal({
         >
           <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '12px' }}>
             <Icons.Generate />
-            Generate Professional Flyer
+            Generate Canva AI Flyer
           </h2>
           <button 
             onClick={onClose}
@@ -348,6 +348,22 @@ export default function EnhancedFlyerModal({
 
         {/* Modal Content */}
         <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
+          {/* Service Status Indicator */}
+          <div style={{ 
+            background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)', 
+            color: '#ffffff', 
+            padding: '12px 16px', 
+            borderRadius: '8px', 
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '14px'
+          }}>
+            <div style={{ width: '8px', height: '8px', backgroundColor: '#10b981', borderRadius: '50%' }}></div>
+            <strong>Canva AI Service:</strong> Professional real estate templates with AI assistance
+          </div>
+          
           {step === 1 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
@@ -874,12 +890,12 @@ export default function EnhancedFlyerModal({
                   {loading ? (
                     <>
                       <div style={{ width: '16px', height: '16px', border: '2px solid #ffffff', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                      Generating Flyer...
+                      Canva AI Generating Flyer...
                     </>
                   ) : (
                     <>
                       <Icons.Generate />
-                      Generate Professional Flyer
+                      Generate Canva AI Flyer
                     </>
                   )}
                 </button>

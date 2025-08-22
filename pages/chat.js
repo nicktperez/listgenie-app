@@ -635,7 +635,7 @@ export default function ChatPage() {
       
       if (data.success) {
         // Now generate the actual flyer using our template system
-        const flyerImageUrl = await generateFlyerWithTemplates(flyerData);
+        const flyerImageUrl = await generateAIFlyer(flyerData);
         
         // Download the generated flyer
         const a = document.createElement('a');
@@ -661,28 +661,38 @@ export default function ChatPage() {
     }
   }
 
-  // Generate flyer using our template system
-  async function generateFlyerWithTemplates(flyerData) {
+  // Generate professional flyer using Canva AI
+  async function generateAIFlyer(flyerData) {
     try {
-      console.log('🎨 Starting flyer generation with templates:', flyerData);
+      console.log('🎨 Starting Canva AI-powered flyer generation:', flyerData);
       
-      // Dynamically import the generateFlyer function
-      const { generateFlyer } = await import('@/lib/flyerTemplates');
+      // Call our Canva AI flyer API
+      const response = await fetch('/api/flyer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(flyerData)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
+      }
+
+      const data = await response.json();
       
-      // Generate the flyer
-      const dataUrl = await generateFlyer(flyerData, flyerData.style);
-      
-      if (dataUrl) {
-        console.log('✅ Professional flyer generated successfully!');
-        return dataUrl;
+      if (data.success && data.flyerUrl) {
+        console.log('✅ Canva AI flyer generated successfully!', {
+          template: data.metadata?.style || 'Unknown',
+          quality: data.metadata?.quality || 'Unknown',
+          generatedBy: data.metadata?.generatedBy || 'Canva AI'
+        });
+        return data.flyerUrl;
       } else {
-        console.error('❌ Flyer generation failed');
-        // Fallback to simple flyer
-        return generateFallbackFlyer(flyerData);
+        throw new Error('No flyer URL received from Canva AI service');
       }
       
     } catch (error) {
-      console.error('❌ Error in flyer generation:', error);
+      console.error('❌ Error in Canva AI flyer generation:', error);
       // Fallback to simple flyer
       return generateFallbackFlyer(flyerData);
     }
