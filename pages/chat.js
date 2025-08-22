@@ -1027,6 +1027,60 @@ export default function ChatPage() {
         </div>
       )}
       
+      {/* Test if FlyerModal is being rendered but hidden */}
+      {flyerOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          left: '10px',
+          background: 'lime',
+          color: 'black',
+          padding: '10px',
+          zIndex: 10001,
+          fontSize: '12px',
+          fontFamily: 'monospace'
+        }}>
+          🎭 FlyerModal should be rendered below this
+        </div>
+      )}
+      
+      {/* Test if FlyerModal is being rendered but hidden */}
+      {flyerOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          left: '10px',
+          background: 'lime',
+          color: 'black',
+          padding: '10px',
+          zIndex: 10001,
+          fontSize: '12px',
+          fontFamily: 'monospace'
+        }}>
+          🎭 FlyerModal should be rendered below this
+        </div>
+      )}
+      
+      {/* Force render FlyerModal for testing */}
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        background: 'blue',
+        color: 'white',
+        padding: '20px',
+        zIndex: 10002,
+        fontSize: '16px',
+        fontFamily: 'monospace'
+      }}>
+        🎭 FORCED FLYER MODAL TEST
+        <br/>flyerOpen: {String(flyerOpen)}
+        <br/>isPro: {String(isPro)}
+        <br/>hasListing: {String(hasListing)}
+        <br/>listingLength: {currentListing ? currentListing.length : 0}
+      </div>
+      
       <FlyerModal
         open={flyerOpen}
         onClose={() => setFlyerOpen(false)}
