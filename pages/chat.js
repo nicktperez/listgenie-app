@@ -232,41 +232,54 @@ export default function ChatPage() {
             />
             {error && <div className="error-message">{error}</div>}
             
-            {/* Action buttons near chatbox */}
-            <div className="compact-actions">
-              <button 
-                className="compact-action-btn new-listing-btn"
-                onClick={() => {
-                  setMessages([]);
-                  setOriginalInput("");
-                  setIsListingMode(false);
-                }}
-              >
-                NEW LISTING
-              </button>
-              <button 
-                className="compact-action-btn flyer-btn"
-                onClick={() => {
-                  console.log("🎨 ===== FLYER BUTTON DEBUG START =====");
-                  console.log("🎨 Flyer button clicked directly");
-                  console.log("🎨 Current state:", { 
-                    isPro, 
-                    flyerOpen, 
-                    hasListing, 
-                    currentListing: currentListing ? currentListing.substring(0, 100) : 'NO LISTING',
-                    messagesLength: messages.length,
-                    isSignedIn
-                  });
-                  console.log("🎨 About to call openFlyerModal()");
-                  openFlyerModal();
-                  console.log("🎨 ===== FLYER BUTTON DEBUG END =====");
-                }}
-                disabled={!isPro}
-                style={{ position: 'relative', zIndex: 10 }}
-              >
-                Generate Flyer
-              </button>
-            </div>
+                                {/* Action buttons near chatbox */}
+                    <div className="compact-actions">
+                      <button 
+                        className="compact-action-btn new-listing-btn"
+                        onClick={() => {
+                          setMessages([]);
+                          setOriginalInput("");
+                          setIsListingMode(false);
+                        }}
+                      >
+                        NEW LISTING
+                      </button>
+                      <button 
+                        className="compact-action-btn flyer-btn"
+                        onClick={() => {
+                          console.log("🎨 ===== FLYER BUTTON DEBUG START =====");
+                          console.log("🎨 Flyer button clicked directly");
+                          console.log("🎨 Current state:", { 
+                            isPro, 
+                            flyerOpen, 
+                            hasListing, 
+                            currentListing: currentListing ? currentListing.substring(0, 100) : 'NO LISTING',
+                            messagesLength: messages.length,
+                            isSignedIn
+                          });
+                          console.log("🎨 About to call openFlyerModal()");
+                          openFlyerModal();
+                          console.log("🎨 ===== FLYER BUTTON DEBUG END =====");
+                        }}
+                        disabled={!isPro || !hasListing}
+                        style={{ position: 'relative', zIndex: 10 }}
+                      >
+                        Generate Flyer
+                      </button>
+                      
+                      {/* DEBUG INFO - TEMPORARY */}
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#888',
+                        marginTop: '8px',
+                        padding: '8px',
+                        background: 'rgba(0,0,0,0.1)',
+                        borderRadius: '4px',
+                        fontFamily: 'monospace'
+                      }}>
+                        DEBUG: isPro={String(isPro)}, hasListing={String(hasListing)}, listingLength={currentListing ? currentListing.length : 0}
+                      </div>
+                    </div>
           </div>
         </div>
 
