@@ -94,6 +94,7 @@ export default function ChatPage() {
 
   // Flyer modal state
   const [flyerOpen, setFlyerOpen] = useState(false);
+  const [flyerGenerating, setFlyerGenerating] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -260,6 +261,9 @@ export default function ChatPage() {
                             return;
                           }
                           
+                          // Set loading state
+                          setFlyerGenerating(true);
+                          
                           try {
                             const response = await fetch("/api/flyer", {
                               method: "POST",
@@ -275,8 +279,14 @@ export default function ChatPage() {
                             const data = await response.json();
                             
                             if (data.success && data.flyer && data.flyer.imageUrl) {
-                              // Open in new tab
-                              window.open(data.flyer.imageUrl, '_blank');
+                              // Try to open in new tab (handle popup blockers)
+                              const newWindow = window.open(data.flyer.imageUrl, '_blank');
+                              if (!newWindow) {
+                                // Popup was blocked, show instructions
+                                alert("✅ AI flyer generated! Popup was blocked. The flyer is downloading automatically. Check your downloads folder!");
+                              } else {
+                                alert("✅ AI flyer generated! Opening in new tab and downloading...");
+                              }
                               
                               // Download
                               const a = document.createElement('a');
@@ -285,21 +295,29 @@ export default function ChatPage() {
                               document.body.appendChild(a);
                               a.click();
                               a.remove();
-                              
-                              alert("✅ AI flyer generated! Opening in new tab and downloading...");
                             } else {
                               throw new Error("No flyer data received");
                             }
                           } catch (error) {
                             console.error("🎨 Flyer generation error:", error);
                             alert(`❌ Error generating flyer: ${error.message}`);
+                          } finally {
+                            // Clear loading state
+                            setFlyerGenerating(false);
                           }
                         }}
-                        disabled={!isPro || !hasListing}
+                                                disabled={!isPro || !hasListing || flyerGenerating}
                         style={{ position: 'relative', zIndex: 10 }}
-                      >
-                        Generate Flyer
-                      </button>
+                        >
+                        {flyerGenerating ? (
+                          <>
+                            <span className="flyer-loading-spinner"></span>
+                            Generating Flyer...
+                          </>
+                        ) : (
+                          'Generate Flyer'
+                        )}
+                        </button>
                       
 
                     </div>

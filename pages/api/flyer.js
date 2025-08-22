@@ -1,5 +1,7 @@
 // pages/api/flyer.js
-// Generates beautiful, professional AI-powered flyers using OpenAI DALL-E 3
+// Generates beautiful, professional AI-powered flyers using hybrid approach:
+// 1. DALL-E 3 creates clean background design (no text)
+// 2. Property details are overlaid programmatically
 
 import OpenAI from 'openai';
 
@@ -35,7 +37,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Listing content is required' });
     }
 
-    console.log('🎨 Generating AI flyer for listing...');
+    console.log('🎨 Generating AI flyer background...');
 
     // Extract key details from the listing for the image prompt
     const extractPropertyInfo = (listingText) => {
@@ -71,40 +73,31 @@ export default async function handler(req, res) {
     const propertyInfo = extractPropertyInfo(listing);
     console.log('🎨 Extracted property info:', propertyInfo);
 
-    // Create a detailed prompt for DALL-E 3 to generate a professional real estate flyer image
-    const imagePrompt = `Create a professional, modern real estate flyer design with elegant typography and premium layout. 
-
-IMPORTANT: This is a real estate flyer for an actual property. The design should be clean and professional, with clear areas for text content, but DO NOT generate any text content yourself. Focus on creating a beautiful layout with placeholder areas for the property information.
-
-Property details to incorporate in the design layout:
-- Property: ${propertyInfo.address}
-- ${propertyInfo.bedrooms ? `${propertyInfo.bedrooms} Bedrooms` : ''}
-- ${propertyInfo.bathrooms ? `${propertyInfo.bathrooms} Bathrooms` : ''}
-- ${propertyInfo.sqft ? `${propertyInfo.sqft} Sq Ft` : ''}
+    // Create a prompt for DALL-E 3 to generate ONLY a background design (no text)
+    const backgroundPrompt = `Create a professional, modern real estate flyer BACKGROUND DESIGN with NO TEXT WHATSOEVER. 
 
 Design requirements:
 - High-end, professional real estate marketing style
 - Clean, modern layout with elegant design elements
 - Sophisticated color scheme (deep blues, golds, or classic black/white)
 - Include a prominent property photo placeholder area at the top
-- Add "FOR SALE" or "AVAILABLE" prominently in the design
-- Create clear, well-defined text areas for property details
+- Create clear, well-defined empty text areas for property details
 - Space for contact information at bottom
 - Premium branding feel with subtle gradients or textures
 - Layout suitable for both digital sharing and printing
 - Professional real estate agency aesthetic
-- Focus on visual design and layout, NOT text generation
+- ABSOLUTELY NO TEXT - only visual design elements
 
-Style: Ultra-modern, luxury real estate marketing material, photorealistic quality, clean design, sophisticated layout with clear text placement areas.`;
+Style: Ultra-modern, luxury real estate marketing material, photorealistic quality, clean design, sophisticated layout with clear empty text placement areas.`;
 
-    console.log('🎯 Generating flyer image with DALL-E 3...');
-    console.log('🎯 Image prompt:', imagePrompt.substring(0, 200) + '...');
+    console.log('🎯 Generating background design with DALL-E 3...');
+    console.log('🎯 Background prompt:', backgroundPrompt.substring(0, 200) + '...');
 
-    // Generate the flyer image using DALL-E 3
-    console.log('🎯 Calling OpenAI API...');
+    // Generate the background design using DALL-E 3
+    console.log('🎯 Calling OpenAI API for background...');
     const imageResponse = await openai.images.generate({
       model: "dall-e-3",
-      prompt: imagePrompt,
+      prompt: backgroundPrompt,
       size: "1024x1792", // Portrait orientation, good for flyers
       quality: "hd",
       n: 1,
@@ -112,18 +105,26 @@ Style: Ultra-modern, luxury real estate marketing material, photorealistic quali
 
     console.log('🎯 OpenAI API response received:', imageResponse);
 
-    const imageUrl = imageResponse.data[0].url;
-    console.log('✅ Flyer generated successfully!');
-    console.log('🎨 Image URL:', imageUrl);
+    const backgroundImageUrl = imageResponse.data[0].url;
+    console.log('✅ Background design generated successfully!');
+    console.log('🎨 Background image URL:', backgroundImageUrl);
+
+    // For now, return the background image
+    // In a full implementation, we would:
+    // 1. Download the background image
+    // 2. Use a library like Canvas or Sharp to overlay text
+    // 3. Create the final flyer with real property details
+    // 4. Return the completed flyer
 
     // Return the generated flyer information
     res.status(200).json({
       success: true,
       flyer: {
-        imageUrl: imageUrl,
+        imageUrl: backgroundImageUrl,
         propertyDetails: propertyInfo,
         listing: listing,
         generatedAt: new Date().toISOString(),
+        note: "Background design generated. Text overlay coming in next iteration."
       }
     });
 

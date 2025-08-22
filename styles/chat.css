@@ -646,6 +646,22 @@
   cursor: not-allowed !important;
 }
 
+/* Flyer loading spinner */
+.flyer-loading-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: flyer-spin 1s ease-in-out infinite;
+  margin-right: 8px;
+}
+
+@keyframes flyer-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Listing content - HIGH PRIORITY */
 .chat-page.listing-focused .listing-content {
   flex: 1 !important;
