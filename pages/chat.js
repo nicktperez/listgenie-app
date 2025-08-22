@@ -250,15 +250,6 @@ export default function ChatPage() {
                       <button 
                         className="compact-action-btn flyer-btn"
                         onClick={async () => {
-                          console.log("🎨 ===== DIRECT FLYER GENERATION START =====");
-                          console.log("🎨 Direct flyer generation clicked");
-                          console.log("🎨 Current state:", { 
-                            isPro, 
-                            hasListing, 
-                            currentListing: currentListing ? currentListing.substring(0, 100) : 'NO LISTING',
-                            messagesLength: messages.length
-                          });
-                          
                           if (!isPro) {
                             alert("Please upgrade to Pro to generate flyers");
                             return;
@@ -270,39 +261,20 @@ export default function ChatPage() {
                           }
                           
                           try {
-                            console.log("🎨 Making direct API call to /api/flyer");
-                            console.log("🎨 Request payload:", { listing: currentListing.substring(0, 200) });
-                            
-                            // Test with a simple GET request first
-                            console.log("🎨 Testing API routing with GET request...");
-                            try {
-                              const testResponse = await fetch("/api/flyer");
-                              console.log("🎨 GET test response status:", testResponse.status);
-                            } catch (e) {
-                              console.log("🎨 GET test failed:", e);
-                            }
-                            
                             const response = await fetch("/api/flyer", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ listing: currentListing })
                             });
                             
-                            console.log("🎨 Response status:", response.status);
-                            console.log("🎨 Response headers:", response.headers);
-                            
                             if (!response.ok) {
-                              const errorText = await response.text();
-                              console.log("🎨 Error response body:", errorText);
-                              throw new Error(`API error: ${response.status} - ${errorText}`);
+                              const errorData = await response.json().catch(() => ({}));
+                              throw new Error(errorData.error || `API error: ${response.status}`);
                             }
                             
                             const data = await response.json();
-                            console.log("🎨 API response:", data);
                             
                             if (data.success && data.flyer && data.flyer.imageUrl) {
-                              console.log("🎨 Flyer generated successfully!");
-                              
                               // Open in new tab
                               window.open(data.flyer.imageUrl, '_blank');
                               
@@ -314,7 +286,7 @@ export default function ChatPage() {
                               a.click();
                               a.remove();
                               
-                              alert("✅ Flyer generated! Opening in new tab and downloading...");
+                              alert("✅ AI flyer generated! Opening in new tab and downloading...");
                             } else {
                               throw new Error("No flyer data received");
                             }
@@ -322,8 +294,6 @@ export default function ChatPage() {
                             console.error("🎨 Flyer generation error:", error);
                             alert(`❌ Error generating flyer: ${error.message}`);
                           }
-                          
-                          console.log("🎨 ===== DIRECT FLYER GENERATION END =====");
                         }}
                         disabled={!isPro || !hasListing}
                         style={{ position: 'relative', zIndex: 10 }}
@@ -331,18 +301,7 @@ export default function ChatPage() {
                         Generate Flyer
                       </button>
                       
-                      {/* DEBUG INFO - TEMPORARY */}
-                      <div style={{
-                        fontSize: '12px',
-                        color: '#888',
-                        marginTop: '8px',
-                        padding: '8px',
-                        background: 'rgba(0,0,0,0.1)',
-                        borderRadius: '4px',
-                        fontFamily: 'monospace'
-                      }}>
-                        DEBUG: isPro={String(isPro)}, hasListing={String(hasListing)}, listingLength={currentListing ? currentListing.length : 0}
-                      </div>
+
                     </div>
           </div>
         </div>
