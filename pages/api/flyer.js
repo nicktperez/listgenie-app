@@ -3,10 +3,6 @@
 
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export default async function handler(req, res) {
   console.log('🎨 API endpoint hit:', { method: req.method, url: req.url });
   
@@ -16,6 +12,22 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check if OpenAI API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('🎨 Missing OPENAI_API_KEY environment variable');
+      return res.status(500).json({ 
+        error: 'OpenAI API key not configured',
+        details: 'OPENAI_API_KEY environment variable is missing'
+      });
+    }
+
+    console.log('🎨 OpenAI API key found:', process.env.OPENAI_API_KEY ? 'YES' : 'NO');
+
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+
     const { listing } = req.body;
     console.log('🎨 Received listing:', listing ? listing.substring(0, 100) : 'NO LISTING');
 
@@ -57,6 +69,7 @@ export default async function handler(req, res) {
     };
 
     const propertyInfo = extractPropertyInfo(listing);
+    console.log('🎨 Extracted property info:', propertyInfo);
 
     // Create a detailed prompt for DALL-E 3 to generate a professional real estate flyer image
     const imagePrompt = `Create a professional, modern real estate flyer design with elegant typography and premium layout. 
@@ -84,6 +97,7 @@ Style: Ultra-modern, luxury real estate marketing material, photorealistic quali
     console.log('🎯 Image prompt:', imagePrompt.substring(0, 200) + '...');
 
     // Generate the flyer image using DALL-E 3
+    console.log('🎯 Calling OpenAI API...');
     const imageResponse = await openai.images.generate({
       model: "dall-e-3",
       prompt: imagePrompt,
@@ -91,6 +105,8 @@ Style: Ultra-modern, luxury real estate marketing material, photorealistic quali
       quality: "hd",
       n: 1,
     });
+
+    console.log('🎯 OpenAI API response received:', imageResponse);
 
     const imageUrl = imageResponse.data[0].url;
     console.log('✅ Flyer generated successfully!');
@@ -109,6 +125,9 @@ Style: Ultra-modern, luxury real estate marketing material, photorealistic quali
 
   } catch (error) {
     console.error('🎨 Error generating flyer:', error);
+    console.error('🎨 Error stack:', error.stack);
+    console.error('🎨 Error name:', error.name);
+    console.error('🎨 Error message:', error.message);
     
     let errorMessage = 'Failed to generate flyer';
     if (error.message.includes('billing')) {
@@ -119,11 +138,14 @@ Style: Ultra-modern, luxury real estate marketing material, photorealistic quali
       errorMessage = 'Content policy violation - please check your listing content';
     } else if (error.message.includes('api key')) {
       errorMessage = 'OpenAI API key issue - please check configuration';
+    } else if (error.message.includes('ENOTFOUND') || error.message.includes('fetch')) {
+      errorMessage = 'Network error - please check your connection';
     }
 
     res.status(500).json({ 
       error: errorMessage,
-      details: error.message 
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 }
