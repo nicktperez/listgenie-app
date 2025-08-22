@@ -130,63 +130,57 @@ function extractPropertyInfo(listingText) {
   return { address, bedrooms, bathrooms, sqft, type, features, price };
 }
 
-// Generate professional flyer using Canva AI
+// Generate professional flyer using Canva Hybrid Integration
 async function generateAIFlyer(data) {
   try {
-    console.log('🤖 Canva AI Flyer Generation Request:', {
+    console.log('🎨 Canva Hybrid Flyer Generation Request:', {
       property: data.propertyInfo.address,
       style: data.style,
       agent: data.agentInfo.name,
       photos: data.photos.length + data.aiPhotos.length
     });
 
-    // Import and use Canva AI integration
-    const { canvaAIIntegration } = await import('@/lib/canvaAIIntegration');
+    // Import and use Canva Hybrid integration
+    const { canvaHybridIntegration } = await import('@/lib/canvaHybridIntegration');
     
-    // Check if Canva AI is available
-    const availability = await canvaAIIntegration.checkAvailability();
-    console.log('🎨 Canva AI Availability:', availability);
+    // Check if Canva Hybrid integration is available
+    const availability = await canvaHybridIntegration.checkAvailability();
+    console.log('🎨 Canva Hybrid Availability:', availability);
 
     if (!availability.available) {
-      throw new Error(`Canva AI service unavailable: ${availability.error}`);
+      throw new Error(`Canva Hybrid service unavailable: ${availability.error}`);
     }
 
-    // Generate flyer using Canva AI
-    const flyerResult = await canvaAIIntegration.generateFlyer(data);
+    // Generate Canva project using Hybrid integration
+    const projectResult = await canvaHybridIntegration.generateCanvaProject(data);
     
-    if (flyerResult.success) {
-      console.log('✅ Canva AI flyer generated successfully:', {
-        template: flyerResult.template,
-        quality: flyerResult.quality,
-        generatedBy: flyerResult.generatedBy
+    if (projectResult.success) {
+      console.log('✅ Canva Hybrid project generated successfully:', {
+        template: projectResult.template,
+        type: projectResult.type,
+        canvaProject: projectResult.canvaProject
       });
       
-      return flyerResult;
+      return {
+        success: true,
+        message: 'Canva project created successfully',
+        type: 'canva-hybrid',
+        canvaProject: projectResult.canvaProject,
+        instructions: projectResult.instructions,
+        template: projectResult.template,
+        metadata: projectResult.metadata
+      };
     } else {
-      throw new Error(flyerResult.error || 'Canva AI generation failed');
+      throw new Error(projectResult.error || 'Canva Hybrid generation failed');
     }
 
   } catch (error) {
-    console.error('❌ Canva AI flyer generation failed:', error);
-    
-    // Try fallback generation
-    try {
-      console.log('🔄 Attempting fallback flyer generation...');
-      const { canvaAIIntegration } = await import('@/lib/canvaAIIntegration');
-      const fallbackResult = await canvaAIIntegration.generateFallbackFlyer(data);
-      
-      if (fallbackResult.success) {
-        console.log('✅ Fallback flyer generated successfully');
-        return fallbackResult;
-      }
-    } catch (fallbackError) {
-      console.error('❌ Fallback generation also failed:', fallbackError);
-    }
+    console.error('❌ Canva Hybrid generation failed:', error);
     
     return {
       success: false,
       error: error.message,
-      note: 'Both Canva AI and fallback generation failed. Please try again later.'
+      note: 'Canva Hybrid generation failed. Please try again later.'
     };
   }
 }

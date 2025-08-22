@@ -634,20 +634,35 @@ export default function ChatPage() {
       console.log('🎨 API response:', data);
       
       if (data.success) {
-        // Now generate the actual flyer using our template system
-        const flyerImageUrl = await generateAIFlyer(flyerData);
+        // Now generate the Canva project using our hybrid integration
+        const canvaProject = await generateAIFlyer(flyerData);
         
-        // Download the generated flyer
-        const a = document.createElement('a');
-        a.href = flyerImageUrl;
-        a.download = `flyer-${style}-${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        
-        // Close modal and show success
-        setFlyerOpen(false);
-        alert('✅ Professional flyer generated successfully! Check your downloads folder.');
+        if (canvaProject && canvaProject.type === 'canva-hybrid') {
+          // Show Canva project information instead of downloading
+          console.log('🎨 Canva project created:', canvaProject);
+          
+          // For now, show success message and close modal
+          // In the future, we could show the Canva project details
+          alert(`✅ Canva project created successfully!\n\nTemplate: ${canvaProject.template}\n\nYour project is ready to customize in Canva.`);
+          
+          // Close modal after successful generation
+          setShowEnhancedFlyerModal(false);
+          setLoading(false);
+        } else {
+          // Fallback to simple flyer download
+          const fallbackUrl = generateFallbackFlyer(flyerData);
+          if (fallbackUrl) {
+            const a = document.createElement('a');
+            a.href = fallbackUrl;
+            a.download = `flyer-${style}-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          }
+          
+          setShowEnhancedFlyerModal(false);
+          setLoading(false);
+        }
         
       } else {
         throw new Error("Failed to generate flyer");
@@ -661,12 +676,12 @@ export default function ChatPage() {
     }
   }
 
-  // Generate professional flyer using Canva AI
+  // Generate professional flyer using Canva Hybrid Integration
   async function generateAIFlyer(flyerData) {
     try {
-      console.log('🎨 Starting Canva AI-powered flyer generation:', flyerData);
+      console.log('🎨 Starting Canva Hybrid flyer generation:', flyerData);
       
-      // Call our Canva AI flyer API
+      // Call our Canva Hybrid flyer API
       const response = await fetch('/api/flyer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -680,19 +695,27 @@ export default function ChatPage() {
 
       const data = await response.json();
       
-      if (data.success && data.flyerUrl) {
-        console.log('✅ Canva AI flyer generated successfully!', {
-          template: data.metadata?.style || 'Unknown',
-          quality: data.metadata?.quality || 'Unknown',
-          generatedBy: data.metadata?.generatedBy || 'Canva AI'
+      if (data.success && data.type === 'canva-hybrid') {
+        console.log('✅ Canva Hybrid project created successfully!', {
+          template: data.template || 'Unknown',
+          type: data.type,
+          canvaProject: data.canvaProject
         });
-        return data.flyerUrl;
+        
+        // Return the Canva project data instead of a direct URL
+        return {
+          type: 'canva-hybrid',
+          canvaProject: data.canvaProject,
+          instructions: data.instructions,
+          template: data.template,
+          metadata: data.metadata
+        };
       } else {
-        throw new Error('No flyer URL received from Canva AI service');
+        throw new Error('No Canva project received from Hybrid service');
       }
       
     } catch (error) {
-      console.error('❌ Error in Canva AI flyer generation:', error);
+      console.error('❌ Error in Canva Hybrid flyer generation:', error);
       // Fallback to simple flyer
       return generateFallbackFlyer(flyerData);
     }
