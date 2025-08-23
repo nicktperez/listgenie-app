@@ -4,47 +4,33 @@
 import ProfessionalFlyerEngine from '../../lib/professionalFlyerEngine.js';
 
 export default async function handler(req, res) {
+  console.log('🚀 API /api/flyer: Request received');
+  console.log('🚀 API /api/flyer: Method:', req.method);
+  console.log('🚀 API /api/flyer: Headers:', req.headers);
+  
   try {
-    console.log('🎨 Professional flyer generation request received:', req.body);
-
-    const {
-      agentInfo,
-      style,
-      photos,
-      listing,
-      propertyInfo
-    } = req.body;
-
-    // Validate required fields
-    if (!agentInfo || !agentInfo.name || !agentInfo.agency) {
-      return res.status(400).json({
-        error: 'Agent information is required'
-      });
+    if (req.method !== 'POST') {
+      console.log('❌ API /api/flyer: Invalid method, returning 405');
+      return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    if (!style) {
-      return res.status(400).json({
-        error: 'Flyer style is required'
-      });
+    console.log('🚀 API /api/flyer: Parsing request body...');
+    const flyerData = req.body;
+    console.log('🚀 API /api/flyer: Request body received:', flyerData);
+    console.log('🚀 API /api/flyer: Body type:', typeof flyerData);
+    console.log('🚀 API /api/flyer: Body keys:', Object.keys(flyerData || {}));
+
+    if (!flyerData) {
+      console.log('❌ API /api/flyer: No request body, returning 400');
+      return res.status(400).json({ error: 'No request body provided' });
     }
 
-    // Prepare data for professional flyer generation
-    const flyerData = {
-      agentInfo,
-      style,
-      photos: photos || [],
-      listing,
-      propertyInfo: propertyInfo || {}
-    };
-
-    console.log('🎨 Processing professional flyer data:', flyerData);
-
-    // Generate the professional flyer
+    console.log('🚀 API /api/flyer: Calling generateProfessionalFlyer...');
     const flyerResult = await generateProfessionalFlyer(flyerData);
+    console.log('🚀 API /api/flyer: generateProfessionalFlyer result:', flyerResult);
 
     if (flyerResult.success) {
-      console.log('✅ Professional flyer generated successfully');
-
+      console.log('✅ API /api/flyer: Flyer generation successful, returning response');
       return res.status(200).json({
         success: true,
         type: 'professional-flyer',
@@ -59,43 +45,36 @@ export default async function handler(req, res) {
         message: 'Professional marketing flyer created successfully!'
       });
     } else {
+      console.log('❌ API /api/flyer: Flyer generation failed:', flyerResult.error);
       throw new Error(flyerResult.error || 'Failed to generate professional flyer');
     }
-
   } catch (error) {
-    console.error('❌ Professional flyer generation error:', error);
-    return res.status(500).json({
-      error: error.message || 'Internal server error'
-    });
+    console.error('❌ API /api/flyer: Error occurred:', error);
+    console.error('❌ API /api/flyer: Error stack:', error.stack);
+    console.error('❌ API /api/flyer: Error name:', error.name);
+    console.error('❌ API /api/flyer: Error message:', error.message);
+    return res.status(500).json({ error: error.message || 'Internal server error' });
   }
 }
 
-// Generate professional flyer using our custom engine
 async function generateProfessionalFlyer(flyerData) {
+  console.log('🔧 generateProfessionalFlyer: Function called with data:', flyerData);
   try {
-    console.log('🎨 Starting professional flyer generation with data:', flyerData);
-
-    // Create professional flyer generator instance
+    console.log('🔧 generateProfessionalFlyer: Creating ProfessionalFlyerEngine instance...');
     const generator = new ProfessionalFlyerEngine();
-
-    // Generate the flyer using our professional engine
+    console.log('🔧 generateProfessionalFlyer: ProfessionalFlyerEngine instance created successfully');
+    
+    console.log('🔧 generateProfessionalFlyer: Calling generator.generateProfessionalFlyer...');
     const result = await generator.generateProfessionalFlyer(flyerData);
-
-    console.log('🎨 Professional flyer generation result:', {
-      success: result.success,
-      type: result.type,
-      designSystem: result.designSystem,
-      quality: result.quality
-    });
-
+    console.log('🔧 generateProfessionalFlyer: Result received:', result);
+    
     return result;
-
   } catch (error) {
-    console.error('❌ Professional flyer generation failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('❌ generateProfessionalFlyer: Error occurred:', error);
+    console.error('❌ generateProfessionalFlyer: Error stack:', error.stack);
+    console.error('❌ generateProfessionalFlyer: Error name:', error.name);
+    console.error('❌ generateProfessionalFlyer: Error message:', error.message);
+    return { success: false, error: error.message || 'Failed to generate professional flyer' };
   }
 }
 

@@ -59,7 +59,7 @@ export default function EnhancedFlyerModal({
   loading = false,
   onPreview
 }) {
-  const [step, setStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(1);
   const [agentInfo, setAgentInfo] = useState({
     name: '',
     agency: '',
@@ -67,7 +67,7 @@ export default function EnhancedFlyerModal({
     email: '',
     website: ''
   });
-  const [selectedStyle, setSelectedStyle] = useState('modern');
+  const [style, setStyle] = useState('modern');
   const [propertyInfo, setPropertyInfo] = useState({
     address: '',
     type: '',
@@ -119,23 +119,61 @@ export default function EnhancedFlyerModal({
 
 
 
-  const handleSubmit = () => {
-    if (!agentInfo.name || !agentInfo.agency) {
-      alert('Please fill in at least your name and agency');
+  const handleSubmit = async () => {
+    console.log('📝 EnhancedFlyerModal: handleSubmit called');
+    console.log('📝 EnhancedFlyerModal: Current step:', currentStep);
+    console.log('📝 EnhancedFlyerModal: All form data:', {
+      agentInfo,
+      propertyInfo,
+      photos: photoFiles,
+      style: style
+    });
+    
+    if (currentStep < 4) {
+      console.log('📝 EnhancedFlyerModal: Not on final step, moving to next step');
+      setCurrentStep(currentStep + 1);
       return;
     }
 
-    onGenerate({
+    console.log('📝 EnhancedFlyerModal: On final step, preparing flyer data...');
+    
+    // Validate required fields
+    if (!agentInfo.name || !agentInfo.agency) {
+      console.log('❌ EnhancedFlyerModal: Missing agent info');
+      alert('Please fill in agent name and agency');
+      return;
+    }
+
+    if (!style) {
+      console.log('❌ EnhancedFlyerModal: Missing style selection');
+      alert('Please select a flyer style');
+      return;
+    }
+
+    console.log('📝 EnhancedFlyerModal: Validation passed, creating flyer data object...');
+    
+    const flyerData = {
       agentInfo,
-      style: selectedStyle,
+      propertyInfo,
       photos: photoFiles,
-      listing,
-      propertyInfo
-    });
+      style: style
+    };
+    
+    console.log('📝 EnhancedFlyerModal: Flyer data object created:', flyerData);
+    console.log('📝 EnhancedFlyerModal: Calling onGenerate with flyer data...');
+    
+    try {
+      await onGenerate(flyerData);
+      console.log('✅ EnhancedFlyerModal: onGenerate completed successfully');
+    } catch (error) {
+      console.error('❌ EnhancedFlyerModal: onGenerate failed:', error);
+      console.error('❌ EnhancedFlyerModal: Error stack:', error.stack);
+      alert(`Error generating flyer: ${error.message}`);
+    }
   };
 
   const resetForm = () => {
-    setStep(1);
+    setCurrentStep(1);
     setAgentInfo({
       name: '',
       agency: '',
@@ -152,7 +190,7 @@ export default function EnhancedFlyerModal({
       price: '',
       features: []
     });
-    setSelectedStyle('modern');
+    setStyle('modern');
     setUploadedPhotos([]);
     setPhotoFiles([]);
   };
@@ -160,7 +198,7 @@ export default function EnhancedFlyerModal({
   // Don't render anything if modal is not open
   if (!isOpen) return null;
 
-  console.log('🎨 EnhancedFlyerModal rendering:', { isOpen, step, agentInfo, selectedStyle });
+  console.log('🎨 EnhancedFlyerModal rendering:', { isOpen, currentStep, agentInfo, style });
 
   // Render modal directly in the DOM
   return (
@@ -237,7 +275,7 @@ export default function EnhancedFlyerModal({
           {/* Service Status Indicator */}
                             
           
-          {step === 1 && (
+          {currentStep === 1 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 1: Agent Information
@@ -374,7 +412,7 @@ export default function EnhancedFlyerModal({
               </div>
 
               <button 
-                onClick={() => setStep(2)}
+                onClick={() => setCurrentStep(2)}
                 disabled={!agentInfo.name || !agentInfo.agency}
                 style={{
                   background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -398,7 +436,7 @@ export default function EnhancedFlyerModal({
             </div>
           )}
 
-          {step === 2 && (
+          {currentStep === 2 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 2: Property Information
@@ -565,7 +603,7 @@ export default function EnhancedFlyerModal({
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
                 <button 
-                  onClick={() => setStep(1)}
+                  onClick={() => setCurrentStep(1)}
                   style={{
                     background: '#475569',
                     color: '#e2e8f0',
@@ -584,7 +622,7 @@ export default function EnhancedFlyerModal({
                   Back
                 </button>
                 <button 
-                  onClick={() => setStep(3)}
+                  onClick={() => setCurrentStep(3)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                     color: 'white',
@@ -606,7 +644,7 @@ export default function EnhancedFlyerModal({
             </div>
           )}
 
-          {step === 3 && (
+          {currentStep === 3 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 3: Property Photos
@@ -625,25 +663,25 @@ export default function EnhancedFlyerModal({
                   return (
                     <div
                       key={style.id}
-                      onClick={() => setSelectedStyle(style.id)}
+                      onClick={() => setStyle(style.id)}
                       style={{
-                        border: `2px solid ${selectedStyle === style.id ? '#3b82f6' : '#475569'}`,
+                        border: `2px solid ${style === style.id ? '#3b82f6' : '#475569'}`,
                         borderRadius: '12px',
                         padding: '20px',
                         textAlign: 'center',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        backgroundColor: selectedStyle === style.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(71, 85, 105, 0.1)',
-                        borderColor: selectedStyle === style.id ? '#3b82f6' : '#475569'
+                        backgroundColor: style === style.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(71, 85, 105, 0.1)',
+                        borderColor: style === style.id ? '#3b82f6' : '#475569'
                       }}
                       onMouseEnter={(e) => {
-                        if (selectedStyle !== style.id) {
+                        if (style !== style.id) {
                           e.target.style.borderColor = '#64748b';
                           e.target.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (selectedStyle !== style.id) {
+                        if (style !== style.id) {
                           e.target.style.borderColor = '#475569';
                           e.target.style.backgroundColor = 'rgba(71, 85, 105, 0.1)';
                         }
@@ -652,7 +690,7 @@ export default function EnhancedFlyerModal({
                       <div style={{ 
                         fontSize: '32px', 
                         marginBottom: '12px', 
-                        color: selectedStyle === style.id ? '#3b82f6' : '#94a3b8',
+                        color: style === style.id ? '#3b82f6' : '#94a3b8',
                         display: 'flex',
                         justifyContent: 'center'
                       }}>
@@ -671,7 +709,7 @@ export default function EnhancedFlyerModal({
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
                 <button 
-                  onClick={() => setStep(1)}
+                  onClick={() => setCurrentStep(1)}
                   style={{
                     background: '#475569',
                     color: '#e2e8f0',
@@ -690,7 +728,7 @@ export default function EnhancedFlyerModal({
                   Back
                 </button>
                 <button 
-                  onClick={() => setStep(3)}
+                  onClick={() => setCurrentStep(3)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                     color: 'white',
@@ -712,7 +750,7 @@ export default function EnhancedFlyerModal({
             </div>
           )}
 
-          {step === 3 && (
+          {currentStep === 3 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 3: Property Photos
@@ -820,7 +858,7 @@ export default function EnhancedFlyerModal({
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
                 <button 
-                  onClick={() => setStep(2)}
+                  onClick={() => setCurrentStep(2)}
                   style={{
                     background: '#475569',
                     color: '#e2e8f0',
@@ -839,7 +877,7 @@ export default function EnhancedFlyerModal({
                   Back
                 </button>
                 <button 
-                  onClick={() => setStep(4)}
+                  onClick={() => setCurrentStep(4)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                     color: 'white',
@@ -861,7 +899,7 @@ export default function EnhancedFlyerModal({
             </div>
           )}
 
-          {step === 4 && (
+          {currentStep === 4 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
                 Step 4: Flyer Style
@@ -880,25 +918,25 @@ export default function EnhancedFlyerModal({
                   return (
                     <div
                       key={style.id}
-                      onClick={() => setSelectedStyle(style.id)}
+                      onClick={() => setStyle(style.id)}
                       style={{
-                        border: `2px solid ${selectedStyle === style.id ? '#3b82f6' : '#475569'}`,
+                        border: `2px solid ${style === style.id ? '#3b82f6' : '#475569'}`,
                         borderRadius: '12px',
                         padding: '20px',
                         textAlign: 'center',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        backgroundColor: selectedStyle === style.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(71, 85, 105, 0.1)',
-                        borderColor: selectedStyle === style.id ? '#3b82f6' : '#475569'
+                        backgroundColor: style === style.id ? 'rgba(59, 130, 246, 0.1)' : 'rgba(71, 85, 105, 0.1)',
+                        borderColor: style === style.id ? '#3b82f6' : '#475569'
                       }}
                       onMouseEnter={(e) => {
-                        if (selectedStyle !== style.id) {
+                        if (style !== style.id) {
                           e.target.style.borderColor = '#64748b';
                           e.target.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (selectedStyle !== style.id) {
+                        if (style !== style.id) {
                           e.target.style.borderColor = '#475569';
                           e.target.style.backgroundColor = 'rgba(71, 85, 105, 0.1)';
                         }
@@ -907,7 +945,7 @@ export default function EnhancedFlyerModal({
                       <div style={{ 
                         fontSize: '32px', 
                         marginBottom: '12px', 
-                        color: selectedStyle === style.id ? '#3b82f6' : '#94a3b8',
+                        color: style === style.id ? '#3b82f6' : '#94a3b8',
                         display: 'flex',
                         justifyContent: 'center'
                       }}>
@@ -926,7 +964,7 @@ export default function EnhancedFlyerModal({
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
                 <button 
-                  onClick={() => setStep(3)}
+                  onClick={() => setCurrentStep(3)}
                   style={{
                     background: '#475569',
                     color: '#e2e8f0',
@@ -947,7 +985,7 @@ export default function EnhancedFlyerModal({
                 <button
                   onClick={() => onPreview && onPreview({
                     agentInfo,
-                    style: selectedStyle,
+                    style: style,
                     photos: photoFiles,
                     listing,
                     propertyInfo
