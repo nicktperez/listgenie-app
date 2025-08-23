@@ -17,9 +17,6 @@ import MessageThread from "@/components/chat/MessageThread";
 import EnhancedFlyerModal from "@/components/chat/EnhancedFlyerModal";
 import ProfessionalFlyerPreview from '../components/chat/ProfessionalFlyerPreview';
 
-// Test if EnhancedFlyerModal is imported correctly
-console.log("🔧 EnhancedFlyerModal import test:", typeof EnhancedFlyerModal, EnhancedFlyerModal);
-
 /** ---------------- Utilities ---------------- */
 function stripFences(s = "") {
   return s
@@ -79,38 +76,55 @@ async function copyToClipboard(text) {
 
 /** ---------------- Page ---------------- */
 export default function ChatPage() {
-  const router = useRouter();
-  const { isSignedIn, isLoaded, user } = useUser();
-  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
+  console.log('🔧 ChatPage: Component starting to render');
+  
+  try {
+    const router = useRouter();
+    console.log('🔧 ChatPage: useRouter initialized');
+    
+    const { isSignedIn, isLoaded, user } = useUser();
+    console.log('🔧 ChatPage: useUser initialized', { isSignedIn, isLoaded, user: !!user });
+    
+    const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
+    console.log('🔧 ChatPage: useUserPlan initialized', { isPro, isTrial, isExpired, canGenerate, plan });
 
-  // Input
-  const [tone, setTone] = useState("mls");
+    // Input
+    const [tone, setTone] = useState("mls");
+    console.log('🔧 ChatPage: tone state initialized');
 
-  // Chat state
-  const [messages, setMessages] = useState([
-    // { role: 'user'|'assistant', content: string, pretty?: string }
-  ]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+    // Chat state
+    const [messages, setMessages] = useState([
+      // { role: 'user'|'assistant', content: string, pretty?: string }
+    ]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    console.log('🔧 ChatPage: chat state initialized');
 
-  // Flyer modal state
-  const [flyerOpen, setFlyerOpen] = useState(false);
-  const [flyerGenerating, setFlyerGenerating] = useState(false);
+    // Flyer modal state
+    const [flyerOpen, setFlyerOpen] = useState(false);
+    const [flyerGenerating, setFlyerGenerating] = useState(false);
+    console.log('🔧 ChatPage: flyer state initialized');
 
-  // Questions modal
-  const [questionsOpen, setQuestionsOpen] = useState(false);
-  const [questions, setQuestions] = useState([]);
-  const [questionAnswers, setQuestionAnswers] = useState({});
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
-  const [isListingMode, setIsListingMode] = useState(false);
+    // Questions modal
+    const [questionsOpen, setQuestionsOpen] = useState(false);
+    const [questions, setQuestions] = useState([]);
+    const [questionAnswers, setQuestionAnswers] = useState({});
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
+    const [isListingMode, setIsListingMode] = useState(false);
+    console.log('🔧 ChatPage: questions state initialized');
 
-  const composerRef = useRef(null);
-  const [originalInput, setOriginalInput] = useState("");
+    // Refs
+    const composerRef = useRef(null);
+    const [originalInput, setOriginalInput] = useState("");
+    console.log('🔧 ChatPage: refs initialized');
 
-  // State for flyer preview
-  const [showFlyerPreview, setShowFlyerPreview] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
+    // Flyer preview state
+    const [showFlyerPreview, setShowFlyerPreview] = useState(false);
+    const [previewData, setPreviewData] = useState(null);
+    console.log('🔧 ChatPage: preview state initialized');
+
+    console.log('🔧 ChatPage: All state initialized successfully');
 
   // Handle flyer preview
   const handleFlyerPreview = (flyerData) => {
@@ -1288,9 +1302,32 @@ export default function ChatPage() {
       )}
       </div>
     );
+  } catch (error) {
+    console.error('❌ ChatPage: Error during component initialization:', error);
+    console.error('❌ ChatPage: Error stack:', error.stack);
+    console.error('❌ ChatPage: Error name:', error.name);
+    console.error('❌ ChatPage: Error message:', error.message);
+    
+    // Return a simple error boundary
+    return (
+      <div className="chat-page">
+        <div className="chat-wrap">
+          <div className="error-state">
+            <div className="error-card">
+              <h3>❌ Something went wrong</h3>
+              <p>An error occurred while loading the chat page.</p>
+              <button onClick={() => window.location.reload()}>
+                Reload Page
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
+}
 
-  /** ---------------- Small bits ---------------- */
+/** ---------------- Small bits ---------------- */
 function TonePill({ value, label, current, onChange }) {
   const active = current === value;
   return (
