@@ -401,12 +401,21 @@ export default function ChatPage() {
         }
 
         // Check if this looks like a listing - only set hasListing if we actually get a proper listing
-        if (data.parsed?.type === "listing" || 
+        if (data.parsed?.type === "listing" ||
             (content.includes("bedroom") && content.includes("bathroom") && content.includes("sq ft")) ||
             (content.includes("bedroom") && content.includes("bathroom") && content.includes("square feet"))) {
           console.log("Listing detected, setting currentListing and hasListing to true");
           setCurrentListing(content);
           setHasListing(true);
+          
+          // Save listing to localStorage and redirect to listing display page
+          try {
+            localStorage.setItem('currentListing', content);
+            sessionStorage.setItem('currentListing', content);
+            router.push('/listing-display');
+          } catch (e) {
+            console.error('Failed to save listing or redirect:', e);
+          }
         } else {
           console.log("No listing detected, keeping hasListing as false");
           setHasListing(false);
@@ -497,70 +506,7 @@ export default function ChatPage() {
               </div>
             )}
             
-            {/* Generated Listing Display */}
-            {hasListing && currentListing && (
-              <div className="listing-display-section">
-                <h3 className="listing-display-title">Generated Listing</h3>
-                <div className="listing-content">
-                  <div className="listing-text">
-                    {(() => {
-                      try {
-                        // Try to parse as JSON and format nicely
-                        const parsed = JSON.parse(currentListing);
-                        if (parsed.type === 'listing' && parsed.mls) {
-                          return (
-                            <div className="formatted-listing">
-                              <h4 className="listing-headline">{parsed.mls.headline}</h4>
-                              <p className="listing-body">{parsed.mls.body}</p>
-                              {parsed.mls.bullets && parsed.mls.bullets.length > 0 && (
-                                <ul className="listing-features">
-                                  {parsed.mls.bullets.map((bullet, index) => (
-                                    <li key={index} className="listing-feature">{bullet}</li>
-                                  ))}
-                                </ul>
-                              )}
-                            </div>
-                          );
-                        }
-                      } catch (e) {
-                        // If not JSON, display as plain text
-                        return (
-                          <div className="plain-listing">
-                            <p>{currentListing}</p>
-                          </div>
-                        );
-                      }
-                      // Fallback for other formats
-                      return (
-                        <div className="plain-listing">
-                          <p>{currentListing}</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                  <button 
-                    className="copy-listing-btn"
-                    onClick={() => {
-                      navigator.clipboard.writeText(currentListing);
-                      const btn = document.querySelector('.copy-listing-btn');
-                      if (btn) {
-                        const originalText = btn.textContent;
-                        btn.textContent = '✅ Copied!';
-                        btn.style.background = '#10b981';
-                        setTimeout(() => {
-                          btn.textContent = originalText;
-                          btn.style.background = '';
-                        }, 2000);
-                      }
-                    }}
-                  >
-                    📋 Copy Listing
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {/* Flyer Generation Button */}
+            {/* Flyer Generation Button - Only show if user stays on this page */}
             {hasListing && (
               <div className="flyer-generation-section">
                 <button
