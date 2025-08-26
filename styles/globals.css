@@ -1707,6 +1707,58 @@ input[class*="cl-"]::placeholder, textarea[class*="cl-"]::placeholder {
   overflow-y: auto;
 }
 
+/* Formatted Listing Styles */
+.formatted-listing {
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.listing-headline {
+  color: #fbbf24;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  line-height: 1.3;
+}
+
+.listing-body {
+  color: #e2e8f0;
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+  font-weight: 400;
+}
+
+.listing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.listing-feature {
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.listing-feature::before {
+  content: "•";
+  color: #10b981;
+  font-weight: bold;
+  position: absolute;
+  left: 0;
+}
+
+.plain-listing {
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 .copy-listing-btn {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;

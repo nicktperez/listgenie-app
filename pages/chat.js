@@ -69,6 +69,11 @@ export default function ChatPage() {
     }
   }, [messages.length]);
 
+  // Monitor flyer modal state changes
+  useEffect(() => {
+    console.log('🎨 Flyer modal state changed:', flyerOpen);
+  }, [flyerOpen]);
+
   /** ---------------- Utilities ---------------- */
   function stripFences(s = "") {
     return s
@@ -497,7 +502,42 @@ export default function ChatPage() {
               <div className="listing-display-section">
                 <h3 className="listing-display-title">Generated Listing</h3>
                 <div className="listing-content">
-                  <pre className="listing-text">{currentListing}</pre>
+                  <div className="listing-text">
+                    {(() => {
+                      try {
+                        // Try to parse as JSON and format nicely
+                        const parsed = JSON.parse(currentListing);
+                        if (parsed.type === 'listing' && parsed.mls) {
+                          return (
+                            <div className="formatted-listing">
+                              <h4 className="listing-headline">{parsed.mls.headline}</h4>
+                              <p className="listing-body">{parsed.mls.body}</p>
+                              {parsed.mls.bullets && parsed.mls.bullets.length > 0 && (
+                                <ul className="listing-features">
+                                  {parsed.mls.bullets.map((bullet, index) => (
+                                    <li key={index} className="listing-feature">{bullet}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          );
+                        }
+                      } catch (e) {
+                        // If not JSON, display as plain text
+                        return (
+                          <div className="plain-listing">
+                            <p>{currentListing}</p>
+                          </div>
+                        );
+                      }
+                      // Fallback for other formats
+                      return (
+                        <div className="plain-listing">
+                          <p>{currentListing}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   <button 
                     className="copy-listing-btn"
                     onClick={() => {
@@ -526,20 +566,28 @@ export default function ChatPage() {
                 <button
                   className="flyer-generation-btn"
                   onClick={() => {
+                    console.log('🎨 Flyer button clicked!');
+                    console.log('🎨 Current state:', { 
+                      flyerOpen, 
+                      hasListing, 
+                      isPro,
+                      isTrial,
+                      currentListing: currentListing?.substring(0, 100) 
+                    });
+                    
                     if (!isPro) {
+                      console.log('❌ User is not Pro, showing upgrade alert');
                       alert("Please upgrade to Pro to generate flyers");
                       return;
                     }
-                    console.log('🎨 Opening flyer modal, current state:', { 
-                      flyerOpen, 
-                      hasListing, 
-                      currentListing: currentListing?.substring(0, 100) 
-                    });
+                    
+                    console.log('✅ User is Pro, opening flyer modal...');
                     setFlyerOpen(true);
+                    console.log('🎨 Flyer modal state set to true');
                   }}
                   disabled={!isPro}
                 >
-                  🎨 Generate Flyer
+                  🎨 Generate Flyer {!isPro && '(Upgrade Required)'}
                 </button>
                 {!isPro && (
                   <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
@@ -570,13 +618,19 @@ export default function ChatPage() {
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
-        <EnhancedFlyerModal
-          onClose={() => setFlyerOpen(false)}
-          onGenerate={handleEnhancedFlyerGeneration}
-          listing={currentListing}
-          loading={flyerGenerating}
-          onPreview={handleFlyerPreview}
-        />
+        <div>
+          {console.log('🎨 Rendering EnhancedFlyerModal, flyerOpen:', flyerOpen)}
+          <EnhancedFlyerModal
+            onClose={() => {
+              console.log('🎨 Modal close button clicked');
+              setFlyerOpen(false);
+            }}
+            onGenerate={handleEnhancedFlyerGeneration}
+            listing={currentListing}
+            loading={flyerGenerating}
+            onPreview={handleFlyerPreview}
+          />
+        </div>
       )}
 
       {/* Professional Flyer Preview */}
