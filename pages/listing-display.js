@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import { useRouter } from 'next/router';
 import { useUser } from '@clerk/nextjs';
 import useUserPlan from '../hooks/useUserPlan';
@@ -11,6 +12,7 @@ export default function ListingDisplayPage() {
   const [listing, setListing] = useState(null);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerGenerating, setFlyerGenerating] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   
   // SIMPLE WORKING FLYER MODAL STATE
   const [simpleFlyerModal, setSimpleFlyerModal] = useState(false);
@@ -331,6 +333,33 @@ export default function ListingDisplayPage() {
             </button>
           )}
           
+          <button 
+            className="analytics-btn" 
+            onClick={() => setAnalyticsOpen(true)}
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+            }}
+          >
+            📊 Analytics Dashboard
+          </button>
+          
           {!isPro && (
             <div className="upgrade-notice">
               <p>Upgrade to Pro to generate professional flyers</p>
@@ -341,6 +370,12 @@ export default function ListingDisplayPage() {
           )}
         </div>
       </div>
+
+      {/* Performance Analytics Dashboard */}
+      <PerformanceAnalytics 
+        isOpen={analyticsOpen} 
+        onClose={() => setAnalyticsOpen(false)} 
+      />
 
       {/* COMPREHENSIVE FLYER CREATION WIZARD */}
       {simpleFlyerModal && (
