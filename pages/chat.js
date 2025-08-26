@@ -52,7 +52,13 @@ export default function ChatPage() {
 
   // Debug state changes - MOVED HERE after variables are declared
   useEffect(() => {
-    console.log('🔍 FLYER STATE CHANGED:', { flyerOpen, flyerGenerating, hasListing, isPro });
+    console.log('🔍 FLYER STATE CHANGED:', { 
+      flyerOpen, 
+      flyerGenerating, 
+      hasListing, 
+      isPro,
+      timestamp: new Date().toISOString()
+    });
   }, [flyerOpen, flyerGenerating, hasListing, isPro]);
 
   // Debug currentListing changes - MOVED HERE after variables are declared
@@ -60,9 +66,19 @@ export default function ChatPage() {
     console.log('📝 CURRENT LISTING CHANGED:', { 
       currentListing: currentListing?.substring(0, 100), 
       hasListing, 
-      type: typeof currentListing 
+      type: typeof currentListing,
+      timestamp: new Date().toISOString()
     });
   }, [currentListing, hasListing]);
+
+  // Debug modal state specifically
+  useEffect(() => {
+    console.log('🎭 MODAL STATE DEBUG:', {
+      flyerOpen,
+      modalShouldRender: flyerOpen === true,
+      timestamp: new Date().toISOString()
+    });
+  }, [flyerOpen]);
 
   // Refs
   const composerRef = useRef(null);
@@ -578,7 +594,7 @@ async function copyToClipboard(text) {
                 onClick={() => {
                   console.log('🎨 ===== FLYER BUTTON CLICKED =====');
                   console.log('🎨 Button clicked at:', new Date().toISOString());
-                  console.log('🎨 Current state:', { 
+                  console.log('🎨 Current state BEFORE setFlyerOpen:', { 
                     flyerOpen, 
                     hasListing, 
                     isPro,
@@ -592,18 +608,27 @@ async function copyToClipboard(text) {
                     return;
                   }
                   
-                  console.log('✅ User is Pro, opening flyer modal...');
-                  console.log('🎨 Setting flyerOpen to true...');
+                  if (!hasListing || !currentListing) {
+                    console.log('❌ No listing available');
+                    alert("Please generate a listing first");
+                    return;
+                  }
                   
-                  // Use the functional form to ensure we're working with the latest state
-                  setFlyerOpen(prevState => {
-                    console.log('🎨 setFlyerOpen called with prevState =', prevState);
-                    const newState = true;
-                    console.log('🎨 Setting flyerOpen to newState =', newState);
-                    return newState;
-                  });
+                  console.log('✅ All checks passed, setting flyerOpen to true');
                   
-                  console.log('🎨 setFlyerOpen function called');
+                  // Force immediate state update
+                  setFlyerOpen(true);
+                  
+                  console.log('🎨 State update called, flyerOpen should now be true');
+                  
+                  // Verify state change
+                  setTimeout(() => {
+                    console.log('🎨 State verification (after 100ms):', { 
+                      flyerOpen, 
+                      expected: true,
+                      actual: flyerOpen 
+                    });
+                  }, 100);
                 }}
                 disabled={!isPro}
               >
@@ -635,51 +660,66 @@ async function copyToClipboard(text) {
         </div>
       </div>
 
-      {/* Test Modal - Simple version to verify modal rendering works */}
-      {flyerOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 9999,
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'white',
-            color: 'black',
-            padding: '40px',
-            borderRadius: '10px',
-            maxWidth: '500px',
-            textAlign: 'center'
-          }}>
-            <h2>🧪 TEST MODAL WORKING!</h2>
-            <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
-            <p>This proves modal rendering works!</p>
-            <button
-              onClick={() => {
-                console.log('🧪 Test modal close clicked');
-                setFlyerOpen(false);
-              }}
-              style={{
-                background: 'red',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                marginTop: '20px'
-              }}
-            >
-              Close Test Modal
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Test Modal - Enhanced debugging */}
+      {(() => {
+        const shouldRender = flyerOpen === true;
+        console.log('🎭 MODAL RENDER CHECK:', {
+          flyerOpen,
+          shouldRender,
+          timestamp: new Date().toISOString()
+        });
+        
+        if (shouldRender) {
+          console.log('🧪 TEST MODAL RENDERING NOW!');
+          return (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 9999,
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{
+                background: 'white',
+                color: 'black',
+                padding: '40px',
+                borderRadius: '10px',
+                maxWidth: '500px',
+                textAlign: 'center'
+              }}>
+                <h2>🧪 TEST MODAL WORKING!</h2>
+                <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
+                <p>This proves modal rendering works!</p>
+                <button
+                  onClick={() => {
+                    console.log('🧪 Closing test modal');
+                    setFlyerOpen(false);
+                  }}
+                  style={{
+                    background: '#667eea',
+                    color: 'white',
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    marginTop: '20px'
+                  }}
+                >
+                  Close Modal
+                </button>
+              </div>
+            </div>
+          );
+        } else {
+          console.log('🧪 TEST MODAL NOT RENDERING - flyerOpen is false');
+          return null;
+        }
+      })()}
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
