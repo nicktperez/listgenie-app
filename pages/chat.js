@@ -13,68 +13,9 @@ import useUserPlan from "@/hooks/useUserPlan";
 import ChatHeader from "@/components/chat/Header";
 import ExamplesRow from "@/components/chat/ExamplesRow";
 import Composer from "@/components/chat/Composer";
-import MessageThread from "@/components/chat/MessageThread";
 import EnhancedFlyerModal from "@/components/chat/EnhancedFlyerModal";
 import ProfessionalFlyerPreview from '../components/chat/ProfessionalFlyerPreview';
 
-/** ---------------- Utilities ---------------- */
-function stripFences(s = "") {
-  return s
-    .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
-    .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
-    .trim();
-}
-
-// Coerce any LLM output (raw string, fenced JSON, or object) to readable text
-function coerceToReadableText(raw) {
-  if (!raw) return "";
-
-  // If object-like, try common shapes
-  if (typeof raw === "object") {
-    const candidate = raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
-    if (candidate) return stripFences(String(candidate));
-    try { return stripFences(JSON.stringify(raw, null, 2)); } catch { /* noop */ }
-  }
-
-  const txt = String(raw);
-  // Try to parse JSON
-  try {
-    const j = JSON.parse(stripFences(txt));
-    const candidate = j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
-    if (candidate) return stripFences(String(candidate));
-    return stripFences(JSON.stringify(j, null, 2));
-  } catch {
-    return stripFences(txt);
-  }
-}
-
-// Detect formatted sections
-function splitVariants(text) {
-  if (!text) return null;
-  const patterns = [
-    { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-  ];
-  const out = {}; let found = false;
-  for (const { key, rx } of patterns) {
-    const m = text.match(rx);
-    if (m) { out[key] = (m[3] || m[2] || "").trim(); found = true; }
-  }
-  return found ? out : null;
-}
-
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** ---------------- Page ---------------- */
 export default function ChatPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded, user } = useUser();
@@ -100,274 +41,294 @@ export default function ChatPage() {
   const [questionAnswers, setQuestionAnswers] = useState({});
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [allQuestionsAndAnswers, setAllQuestionsAndAnswers] = useState([]);
-  const [isListingMode, setIsListingMode] = useState(false);
 
-  // Refs
-  const composerRef = useRef(null);
+  // Listing mode
+  const [isListingMode, setIsListingMode] = useState(false);
+  const [currentListing, setCurrentListing] = useState("");
+  const [hasListing, setHasListing] = useState(false);
   const [originalInput, setOriginalInput] = useState("");
 
-  // Flyer preview state
+  // Flyer preview
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
-  // Handle flyer preview
-  const handleFlyerPreview = (flyerData) => {
-    setPreviewData(flyerData);
-    setShowFlyerPreview(true);
-  };
+  // Refs
+  const composerRef = useRef(null);
 
-  // Close flyer preview
-  const closeFlyerPreview = () => {
+  // Check authentication on mount
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+  }, [messages.length]);
+
+  /** ---------------- Utilities ---------------- */
+  function stripFences(s = "") {
+    return s
+      .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
+      .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
+      .trim();
+  }
+
+  // Coerce any LLM output (raw string, fenced JSON, or object) to readable text
+  function coerceToReadableText(raw) {
+    if (!raw) return "";
+
+    // If object-like, try common shapes
+    if (typeof raw === "object") {
+      const candidate = raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
+      if (candidate) return stripFences(String(candidate));
+      try { return stripFences(JSON.stringify(raw, null, 2)); } catch { /* noop */ }
+    }
+
+    const txt = String(raw);
+    // Try to parse JSON
+    try {
+      const j = JSON.parse(stripFences(txt));
+      const candidate = j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
+      if (candidate) return stripFences(String(candidate));
+      return stripFences(JSON.stringify(j, null, 2));
+    } catch {
+      return stripFences(txt);
+    }
+  }
+
+  // Detect formatted sections
+  function splitVariants(text) {
+    if (!text) return null;
+    const patterns = [
+      { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+      { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+      { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+      { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    ];
+    const out = {}; let found = false;
+    for (const { key, rx } of patterns) {
+      const m = text.match(rx);
+      if (m) { out[key] = (m[3] || m[2] || "").trim(); found = true; }
+    }
+    return found ? out : null;
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** ---------------- Event Handlers ---------------- */
+  function handleNewListing() {
+    setIsListingMode(true);
+    setMessages([]);
+    setCurrentListing("");
+    setHasListing(false);
+    setOriginalInput("");
+    setAllQuestionsAndAnswers([]);
+    setQuestionAnswers({});
+    setCurrentQuestionIndex(0);
+  }
+
+  function handleFlyerPreview(data) {
+    setPreviewData(data);
+    setShowFlyerPreview(true);
+  }
+
+  function closeFlyerPreview() {
     setShowFlyerPreview(false);
     setPreviewData(null);
+  }
+
+  // Generate professional flyer using our custom engine
+  const generateProfessionalFlyer = async (flyerData) => {
+    console.log('🌐 generateProfessionalFlyer: Function called');
+    console.log('🌐 generateProfessionalFlyer: flyerData:', flyerData);
+
+    try {
+      console.log('🌐 generateProfessionalFlyer: Making API call to /api/flyer...');
+      const response = await fetch('/api/flyer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(flyerData),
+      });
+
+      console.log('🌐 generateProfessionalFlyer: API response received');
+      console.log('🌐 generateProfessionalFlyer: Response status:', response.status);
+      console.log('🌐 generateProfessionalFlyer: Response ok:', response.ok);
+      console.log('🌐 generateProfessionalFlyer: Response headers:', response.headers);
+
+      if (!response.ok) {
+        console.log('❌ generateProfessionalFlyer: Response not ok, getting error text...');
+        const errorText = await response.text();
+        console.log('❌ generateProfessionalFlyer: Error response text:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+      }
+
+      console.log('🌐 generateProfessionalFlyer: Parsing response JSON...');
+      const data = await response.json();
+      console.log('🌐 generateProfessionalFlyer: Parsed response data:', data);
+      console.log('🌐 generateProfessionalFlyer: Data type:', typeof data);
+      console.log('🌐 generateProfessionalFlyer: Data keys:', Object.keys(data || {}));
+
+      return data;
+    } catch (error) {
+      console.error('❌ generateProfessionalFlyer: Error occurred:', error);
+      console.error('❌ generateProfessionalFlyer: Error stack:', error.stack);
+      console.error('❌ generateProfessionalFlyer: Error name:', error.name);
+      console.error('❌ generateProfessionalFlyer: Error message:', error.message);
+      throw error;
+    }
   };
 
-  // Check if we have a listing to display
-  const hasListing = messages.some(msg => msg.role === 'assistant' && msg.content);
-  const currentListing = messages.find(msg => msg.role === 'assistant')?.content || '';
+  // Handle enhanced flyer generation with our professional engine
+  const handleEnhancedFlyerGeneration = async (flyerData) => {
+    console.log('🎯 handleEnhancedFlyerGeneration: Function called');
+    console.log('🎯 handleEnhancedFlyerGeneration: flyerData received:', flyerData);
+    console.log('🎯 handleEnhancedFlyerGeneration: flyerData type:', typeof flyerData);
+    console.log('🎯 handleEnhancedFlyerGeneration: flyerData keys:', Object.keys(flyerData || {}));
 
-  // Ensure page stays at top when listing is displayed
-  useEffect(() => {
-    console.log("useEffect triggered", { hasListing, messages: messages.length });
-    if (hasListing) {
-      console.log("Scrolling to top");
-      // Use multiple methods to ensure scrolling works
-      window.scrollTo(0, 0);
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      
-      // Also prevent any automatic scrolling
-      setTimeout(() => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      }, 100);
-    }
-  }, [hasListing]);
+    try {
+      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to true');
+      setFlyerGenerating(true);
 
-  // Show loading state while Clerk is loading
-  if (!isLoaded) {
-    return (
-      <div className="chat-page">
-        <div className="chat-wrap">
-          <div className="loading-state">
-            <div className="loading-card">
-              <div className="loading-spinner"></div>
-              <p>Loading...</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      console.log('🎯 handleEnhancedFlyerGeneration: Calling generateProfessionalFlyer...');
+      const canvaProject = await generateProfessionalFlyer(flyerData);
+      console.log('🎯 handleEnhancedFlyerGeneration: generateProfessionalFlyer result:', canvaProject);
+      console.log('🎯 handleEnhancedFlyerGeneration: Result type:', typeof canvaProject);
+      console.log('🎯 handleEnhancedFlyerGeneration: Result keys:', Object.keys(canvaProject || {}));
 
-  // If not signed in, show sign-in prompt and BLOCK ALL CHAT ACCESS
-  if (!isSignedIn) {
-    return (
-      <div className="chat-page">
-        <div className="chat-wrap">
-          <div className="sign-in-prompt">
-            <div className="sign-in-card">
-              <h3>🔐 Sign In Required</h3>
-              <p>Please sign in to use the AI Listing Generator</p>
-              <button 
-                className="sign-in-btn"
-                onClick={() => router.push("/sign-in")}
-              >
-                Sign In
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      if (canvaProject && canvaProject.type === 'professional-flyer') {
+        console.log('🎯 handleEnhancedFlyerGeneration: Professional flyer generated successfully');
+        console.log('🎯 handleEnhancedFlyerGeneration: Flyer data:', canvaProject.flyer);
 
-  // If we have a listing, show the listing-focused layout
-  if (hasListing) {
-    return (
-      <div className="chat-page listing-focused">
-        <div className="listing-container">
-          {/* Header - centered */}
-          <div className="listing-header">
-            <div className="listing-title-container">
-              <svg 
-                className="listing-icon" 
-                width="48" 
-                height="48" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path 
-                  d="M12 3L2 12H4V21H20V12H22L12 3ZM18 19H6V10.91L12 5.41L18 10.91V19Z" 
-                  fill="url(#listingGradient)" 
-                />
-                <path 
-                  d="M9 14H15V16H9V14Z" 
-                  fill="url(#listingGradient)" 
-                />
-                <path 
-                  d="M9 17H15V19H9V17Z" 
-                  fill="url(#listingGradient)" 
-                />
-                <defs>
-                  <linearGradient id="listingGradient" x1="2" y1="3" x2="22" y2="21" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#8B5CF6"/>
-                    <stop offset="0.5" stopColor="#3B82F6"/>
-                    <stop offset="1" stopColor="#06B6D4"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-              <h1 className="listing-title">Your Generated Listing</h1>
-            </div>
-          </div>
+        const downloadProfessionalFlyer = () => {
+          console.log('🎯 handleEnhancedFlyerGeneration: Starting download process');
+          try {
+            console.log('🎯 handleEnhancedFlyerGeneration: Creating HTML document...');
+            const htmlDocument = `<!DOCTYPE html><html><head><style>${canvaProject.flyer.css}</style></head><body>${canvaProject.flyer.html}<script>${canvaProject.flyer.animations} /* ... animation init ... */</script></body></html>`;
+            console.log('🎯 handleEnhancedFlyerGeneration: HTML document created, length:', htmlDocument.length);
 
-          {/* Main listing content */}
-          <div className="listing-content">
-            <div className="listing-display">
-              <pre className="listing-text">{currentListing}</pre>
-              <button 
-                className="copy-btn"
-                onClick={() => handleCopyListing(currentListing)}
-              >
-                Copy Listing
-              </button>
-            </div>
-          </div>
+            console.log('🎯 handleEnhancedFlyerGeneration: Creating blob...');
+            const blob = new Blob([htmlDocument], { type: 'text/html' });
+            console.log('🎯 handleEnhancedFlyerGeneration: Blob created, size:', blob.size);
 
-          {/* Compact chatbox for tweaks */}
-          <div className="compact-chat">
-            <div className="compact-chat-header">
-              <h3>Need to tweak your listing?</h3>
-              <p>Describe what you'd like to change or add</p>
-            </div>
-            <Composer 
-              ref={composerRef} 
-              onSend={handleSend} 
-              loading={loading}
-              placeholder="e.g., 'Make it more luxury-focused' or 'Add details about the backyard'"
-              compact={true}
-            />
-            {error && <div className="error-message">{error}</div>}
-            
-                                {/* Action buttons near chatbox */}
-                    <div className="compact-actions">
-                      <button 
-                        className="compact-action-btn new-listing-btn"
-                        onClick={() => {
-                          setMessages([]);
-                          setOriginalInput("");
-                          setIsListingMode(false);
-                        }}
-                      >
-                        NEW LISTING
-                      </button>
-                      <button 
-                        className="compact-action-btn flyer-btn"
-                        onClick={() => {
-                          if (!isPro) {
-                            alert("Please upgrade to Pro to generate flyers");
-                            return;
-                          }
-                          
-                          if (!currentListing || !currentListing.trim()) {
-                            alert("Please generate a listing first");
-                            return;
-                          }
-                          
-                          // Open the enhanced flyer modal
-                          console.log('🎨 Opening flyer modal, current state:', { flyerOpen, hasListing, currentListing: currentListing?.substring(0, 50) });
-                          setFlyerOpen(true);
-                        }}
-                        disabled={!isPro || !hasListing}
-                        style={{ position: 'relative', zIndex: 10 }}
-                      >
-                        🎨 Generate Flyer
-                      </button>
-                      
+            console.log('🎯 handleEnhancedFlyerGeneration: Creating download URL...');
+            const url = URL.createObjectURL(blob);
+            console.log('🎯 handleEnhancedFlyerGeneration: Download URL created:', url);
 
-                    </div>
-          </div>
-        </div>
+            console.log('🎯 handleEnhancedFlyerGeneration: Creating download link...');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `professional-flyer-${flyerData.style}-${Date.now()}.html`;
+            console.log('🎯 handleEnhancedFlyerGeneration: Download link created, filename:', a.download);
 
-        {/* Enhanced Flyer Modal */}
-        {flyerOpen && (
-          <EnhancedFlyerModal
-            onClose={() => setFlyerOpen(false)}
-            onGenerate={handleEnhancedFlyerGeneration}
-            listing={currentListing}
-            loading={flyerGenerating}
-            onPreview={handleFlyerPreview}
-          />
-        )}
+            console.log('🎯 handleEnhancedFlyerGeneration: Appending link to DOM...');
+            document.body.appendChild(a);
 
-        {/* Professional Flyer Preview */}
-        <ProfessionalFlyerPreview
-          flyerData={previewData}
-          isVisible={showFlyerPreview}
-          onClose={closeFlyerPreview}
-        />
-        
-        {/* Debug info */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ position: 'fixed', top: 10, right: 10, background: 'red', color: 'white', padding: '10px', zIndex: 999999 }}>
-            Modal State: {flyerOpen ? 'OPEN' : 'CLOSED'}
-          </div>
-        )}
+            console.log('🎯 handleEnhancedFlyerGeneration: Triggering download...');
+            a.click();
 
-      </div>
-    );
-  }
+            console.log('🎯 handleEnhancedFlyerGeneration: Cleaning up...');
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
 
-    async function handleSend(text) {
-      const trimmed = text.trim();
-      if (!trimmed || loading) return;
-      
-      // Check authentication first
-      if (!isSignedIn) {
-        console.log("User not signed in, redirecting to sign-in page");
-        setError("Please sign in to use the AI Listing Generator");
-        router.push("/sign-in");
-        return;
-      }
-      
-      console.log("User authentication status:", { isSignedIn, isPro, isTrial }); // Debug log
-      
-      // Check if we're modifying an existing listing
-      const isModifyingListing = hasListing && messages.length > 0;
-      
-      const baseInput = messages.length === 0 ? trimmed : originalInput;
-      if (messages.length === 0) setOriginalInput(trimmed);
-
-      // Add user message to chat
-      setMessages(prev => [...prev, { role: "user", content: trimmed }]);
-      setError(null);
-
-      // Don't scroll - let the page stay where it is
-
-      try {
-        setLoading(true);
-
-        // Build conversation context with full history
-        const conversationContext = [
-          // Include the original request and any previous Q&A
-          ...(allQuestionsAndAnswers.length > 0 ? [
-            { role: "user", content: `Original request: ${baseInput}` },
-            { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
-          ] : []),
-          // If modifying a listing, include the current listing content
-          ...(isModifyingListing ? [
-            { role: "assistant", content: `Current listing: ${currentListing}` }
-          ] : []),
-          // Current message
-          { role: "user", content: trimmed },
-          // System instruction for edit requests
-          { role: "system", content: isModifyingListing 
-            ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
-            : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`
+            console.log('✅ handleEnhancedFlyerGeneration: Download completed successfully');
+          } catch (downloadError) {
+            console.error('❌ handleEnhancedFlyerGeneration: Download failed:', downloadError);
+            console.error('❌ handleEnhancedFlyerGeneration: Download error stack:', downloadError.stack);
+            throw downloadError;
           }
-        ];
+        };
+
+        const message = `🎉 Your professional marketing flyer has been created successfully!\n\nDesign System: ${canvaProject.designSystem}\nQuality: ${canvaProject.quality}\n\nYour flyer is ready for download!`;
+        console.log('🎯 handleEnhancedFlyerGeneration: Showing confirmation dialog');
+
+        if (confirm(message + '\n\nClick OK to download your professional flyer now!')) {
+          console.log('🎯 handleEnhancedFlyerGeneration: User confirmed, starting download');
+          downloadProfessionalFlyer();
+        } else {
+          console.log('🎯 handleEnhancedFlyerGeneration: User cancelled download');
+        }
+
+        console.log('🎯 handleEnhancedFlyerGeneration: Closing flyer modal');
+        setFlyerOpen(false);
+        console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
+        setFlyerGenerating(false);
+      } else {
+        console.log('❌ handleEnhancedFlyerGeneration: Invalid response format:', canvaProject);
+        throw new Error('Invalid response format from flyer generation');
+      }
+    } catch (error) {
+      console.error('❌ handleEnhancedFlyerGeneration: Error occurred:', error);
+      console.error('❌ handleEnhancedFlyerGeneration: Error stack:', error.stack);
+      console.error('❌ handleEnhancedFlyerGeneration: Error name:', error.name);
+      console.error('❌ handleEnhancedFlyerGeneration: Error message:', error.message);
+
+      alert(`❌ Error generating professional flyer: ${error.message}`);
+      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
+      setFlyerGenerating(false);
+    }
+  };
+
+  async function handleSend(text) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+    
+    // Check authentication first
+    if (!isSignedIn) {
+      console.log("User not signed in, redirecting to sign-in page");
+      setError("Please sign in to use the AI Listing Generator");
+      router.push("/sign-in");
+      return;
+    }
+    
+    console.log("User authentication status:", { isSignedIn, isPro, isTrial }); // Debug log
+    
+    // Check if we're modifying an existing listing
+    const isModifyingListing = hasListing && messages.length > 0;
+    
+    const baseInput = messages.length === 0 ? trimmed : originalInput;
+    if (messages.length === 0) setOriginalInput(trimmed);
+
+    // Add user message to chat
+    setMessages(prev => [...prev, { role: "user", content: trimmed }]);
+    setError(null);
+
+    // Don't scroll - let the page stay where it is
+
+    try {
+      setLoading(true);
+
+      // Build conversation context with full history
+      const conversationContext = [
+        // Include the original request and any previous Q&A
+        ...(allQuestionsAndAnswers.length > 0 ? [
+          { role: "user", content: `Original request: ${baseInput}` },
+          { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
+        ] : []),
+        // If modifying a listing, include the current listing content
+        ...(isModifyingListing ? [
+          { role: "assistant", content: `Current listing: ${currentListing}` }
+        ] : []),
+        // Current message
+        { role: "user", content: trimmed },
+        // System instruction for edit requests
+        { role: "system", content: isModifyingListing 
+          ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
+          : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`
+        }
+      ];
 
       console.log("Sending this context to AI:", conversationContext); // Debug log
 
@@ -387,798 +348,58 @@ export default function ChatPage() {
         if (resp.status === 401) {
           console.error("Authentication failed. User appears signed in but API rejected request.");
           console.error("User state:", { isSignedIn, isPro, isTrial });
-          console.error("This usually means the Clerk environment variables are not properly configured.");
-          throw new Error("Authentication failed. This appears to be a configuration issue. Please contact support.");
-        } else if (resp.status === 400) {
-          throw new Error(errorMessage);
-        } else {
-          throw new Error(`Server error: ${errorMessage}`);
+          setError("Authentication failed. Please sign in again.");
+          router.push("/sign-in");
+          return;
         }
-      }
-
-      console.log("Response has getReader:", !!resp.body?.getReader); // Debug log
-      console.log("Response headers:", Object.fromEntries(resp.headers.entries())); // Debug log
-
-      if (resp.body && resp.body.getReader) {
-        // Stream reader
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let acc = "";
-        console.log("Using streaming response"); // Debug log
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acc += decoder.decode(value, { stream: true });
-        }
-
-        // Try to parse as JSON for structured responses
-        let displayContent = acc;
-        console.log("Streaming response content:", acc); // Debug log
-        try {
-          const parsed = JSON.parse(acc);
-          console.log("Parsed streaming response:", parsed); // Debug log
-          if (parsed.parsed && parsed.parsed.type === "listing") {
-            const listing = parsed.parsed;
-            displayContent = "";
-            
-            if (listing.headline) {
-              displayContent += `**${listing.headline}**\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.body) {
-              displayContent += `${listing.mls.body}\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-            }
-            
-            if (listing.variants && listing.variants.length > 0) {
-              listing.variants.forEach(variant => {
-                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-              });
-            }
-            
-            displayContent = displayContent.trim();
-          } else if (parsed.parsed && parsed.parsed.type === "questions") {
-            // Handle questions in streaming response
-            console.log("Questions detected in streaming response"); // Debug log
-            displayContent = "I need a bit more information to create your listing. Please answer the questions below.";
-            
-            // Open questions modal immediately when questions are detected
-            openQuestionsModal(parsed.parsed);
-          }
-        } catch (e) {
-          // If parsing fails, use the raw content
-          displayContent = coerceToReadableText(acc);
-        }
-
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
-          return copy;
-        });
-        
-        // Scroll to bottom to show the AI response
-        setTimeout(() => {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }, 100);
-      } else {
-        // Non-streaming fallback
-        const data = await resp.json();
-        console.log("Chat API response:", data); // Debug log
-        
-        if (data.parsed && data.parsed.type === "listing") {
-          // Display the parsed listing content
-          const listing = data.parsed;
-          let displayContent = "";
-
-          if (listing.headline) {
-            displayContent += `**${listing.headline}**\n\n`;
-          }
-
-          if (listing.mls && listing.mls.body) {
-            displayContent += `${listing.mls.body}\n\n`;
-          }
-
-          if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-            displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-          }
-
-          if (listing.variants && listing.variants.length > 0) {
-            listing.variants.forEach(variant => {
-              displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-            });
-          }
-
-          const text = displayContent.trim();
-          setMessages((prev) => {
-            const copy = [...prev];
-            copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-            return copy;
-          });
-          
-          // Scroll to bottom to show the AI response
-          setTimeout(() => {
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          }, 100);
-          
-          // Set listing mode if this is a listing response
-          setIsListingMode(true);
-        } else if (data.parsed && data.parsed.type === "questions") {
-          // Open questions modal for follow-up questions
-          console.log("Questions detected in parsed field"); // Debug log
-          openQuestionsModal(data.parsed);
-          setMessages((prev) => {
-            const copy = [...prev];
-            copy[copy.length - 1] = { 
-              role: "assistant", 
-              content: "I need a bit more information to create your listing. Please answer the questions below.", 
-              pretty: "I need a bit more information to create your listing. Please answer the questions below." 
-            };
-            return copy;
-          });
-        } else if (data.message?.content && data.message.content.includes('"type":"questions"')) {
-          // Fallback: check if questions are in the raw message content
-          console.log("Questions detected in raw message content"); // Debug log
-          try {
-            const rawContent = data.message.content;
-            const parsedContent = JSON.parse(rawContent);
-            if (parsedContent.type === "questions") {
-              openQuestionsModal(parsedContent);
-              setMessages((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { 
-                  role: "assistant", 
-                  content: "I need a bit more information to create your listing. Please answer the questions below.", 
-                  pretty: "I need a bit more information to create your listing. Please answer the questions below." 
-                };
-                return copy;
-              });
-            } else {
-              // Fallback to raw content if parsing fails
-              const text = coerceToReadableText(data.message?.content || data.content || data);
-              setMessages((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-                return copy;
-              });
-            }
-          } catch (e) {
-            console.error("Failed to parse message content:", e);
-            // Fallback to raw content if parsing fails
-            const text = coerceToReadableText(data.message?.content || data.content || data);
-            setMessages((prev) => {
-              const copy = [...prev];
-              copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-              return copy;
-            });
-          }
-        } else {
-          // Fallback to raw content if parsing fails
-          const text = coerceToReadableText(data.message?.content || data.content || data);
-          setMessages((prev) => {
-            const copy = [...prev];
-            copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-            return copy;
-          });
-        }
-      }
-    } catch (e) {
-      console.error("Chat error:", e);
-      const errorMessage = e?.message || e?.error || "Failed to get response";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function openFlyerModal() {
-    console.log("🚀 ===== OPENFLYERMODAL DEBUG START =====");
-    console.log("🚀 openFlyerModal called", { isPro, flyerOpen, hasListing, currentListing: currentListing ? currentListing.substring(0, 50) : 'NO LISTING' });
-    
-    if (!isPro) { 
-      console.log("❌ User not Pro, redirecting to upgrade");
-      router.push("/upgrade"); 
-      return; 
-    }
-    
-    console.log("✅ User is Pro, proceeding...");
-    console.log("🚀 Setting flyerOpen to true");
-    setFlyerOpen(true);
-    console.log("🚀 flyerOpen state should now be true");
-    console.log("🚀 ===== OPENFLYERMODAL DEBUG END =====");
-  }
-
-  function handleNewListing() {
-    setIsListingMode(false);
-    setMessages([]);
-    if (composerRef.current) composerRef.current.clearInput();
-  }
-
-  function openQuestionsModal(questionsData) {
-    setQuestions(questionsData.questions || []);
-    setQuestionAnswers({});
-    setCurrentQuestionIndex(0);
-    setQuestionsOpen(true);
-    
-    // Add new questions to the history
-    setAllQuestionsAndAnswers(prev => [...prev, ...questionsData.questions]);
-    
-    // Don't scroll - let the page stay where it is
-  }
-
-  function handleCopyListing(listingText) {
-    navigator.clipboard.writeText(listingText).then(() => {
-      // Show a brief success message
-      const copyBtn = document.querySelector('.copy-btn');
-      if (copyBtn) {
-        const originalText = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied!';
-        copyBtn.style.background = '#10b981';
-        setTimeout(() => {
-          copyBtn.textContent = originalText;
-          copyBtn.style.background = '';
-        }, 2000);
-      }
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = listingText;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-    });
-  }
-
-  // Generate professional flyer using our custom engine
-  const generateProfessionalFlyer = async (flyerData) => {
-    console.log('🌐 generateProfessionalFlyer: Function called');
-    console.log('🌐 generateProfessionalFlyer: flyerData:', flyerData);
-    
-    try {
-      console.log('🌐 generateProfessionalFlyer: Making API call to /api/flyer...');
-      const response = await fetch('/api/flyer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(flyerData),
-      });
-      
-      console.log('🌐 generateProfessionalFlyer: API response received');
-      console.log('🌐 generateProfessionalFlyer: Response status:', response.status);
-      console.log('🌐 generateProfessionalFlyer: Response ok:', response.ok);
-      console.log('🌐 generateProfessionalFlyer: Response headers:', response.headers);
-      
-      if (!response.ok) {
-        console.log('❌ generateProfessionalFlyer: Response not ok, getting error text...');
-        const errorText = await response.text();
-        console.log('❌ generateProfessionalFlyer: Error response text:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-      
-      console.log('🌐 generateProfessionalFlyer: Parsing response JSON...');
-      const data = await response.json();
-      console.log('🌐 generateProfessionalFlyer: Parsed response data:', data);
-      console.log('🌐 generateProfessionalFlyer: Data type:', typeof data);
-      console.log('🌐 generateProfessionalFlyer: Data keys:', Object.keys(data || {}));
-      
-      return data;
-    } catch (error) {
-      console.error('❌ generateProfessionalFlyer: Error occurred:', error);
-      console.error('❌ generateProfessionalFlyer: Error stack:', error.stack);
-      console.error('❌ generateProfessionalFlyer: Error name:', error.name);
-      console.error('❌ generateProfessionalFlyer: Error message:', error.message);
-      throw error;
-    }
-  };
-
-  // Handle enhanced flyer generation with our professional engine
-  const handleEnhancedFlyerGeneration = async (flyerData) => {
-    console.log('🎯 handleEnhancedFlyerGeneration: Function called');
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData received:', flyerData);
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData type:', typeof flyerData);
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData keys:', Object.keys(flyerData || {}));
-    
-    try {
-      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to true');
-      setFlyerGenerating(true);
-      
-      console.log('🎯 handleEnhancedFlyerGeneration: Calling generateProfessionalFlyer...');
-      const canvaProject = await generateProfessionalFlyer(flyerData);
-      console.log('🎯 handleEnhancedFlyerGeneration: generateProfessionalFlyer result:', canvaProject);
-      console.log('🎯 handleEnhancedFlyerGeneration: Result type:', typeof canvaProject);
-      console.log('🎯 handleEnhancedFlyerGeneration: Result keys:', Object.keys(canvaProject || {}));
-
-      if (canvaProject && canvaProject.type === 'professional-flyer') {
-        console.log('🎯 handleEnhancedFlyerGeneration: Professional flyer generated successfully');
-        console.log('🎯 handleEnhancedFlyerGeneration: Flyer data:', canvaProject.flyer);
-        
-        const downloadProfessionalFlyer = () => {
-          console.log('🎯 handleEnhancedFlyerGeneration: Starting download process');
-          try {
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating HTML document...');
-            const htmlDocument = `<!DOCTYPE html><html><head><style>${canvaProject.flyer.css}</style></head><body>${canvaProject.flyer.html}<script>${canvaProject.flyer.animations} /* ... animation init ... */</script></body></html>`;
-            console.log('🎯 handleEnhancedFlyerGeneration: HTML document created, length:', htmlDocument.length);
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating blob...');
-            const blob = new Blob([htmlDocument], { type: 'text/html' });
-            console.log('🎯 handleEnhancedFlyerGeneration: Blob created, size:', blob.size);
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating download URL...');
-            const url = URL.createObjectURL(blob);
-            console.log('🎯 handleEnhancedFlyerGeneration: Download URL created:', url);
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating download link...');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `professional-flyer-${flyerData.style}-${Date.now()}.html`;
-            console.log('🎯 handleEnhancedFlyerGeneration: Download link created, filename:', a.download);
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Appending link to DOM...');
-            document.body.appendChild(a);
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Triggering download...');
-            a.click();
-            
-            console.log('🎯 handleEnhancedFlyerGeneration: Cleaning up...');
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            console.log('✅ handleEnhancedFlyerGeneration: Download completed successfully');
-          } catch (downloadError) {
-            console.error('❌ handleEnhancedFlyerGeneration: Download failed:', downloadError);
-            console.error('❌ handleEnhancedFlyerGeneration: Download error stack:', downloadError.stack);
-            throw downloadError;
-          }
-        };
-        
-        const message = `🎉 Your professional marketing flyer has been created successfully!\n\nDesign System: ${canvaProject.designSystem}\nQuality: ${canvaProject.quality}\n\nYour flyer is ready for download!`;
-        console.log('🎯 handleEnhancedFlyerGeneration: Showing confirmation dialog');
-        
-        if (confirm(message + '\n\nClick OK to download your professional flyer now!')) {
-          console.log('🎯 handleEnhancedFlyerGeneration: User confirmed, starting download');
-          downloadProfessionalFlyer();
-        } else {
-          console.log('🎯 handleEnhancedFlyerGeneration: User cancelled download');
-        }
-        
-        console.log('🎯 handleEnhancedFlyerGeneration: Closing flyer modal');
-        setFlyerOpen(false);
-        console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
-        setFlyerGenerating(false);
-      } else {
-        console.log('❌ handleEnhancedFlyerGeneration: Invalid response format:', canvaProject);
-        throw new Error('Invalid response format from flyer generation');
-      }
-    } catch (error) {
-      console.error('❌ handleEnhancedFlyerGeneration: Error occurred:', error);
-      console.error('❌ handleEnhancedFlyerGeneration: Error stack:', error.stack);
-      console.error('❌ handleEnhancedFlyerGeneration: Error name:', error.name);
-      console.error('❌ handleEnhancedFlyerGeneration: Error message:', error.message);
-      
-      alert(`❌ Error generating professional flyer: ${error.message}`);
-      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
-      setFlyerGenerating(false);
-    }
-  };
-
-  // Fallback flyer generation if templates fail
-  function generateFallbackFlyer(flyerData) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 800;
-    const ctx = canvas.getContext('2d');
-    
-    // Professional fallback design
-    const gradient = ctx.createLinearGradient(0, 0, 0, 800);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(1, '#f8fafc');
-    
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1200, 800);
-    
-    // Header
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(0, 0, 1200, 120);
-    
-    // FOR SALE badge
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillRect(40, 30, 120, 40);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 16px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('FOR SALE', 100, 55);
-    
-    // Property title
-    const title = flyerData.listing ? flyerData.listing.split('\n')[0].substring(0, 35) : 'Beautiful Property';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 32px Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(title, 200, 60);
-    
-    // Photo placeholder
-    ctx.fillStyle = '#f3f4f6';
-    ctx.fillRect(40, 140, 1120, 300);
-    ctx.strokeStyle = '#d1d5db';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(40, 140, 1120, 300);
-    
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '16px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Property Photos', 600, 290);
-    ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('(AI Generated)', 600, 310);
-    
-    // Property details
-    ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 20px Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('Property Details', 40, 580);
-    
-    // Agent info
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(0, 600, 1200, 200);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px Arial, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(flyerData.agentInfo?.name || 'Your Name', 40, 640);
-    
-    ctx.font = '18px Arial, sans-serif';
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillText(flyerData.agentInfo?.agency || 'Your Agency', 40, 665);
-    
-    // Generated by
-    ctx.fillStyle = '#64748b';
-    ctx.font = '12px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('Generated by ListGenie.ai', 600, 770);
-    
-    return canvas.toDataURL('image/png', 0.95);
-  }
-
-  async function handleModifyListing(listingText, modificationType) {
-    const modificationPrompts = {
-      longer: "Please make this listing longer and more detailed, adding more descriptive language and specific details about the property features.",
-      modern: "Please rewrite this listing to have a more modern, contemporary tone and style.",
-      country: "Please rewrite this listing to have a more country/rural, warm, and welcoming tone.",
-      luxurious: "Please rewrite this listing to have a more luxurious, upscale, and premium tone."
-    };
-
-    const prompt = modificationPrompts[modificationType];
-    if (!prompt) return;
-
-    // Add the modification request to the chat
-    setMessages(prev => [
-      ...prev,
-      { role: "user", content: `Modify this listing: ${prompt}` },
-      { role: "assistant", content: "", pretty: "" }
-    ]);
-
-    // Don't scroll - let the page stay where it is
-
-    try {
-      setLoading(true);
-      
-      const resp = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [
-            { role: "user", content: `Here is a property listing: ${listingText}` },
-            { role: "user", content: prompt }
-          ],
-          tone: "mls" // Use MLS tone for modifications
-        }),
-      });
-
-      if (!resp.ok) {
-        const errorData = await resp.json().catch(() => ({}));
-        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
-        if (resp.status === 401) {
-          throw new Error("Please sign in to use the AI Listing Generator");
-        } else if (resp.status === 400) {
-          throw new Error(errorMessage);
-        } else {
-          throw new Error(`Server error: ${errorMessage}`);
-        }
-      }
-
-      if (resp.body && resp.body.getReader) {
-        // Handle streaming response
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let acc = "";
-        
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          acc += decoder.decode(value, { stream: true });
-        }
-
-        // Try to parse as JSON for structured responses
-        let displayContent = acc;
-        try {
-          const parsed = JSON.parse(acc);
-          if (parsed.parsed && parsed.parsed.type === "listing") {
-            const listing = parsed.parsed;
-            displayContent = "";
-            
-            if (listing.headline) {
-              displayContent += `**${listing.headline}**\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.body) {
-              displayContent += `${listing.mls.body}\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-            }
-            
-            if (listing.variants && listing.variants.length > 0) {
-              listing.variants.forEach(variant => {
-                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-              });
-            }
-            
-            displayContent = displayContent.trim();
-          } else {
-            displayContent = coerceToReadableText(acc);
-          }
-        } catch (e) {
-          // If parsing fails, use the raw content
-          displayContent = coerceToReadableText(acc);
-        }
-        
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
-          return copy;
-        });
-        
-        // Scroll to bottom to show the modification response
-        setTimeout(() => {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }, 100);
-        
-        // Set listing mode if this is a listing response
-        if (displayContent.includes('**') && displayContent.includes('•')) {
-          setIsListingMode(true);
-        }
-      } else {
-        // Handle non-streaming response
-        const data = await resp.json();
-        let displayContent = "";
-        
-        try {
-          if (data.parsed && data.parsed.type === "listing") {
-            const listing = data.parsed;
-            
-            if (listing.headline) {
-              displayContent += `**${listing.headline}**\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.body) {
-              displayContent += `${listing.mls.body}\n\n`;
-            }
-            
-            if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-              displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-            }
-            
-            if (listing.variants && listing.variants.length > 0) {
-              listing.variants.forEach(variant => {
-                displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-              });
-            }
-            
-            displayContent = displayContent.trim();
-          } else {
-            displayContent = coerceToReadableText(data.content || data.message || "");
-          }
-        } catch (e) {
-          displayContent = coerceToReadableText(data.content || data.message || "");
-        }
-        
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: displayContent, pretty: displayContent };
-          return copy;
-        });
-        
-        // Scroll to bottom to show the modification response
-        setTimeout(() => {
-          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-        }, 100);
-        
-        // Set listing mode if this is a listing response
-        if (displayContent.includes('**') && displayContent.includes('•')) {
-          setIsListingMode(true);
-        }
-      }
-    } catch (e) {
-      console.error("Modify listing error:", e);
-      const errorMessage = e?.message || e?.error || "Failed to get response";
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function submitQuestionAnswers() {
-    // Format answers into a natural language response with better context
-    const answerText = questions.map((question, index) => {
-      const answer = questionAnswers[index] || '';
-      // Add context about uncertain answers
-      let formattedAnswer = answer;
-      if (answer.toLowerCase().includes('na') || 
-          answer.toLowerCase().includes('not sure') || 
-          answer.toLowerCase().includes('unknown') || 
-          answer.toLowerCase().includes('unsure') ||
-          answer.toLowerCase().includes("don't know")) {
-        formattedAnswer = `${answer} (information not available)`;
-      }
-      return `Q: ${question}\nA: ${formattedAnswer}`;
-    }).join('\n\n');
-
-    // Add the answers to the chat
-    setMessages(prev => [
-      ...prev,
-      { role: "user", content: answerText },
-      { role: "assistant", content: "", pretty: "" }
-    ]);
-
-    // Scroll to bottom to show the submitted answers
-    setTimeout(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    }, 100);
-
-    // Close modal
-    setQuestionsOpen(false);
-
-    // Send the answers to get the final listing
-    try {
-      setLoading(true);
-      
-      // Build complete conversation context with ALL previous Q&A
-      const conversationContext = [
-        { role: "user", content: `Original request: ${originalInput}` },
-        { role: "user", content: `Complete Q&A history: ${answerText}` },
-        { role: "system", content: `CRITICAL INSTRUCTIONS: The user has already provided ALL of this information: ${answerText}. You have EVERYTHING you need to create a listing. DO NOT ask for any of this information again. Generate a listing NOW using the provided details. If any information is missing, make reasonable assumptions.` }
-      ];
-
-      console.log("Sending this context to AI:", conversationContext); // Debug log
-
-      const resp = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: conversationContext,
-          tone
-        }),
-      });
-
-      if (!resp.ok) {
-        const errorData = await resp.json().catch(() => ({}));
-        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
-        if (resp.status === 401) {
-          throw new Error("Please sign in to use the AI Listing Generator");
-        } else if (resp.status === 400) {
-          throw new Error(errorMessage);
-        } else {
-          throw new Error(`Server error: ${errorMessage}`);
-        }
+        throw new Error(errorMessage);
       }
 
       const data = await resp.json();
-      console.log("Follow-up response:", data); // Debug log
+      console.log("Raw API response:", data); // Debug log
 
-      if (data.parsed && data.parsed.type === "questions") {
-        // More questions needed - open modal again
-        console.log("More questions detected after answers"); // Debug log
+      // Check if we need to ask follow-up questions
+      if (data.questions && data.questions.length > 0) {
+        console.log("Setting questions:", data.questions); // Debug log
+        setQuestions(data.questions);
+        setQuestionAnswers({});
+        setCurrentQuestionIndex(0);
+        setQuestionsOpen(true);
+        setLoading(false);
+        return;
+      }
+
+      // Process the response
+      if (data.message?.content) {
+        const content = data.message.content;
+        const variants = splitVariants(content);
         
-        // If we've already answered questions, force the AI to generate a listing instead
-        if (allQuestionsAndAnswers.length > 0) {
-          console.log("Forcing listing generation instead of more questions"); // Debug log
-          // Force the AI to generate a listing with what we have
-          const forceListingContext = [
-            { role: "user", content: `Original request: ${originalInput}` },
-            { role: "user", content: `All provided information: ${answerText}` },
-            { role: "system", content: `STOP ASKING QUESTIONS. The user has provided sufficient information. Generate a listing NOW using the details provided. Make reasonable assumptions for any missing information.` }
-          ];
-          
-          const forceResp = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              messages: forceListingContext,
-              tone
-            }),
+        if (variants) {
+          // We have structured variants
+          setMessages(prev => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { 
+              role: "assistant", 
+              content: content,
+              pretty: variants.mls || content,
+              variants: variants
+            };
+            return copy;
           });
-          
-          if (forceResp.ok) {
-            const forceData = await forceResp.json();
-            if (forceData.parsed && forceData.parsed.type === "listing") {
-              // Display the listing
-              const listing = forceData.parsed;
-              let displayContent = "";
-              
-              if (listing.headline) {
-                displayContent += `**${listing.headline}**\n\n`;
-              }
-              
-              if (listing.mls && listing.mls.body) {
-                displayContent += `${listing.mls.body}\n\n`;
-              }
-              
-              if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-                displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-              }
-              
-              if (listing.variants && listing.variants.length > 0) {
-                listing.variants.forEach(variant => {
-                  displayContent += `**${variant.label}:** ${variant.text}\n\n`;
-                });
-              }
-              
-              const text = displayContent.trim();
-              setMessages((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-                return copy;
-              });
-              return; // Exit early
-            }
-          }
-        }
-        
-        // If we get here, open the questions modal
-        openQuestionsModal(data.parsed);
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { 
-            role: "assistant", 
-            content: "I need a bit more information to create your listing. Please answer the questions below.", 
-            pretty: "I need a bit more information to create your listing. Please answer the questions below." 
-          };
-          return copy;
-        });
-      } else if (data.parsed && data.parsed.type === "listing") {
-        // Display the parsed listing content
-        const listing = data.parsed;
-        let displayContent = "";
-
-        if (listing.headline) {
-          displayContent += `**${listing.headline}**\n\n`;
-        }
-
-        if (listing.mls && listing.mls.body) {
-          displayContent += `${listing.mls.body}\n\n`;
-        }
-
-        if (listing.mls && listing.mls.bullets && listing.mls.bullets.length > 0) {
-          displayContent += `${listing.mls.bullets.join('\n')  }\n\n`;
-        }
-
-        if (listing.variants && listing.variants.length > 0) {
-          listing.variants.forEach(variant => {
-            displayContent += `**${variant.label}:** ${variant.text}\n\n`;
+        } else {
+          // Single response
+          setMessages(prev => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { role: "assistant", content: content, pretty: content };
+            return copy;
           });
         }
 
-        const text = displayContent.trim();
-        setMessages((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
-          return copy;
-        });
+        // Check if this looks like a listing
+        if (content.includes("bedroom") || content.includes("bathroom") || content.includes("sq ft") || content.includes("square feet")) {
+          setCurrentListing(content);
+          setHasListing(true);
+        }
       } else {
         // Fallback to raw content if parsing fails
         const text = coerceToReadableText(data.message?.content || data.content || data);
@@ -1195,6 +416,31 @@ export default function ChatPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function submitQuestionAnswers() {
+    const answers = Object.values(questionAnswers);
+    setAllQuestionsAndAnswers(prev => [...prev, ...answers]);
+    setQuestionsOpen(false);
+    
+    // Send the answers to continue the conversation
+    const answerText = answers.join('\n\n');
+    handleSend(answerText);
+  }
+
+  // Don't render until user is loaded
+  if (!isLoaded) {
+    return (
+      <div className="loading-page">
+        <div className="loading-spinner"></div>
+        <div className="loading-text">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect if not signed in
+  if (!isSignedIn) {
+    return null; // Will redirect in useEffect
   }
 
   return (
@@ -1226,11 +472,49 @@ export default function ChatPage() {
                 <div className="generating-text">Generating...</div>
               </div>
             )}
+            
+            {/* Flyer Generation Button */}
+            {hasListing && (
+              <div className="flyer-generation-section">
+                <button
+                  className="flyer-generation-btn"
+                  onClick={() => {
+                    if (!isPro) {
+                      alert("Please upgrade to Pro to generate flyers");
+                      return;
+                    }
+                    setFlyerOpen(true);
+                  }}
+                  disabled={!isPro}
+                >
+                  🎨 Generate Flyer
+                </button>
+                {!isPro && (
+                  <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
 
-      
+      {/* Enhanced Flyer Modal */}
+      {flyerOpen && (
+        <EnhancedFlyerModal
+          onClose={() => setFlyerOpen(false)}
+          onGenerate={handleEnhancedFlyerGeneration}
+          listing={currentListing}
+          loading={flyerGenerating}
+          onPreview={handleFlyerPreview}
+        />
+      )}
+
+      {/* Professional Flyer Preview */}
+      <ProfessionalFlyerPreview
+        flyerData={previewData}
+        isVisible={showFlyerPreview}
+        onClose={closeFlyerPreview}
+      />
 
       {questionsOpen && (
         <div className="questions-modal-overlay">
@@ -1284,32 +568,6 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-      </div>
-    );
-  }
-
-/** ---------------- Small bits ---------------- */
-function TonePill({ value, label, current, onChange }) {
-  const active = current === value;
-  return (
-    <button
-      className={`tone-pill ${active ? 'active' : ''}`}
-      onClick={() => onChange(value)}
-    >
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function displayName(key) {
-  return key === "mls" ? "MLS-Ready" : key === "social" ? "Social Caption" : key === "luxury" ? "Luxury Tone" : key === "concise" ? "Concise" : key;
-}
-
-function ThinkingDots() {
-  return (
-    <div className="thinking">
-      <div className="dot" /><div className="dot" /><div className="dot" />
-      <span className="thinking-label">Thinking…</span>
     </div>
   );
 }
