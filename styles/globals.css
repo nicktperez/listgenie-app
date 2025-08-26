@@ -1166,12 +1166,12 @@ main { scroll-margin-top: 72px; }
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  padding: 20px;
 }
 
 .chat-container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
