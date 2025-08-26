@@ -359,9 +359,9 @@ export default function ChatPage() {
       console.log("Raw API response:", data); // Debug log
 
       // Check if we need to ask follow-up questions
-      if (data.questions && data.questions.length > 0) {
-        console.log("Setting questions:", data.questions); // Debug log
-        setQuestions(data.questions);
+      if (data.parsed?.type === "questions") {
+        console.log("Setting questions:", data.parsed.questions); // Debug log
+        setQuestions(data.parsed.questions);
         setQuestionAnswers({});
         setCurrentQuestionIndex(0);
         setQuestionsOpen(true);
@@ -395,10 +395,16 @@ export default function ChatPage() {
           });
         }
 
-        // Check if this looks like a listing
-        if (content.includes("bedroom") || content.includes("bathroom") || content.includes("sq ft") || content.includes("square feet")) {
+        // Check if this looks like a listing - only set hasListing if we actually get a proper listing
+        if (data.parsed?.type === "listing" || 
+            (content.includes("bedroom") && content.includes("bathroom") && content.includes("sq ft")) ||
+            (content.includes("bedroom") && content.includes("bathroom") && content.includes("square feet"))) {
+          console.log("Listing detected, setting currentListing and hasListing to true");
           setCurrentListing(content);
           setHasListing(true);
+        } else {
+          console.log("No listing detected, keeping hasListing as false");
+          setHasListing(false);
         }
       } else {
         // Fallback to raw content if parsing fails
@@ -408,6 +414,9 @@ export default function ChatPage() {
           copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
           return copy;
         });
+        
+        // Don't set hasListing to true for fallback content
+        setHasListing(false);
       }
     } catch (e) {
       console.error("Modify listing error:", e);
@@ -425,6 +434,16 @@ export default function ChatPage() {
     
     // Send the answers to continue the conversation
     const answerText = answers.join('\n\n');
+    console.log('📝 Submitting question answers:', answerText);
+    
+    // Add the answers to the chat
+    setMessages(prev => [
+      ...prev,
+      { role: "user", content: `Here are my answers:\n\n${answerText}` },
+      { role: "assistant", content: "", pretty: "" }
+    ]);
+    
+    // Send the answers to get the final listing
     handleSend(answerText);
   }
 
@@ -483,6 +502,11 @@ export default function ChatPage() {
                       alert("Please upgrade to Pro to generate flyers");
                       return;
                     }
+                    console.log('🎨 Opening flyer modal, current state:', { 
+                      flyerOpen, 
+                      hasListing, 
+                      currentListing: currentListing?.substring(0, 100) 
+                    });
                     setFlyerOpen(true);
                   }}
                   disabled={!isPro}
@@ -492,6 +516,24 @@ export default function ChatPage() {
                 {!isPro && (
                   <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
                 )}
+              </div>
+            )}
+            
+            {/* Debug info - only show in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="debug-info" style={{ 
+                marginTop: '20px', 
+                padding: '15px', 
+                background: 'rgba(0,0,0,0.1)', 
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontFamily: 'monospace'
+              }}>
+                <strong>Debug Info:</strong><br/>
+                hasListing: {hasListing ? 'true' : 'false'}<br/>
+                currentListing: {currentListing ? `"${currentListing.substring(0, 100)}..."` : 'null'}<br/>
+                messages.length: {messages.length}<br/>
+                isPro: {isPro ? 'true' : 'false'}
               </div>
             )}
           </div>
