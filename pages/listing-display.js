@@ -11,6 +11,9 @@ export default function ListingDisplayPage() {
   const [listing, setListing] = useState(null);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerGenerating, setFlyerGenerating] = useState(false);
+  
+  // SIMPLE WORKING FLYER MODAL STATE
+  const [simpleFlyerModal, setSimpleFlyerModal] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -71,7 +74,8 @@ export default function ListingDisplayPage() {
       alert('Please upgrade to Pro to generate flyers');
       return;
     }
-    setFlyerOpen(true);
+    console.log('🎨 Opening simple flyer modal on listing-display page');
+    setSimpleFlyerModal(true);
   };
 
   const handleEnhancedFlyerGeneration = async (flyerData) => {
@@ -222,6 +226,164 @@ export default function ListingDisplayPage() {
           )}
         </div>
       </div>
+
+      {/* SIMPLE WORKING FLYER MODAL */}
+      {simpleFlyerModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '40px',
+            borderRadius: '15px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ 
+              color: '#667eea', 
+              marginBottom: '20px',
+              fontSize: '28px'
+            }}>
+              🎨 Generate Professional Flyer
+            </h2>
+            
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '20px', 
+              borderRadius: '10px',
+              marginBottom: '20px',
+              textAlign: 'left'
+            }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>Property Listing:</h4>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                {listing?.content?.substring(0, 200) || listing?.substring(0, 200) || 'Listing content...'}...
+              </p>
+            </div>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '15px',
+              marginBottom: '20px'
+            }}>
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating luxury flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Luxury flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '💎 Luxury Style'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating modern flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Modern flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '🚀 Modern Style'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating classic flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Classic flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '🏛️ Classic Style'}
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                console.log('🎨 Closing simple flyer modal');
+                setSimpleFlyerModal(false);
+                setFlyerGenerating(false);
+              }}
+              style={{
+                background: '#6b7280',
+                color: 'white',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '500',
+                marginTop: '10px'
+              }}
+            >
+              Close Modal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (

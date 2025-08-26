@@ -37,12 +37,6 @@ export default function ChatPage() {
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
-  // ISOLATED TEST STATE - Completely separate from flyer logic
-  const [testModalOpen, setTestModalOpen] = useState(false);
-
-  // SIMPLE FLYER MODAL STATE - Direct approach
-  const [simpleFlyerModal, setSimpleFlyerModal] = useState(false);
-
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -55,36 +49,6 @@ export default function ChatPage() {
   const [currentListing, setCurrentListing] = useState("");
   const [hasListing, setHasListing] = useState(false);
   const [originalInput, setOriginalInput] = useState("");
-
-  // Debug state changes - MOVED HERE after variables are declared
-  useEffect(() => {
-    console.log('🔍 FLYER STATE CHANGED:', { 
-      flyerOpen, 
-      flyerGenerating, 
-      hasListing, 
-      isPro,
-      timestamp: new Date().toISOString()
-    });
-  }, [flyerOpen, flyerGenerating, hasListing, isPro]);
-
-  // Debug currentListing changes - MOVED HERE after variables are declared
-  useEffect(() => {
-    console.log('📝 CURRENT LISTING CHANGED:', { 
-      currentListing: currentListing?.substring(0, 100), 
-      hasListing, 
-      type: typeof currentListing,
-      timestamp: new Date().toISOString()
-    });
-  }, [currentListing, hasListing]);
-
-  // Debug modal state specifically
-  useEffect(() => {
-    console.log('🎭 MODAL STATE DEBUG:', {
-      flyerOpen,
-      modalShouldRender: flyerOpen === true,
-      timestamp: new Date().toISOString()
-    });
-  }, [flyerOpen]);
 
   // Refs
   const composerRef = useRef(null);
@@ -512,173 +476,15 @@ async function copyToClipboard(text) {
           {/* Flyer Generation Button - Only show if user stays on this page */}
           {hasListing && (
             <div className="flyer-generation-section">
-              <div className="debug-flyer-info" style={{
-                background: 'rgba(255, 0, 0, 0.1)',
-                padding: '10px',
-                marginBottom: '10px',
-                borderRadius: '5px',
-                fontSize: '12px',
-                fontFamily: 'monospace'
-              }}>
-                <strong>🔍 FLYER DEBUG INFO:</strong><br/>
-                hasListing: {hasListing ? '✅ true' : '❌ false'}<br/>
-                flyerOpen: {flyerOpen ? '✅ true' : '❌ false'}<br/>
-                isPro: {isPro ? '✅ true' : '❌ false'}<br/>
-                currentListing exists: {currentListing ? '✅ yes' : '❌ no'}<br/>
-                currentListing type: {typeof currentListing}<br/>
-                currentListing length: {currentListing ? currentListing.length : 'N/A'}<br/>
-                <strong>🎯 MODAL RENDER CHECK:</strong><br/>
-                flyerOpen === true: {flyerOpen === true ? '✅ YES' : '❌ NO'}<br/>
-                Modal should render: {flyerOpen ? '✅ YES' : '❌ NO'}<br/>
-                <strong>🔧 STATE UPDATES:</strong><br/>
-                Last update: {new Date().toLocaleTimeString()}
-              </div>
-              
-              {/* ISOLATED REACT STATE TEST */}
-              <button
-                style={{
-                  background: 'purple',
-                  color: 'white',
-                  padding: '15px',
-                  marginBottom: '10px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-                onClick={() => {
-                  console.log('🟣 ISOLATED REACT TEST BUTTON CLICKED');
-                  console.log('🟣 Current testModalOpen state:', testModalOpen);
-                  console.log('🟣 Setting testModalOpen to true...');
-                  
-                  setTestModalOpen(true);
-                  
-                  console.log('🟣 setTestModalOpen(true) called');
-                  
-                  // Check state after a delay
-                  setTimeout(() => {
-                    console.log('🟣 After 100ms, testModalOpen =', testModalOpen);
-                  }, 100);
-                }}
-              >
-                🟣 ISOLATED TEST: React State Only
-              </button>
-              
-              {/* Simple Test Button - Bypass all complex state */}
-              <button
-                style={{
-                  background: 'green',
-                  color: 'white',
-                  padding: '15px',
-                  marginBottom: '10px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontWeight: 'bold'
-                }}
-                onClick={() => {
-                  console.log('🟢 SIMPLE TEST BUTTON CLICKED');
-                  console.log('🟢 This button should work regardless of state');
-                  
-                  // Force a simple modal to appear
-                  const modal = document.createElement('div');
-                  modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    z-index: 99999;
-                    background-color: rgba(0, 0, 0, 0.9);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                  `;
-                  
-                  modal.innerHTML = `
-                    <div style="
-                      background: white;
-                      color: black;
-                      padding: 40px;
-                      border-radius: 10px;
-                      max-width: 500px;
-                      text-align: center;
-                    ">
-                      <h2>🟢 SIMPLE MODAL TEST!</h2>
-                      <p>This modal was created directly with DOM manipulation</p>
-                      <p>If you see this, modal rendering works!</p>
-                      <button onclick="this.parentElement.parentElement.remove()" style="
-                        background: #10b981;
-                        color: white;
-                        padding: 10px 20px;
-                        border: none;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        margin-top: 20px;
-                      ">
-                        Close Modal
-                      </button>
-                    </div>
-                  `;
-                  
-                  document.body.appendChild(modal);
-                  console.log('🟢 Simple modal added to DOM');
-                }}
-              >
-                🟢 SIMPLE TEST: Create Modal with DOM
-              </button>
-              
-              {/* Force State Button */}
-              <button
-                style={{
-                  background: 'orange',
-                  color: 'white',
-                  padding: '10px',
-                  marginBottom: '10px',
-                  borderRadius: '5px',
-                  border: 'none',
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  console.log('🟠 FORCE STATE BUTTON CLICKED');
-                  console.log('🟠 Current flyerOpen state:', flyerOpen);
-                  
-                  // Force a re-render by updating multiple states
-                  setFlyerOpen(true);
-                  setFlyerGenerating(false);
-                  
-                  console.log('🟠 States updated, flyerOpen should now be true');
-                }}
-              >
-                🟠 FORCE: Update all flyer states
-              </button>
               
               <button
                 className="flyer-generation-btn"
                 onClick={() => {
-                  console.log('🎨 ===== SIMPLE FLYER BUTTON CLICKED =====');
-                  console.log('🎨 Button clicked at:', new Date().toISOString());
-                  
                   if (!isPro) {
-                    console.log('❌ User is not Pro, showing upgrade alert');
                     alert("Please upgrade to Pro to generate flyers");
                     return;
                   }
-                  
-                  if (!hasListing || !currentListing) {
-                    console.log('❌ No listing available');
-                    alert("Please generate a listing first");
-                    return;
-                  }
-                  
-                  console.log('✅ All checks passed, opening simple flyer modal');
-                  
-                  // Use the simple, direct approach
-                  setSimpleFlyerModal(true);
-                  
-                  console.log('🎨 Simple flyer modal state set to true');
+                  setFlyerOpen(true);
                 }}
                 disabled={!isPro}
               >
@@ -690,28 +496,11 @@ async function copyToClipboard(text) {
             </div>
           )}
           
-          {/* Debug info - only show in development */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="debug-info" style={{ 
-              marginTop: '20px', 
-              padding: '15px', 
-              background: 'rgba(0,0,0,0.1)', 
-              borderRadius: '8px',
-              fontSize: '12px',
-              fontFamily: 'monospace'
-            }}>
-              <strong>Debug Info:</strong><br/>
-              hasListing: {hasListing ? 'true' : 'false'}<br/>
-              currentListing: {currentListing ? `"${currentListing.substring(0, 100)}..."` : 'null'}<br/>
-              messages.length: {messages.length}<br/>
-              isPro: {isPro ? 'true' : 'false'}
-            </div>
-          )}
         </div>
       </div>
 
       {/* SIMPLE WORKING FLYER MODAL */}
-      {simpleFlyerModal && (
+      {flyerOpen && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -764,7 +553,6 @@ async function copyToClipboard(text) {
             }}>
               <button
                 onClick={() => {
-                  console.log('🎨 Generating luxury flyer...');
                   setFlyerGenerating(true);
                   
                   // Simulate flyer generation
@@ -791,7 +579,6 @@ async function copyToClipboard(text) {
               
               <button
                 onClick={() => {
-                  console.log('🎨 Generating modern flyer...');
                   setFlyerGenerating(true);
                   
                   // Simulate flyer generation
@@ -818,7 +605,6 @@ async function copyToClipboard(text) {
               
               <button
                 onClick={() => {
-                  console.log('🎨 Generating classic flyer...');
                   setFlyerGenerating(true);
                   
                   // Simulate flyer generation
@@ -846,8 +632,7 @@ async function copyToClipboard(text) {
             
             <button
               onClick={() => {
-                console.log('🎨 Closing simple flyer modal');
-                setSimpleFlyerModal(false);
+                setFlyerOpen(false);
                 setFlyerGenerating(false);
               }}
               style={{
@@ -868,113 +653,6 @@ async function copyToClipboard(text) {
         </div>
       )}
 
-      {/* ISOLATED TEST MODAL - Simple React state test */}
-      {testModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 99999,
-          backgroundColor: 'rgba(128, 0, 128, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'white',
-            color: 'black',
-            padding: '40px',
-            borderRadius: '10px',
-            maxWidth: '500px',
-            textAlign: 'center'
-          }}>
-            <h2>🟣 ISOLATED REACT MODAL!</h2>
-            <p>This modal uses isolated React state: testModalOpen = {testModalOpen ? 'TRUE' : 'FALSE'}</p>
-            <p>If you see this, React state management works!</p>
-            <button
-              onClick={() => {
-                console.log('🟣 Closing isolated test modal');
-                setTestModalOpen(false);
-              }}
-              style={{
-                background: '#8b5cf6',
-                color: 'white',
-                padding: '10px 20px',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                marginTop: '20px'
-              }}
-            >
-              Close Isolated Modal
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Test Modal - Enhanced debugging */}
-      {(() => {
-        const shouldRender = flyerOpen === true;
-        console.log('🎭 MODAL RENDER CHECK:', {
-          flyerOpen,
-          shouldRender,
-          timestamp: new Date().toISOString()
-        });
-        
-        if (shouldRender) {
-          console.log('🧪 TEST MODAL RENDERING NOW!');
-          return (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                background: 'white',
-                color: 'black',
-                padding: '40px',
-                borderRadius: '10px',
-                maxWidth: '500px',
-                textAlign: 'center'
-              }}>
-                <h2>🧪 TEST MODAL WORKING!</h2>
-                <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
-                <p>This proves modal rendering works!</p>
-                <button
-                  onClick={() => {
-                    console.log('🧪 Closing test modal');
-                    setFlyerOpen(false);
-                  }}
-                  style={{
-                    background: '#667eea',
-                    color: 'white',
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    marginTop: '20px'
-                  }}
-                >
-                  Close Modal
-                </button>
-              </div>
-            </div>
-          );
-        } else {
-          console.log('🧪 TEST MODAL NOT RENDERING - flyerOpen is false');
-          return null;
-        }
-      })()}
-
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
         <div style={{ 
@@ -988,7 +666,6 @@ async function copyToClipboard(text) {
         }}>
           <EnhancedFlyerModal
             onClose={() => {
-              console.log('🎨 Modal close button clicked');
               setFlyerOpen(false);
             }}
             onGenerate={handleEnhancedFlyerGeneration}
