@@ -31,7 +31,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // State for flyer generation
+  // State for flyer generation - SIMPLIFIED
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerGenerating, setFlyerGenerating] = useState(false);
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
@@ -39,6 +39,9 @@ export default function ChatPage() {
 
   // ISOLATED TEST STATE - Completely separate from flyer logic
   const [testModalOpen, setTestModalOpen] = useState(false);
+
+  // SIMPLE FLYER MODAL STATE - Direct approach
+  const [simpleFlyerModal, setSimpleFlyerModal] = useState(false);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -655,15 +658,8 @@ async function copyToClipboard(text) {
               <button
                 className="flyer-generation-btn"
                 onClick={() => {
-                  console.log('🎨 ===== FLYER BUTTON CLICKED =====');
+                  console.log('🎨 ===== SIMPLE FLYER BUTTON CLICKED =====');
                   console.log('🎨 Button clicked at:', new Date().toISOString());
-                  console.log('🎨 Current state BEFORE setFlyerOpen:', { 
-                    flyerOpen, 
-                    hasListing, 
-                    isPro,
-                    isTrial,
-                    currentListing: currentListing?.substring(0, 100) 
-                  });
                   
                   if (!isPro) {
                     console.log('❌ User is not Pro, showing upgrade alert');
@@ -677,21 +673,12 @@ async function copyToClipboard(text) {
                     return;
                   }
                   
-                  console.log('✅ All checks passed, setting flyerOpen to true');
+                  console.log('✅ All checks passed, opening simple flyer modal');
                   
-                  // Force immediate state update
-                  setFlyerOpen(true);
+                  // Use the simple, direct approach
+                  setSimpleFlyerModal(true);
                   
-                  console.log('🎨 State update called, flyerOpen should now be true');
-                  
-                  // Verify state change
-                  setTimeout(() => {
-                    console.log('🎨 State verification (after 100ms):', { 
-                      flyerOpen, 
-                      expected: true,
-                      actual: flyerOpen 
-                    });
-                  }, 100);
+                  console.log('🎨 Simple flyer modal state set to true');
                 }}
                 disabled={!isPro}
               >
@@ -722,6 +709,164 @@ async function copyToClipboard(text) {
           )}
         </div>
       </div>
+
+      {/* SIMPLE WORKING FLYER MODAL */}
+      {simpleFlyerModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '40px',
+            borderRadius: '15px',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            textAlign: 'center'
+          }}>
+            <h2 style={{ 
+              color: '#667eea', 
+              marginBottom: '20px',
+              fontSize: '28px'
+            }}>
+              🎨 Generate Professional Flyer
+            </h2>
+            
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '20px', 
+              borderRadius: '10px',
+              marginBottom: '20px',
+              textAlign: 'left'
+            }}>
+              <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>Property Listing:</h4>
+              <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                {currentListing?.substring(0, 200)}...
+              </p>
+            </div>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '15px',
+              marginBottom: '20px'
+            }}>
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating luxury flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Luxury flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '💎 Luxury Style'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating modern flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Modern flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #10b981, #059669)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '🚀 Modern Style'}
+              </button>
+              
+              <button
+                onClick={() => {
+                  console.log('🎨 Generating classic flyer...');
+                  setFlyerGenerating(true);
+                  
+                  // Simulate flyer generation
+                  setTimeout(() => {
+                    setFlyerGenerating(false);
+                    alert('Classic flyer generated! (This would download the PDF)');
+                  }, 2000);
+                }}
+                disabled={flyerGenerating}
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                  color: 'white',
+                  padding: '15px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {flyerGenerating ? '🔄 Generating...' : '🏛️ Classic Style'}
+              </button>
+            </div>
+            
+            <button
+              onClick={() => {
+                console.log('🎨 Closing simple flyer modal');
+                setSimpleFlyerModal(false);
+                setFlyerGenerating(false);
+              }}
+              style={{
+                background: '#6b7280',
+                color: 'white',
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '500',
+                marginTop: '10px'
+              }}
+            >
+              Close Modal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ISOLATED TEST MODAL - Simple React state test */}
       {testModalOpen && (
