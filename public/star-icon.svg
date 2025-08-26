@@ -1,0 +1,7 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Star shape -->
+  <path d="M10 2L12.5 7.5L18 8L13.5 12.5L15 18L10 15L5 18L6.5 12.5L2 8L7.5 7.5L10 2Z" fill="#fbbf24" stroke="#ffffff" stroke-width="0.5"/>
+  
+  <!-- Inner sparkle -->
+  <path d="M10 6L11 9L14 10L11 11L10 14L9 11L6 10L9 9L10 6Z" fill="#ffffff" opacity="0.8"/>
+</svg>

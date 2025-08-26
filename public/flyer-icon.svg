@@ -1,25 +1,17 @@
-<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background circle with gradient -->
-  <defs>
-    <linearGradient id="flyerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
   <!-- Main flyer shape -->
-  <path d="M4 2C2.89543 2 2 2.89543 2 4V20C2 21.1046 2.89543 22 4 22H20C21.1046 22 22 21.1046 22 20V4C22 2.89543 21.1046 2 20 2H4Z" fill="url(#flyerGradient)" stroke="#ffffff" stroke-width="1.5"/>
+  <path d="M3 2C2.44772 2 2 2.44772 2 3V17C2 17.5523 2.44772 18 3 18H17C17.5523 18 18 17.5523 18 17V3C18 2.44772 17.5523 2 17 2H3Z" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
   
   <!-- Content lines representing text -->
-  <rect x="6" y="6" width="12" height="2" rx="1" fill="#ffffff" opacity="0.9"/>
-  <rect x="6" y="10" width="8" height="2" rx="1" fill="#ffffff" opacity="0.7"/>
-  <rect x="6" y="14" width="10" height="2" rx="1" fill="#ffffff" opacity="0.8"/>
-  <rect x="6" y="18" width="6" height="2" rx="1" fill="#ffffff" opacity="0.6"/>
+  <rect x="4" y="5" width="10" height="1.5" rx="0.75" fill="#667eea" opacity="0.9"/>
+  <rect x="4" y="8" width="7" height="1.5" rx="0.75" fill="#667eea" opacity="0.7"/>
+  <rect x="4" y="11" width="9" height="1.5" rx="0.75" fill="#667eea" opacity="0.8"/>
+  <rect x="4" y="14" width="5" height="1.5" rx="0.75" fill="#667eea" opacity="0.6"/>
   
   <!-- Decorative elements -->
-  <circle cx="18" cy="8" r="2" fill="#ffffff" opacity="0.8"/>
-  <path d="M16 16L18 18L20 16" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="15" cy="6" r="1.5" fill="#667eea" opacity="0.8"/>
+  <path d="M13 13L15 15L17 13" stroke="#667eea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
   
   <!-- Sparkle effect -->
-  <path d="M8 4L8.5 5.5L10 6L8.5 6.5L8 8L7.5 6.5L6 6L7.5 5.5L8 4Z" fill="#ffffff" opacity="0.9"/>
+  <path d="M6 3L6.5 4.5L8 5L6.5 5.5L6 7L5.5 5.5L4 5L5.5 4.5L6 3Z" fill="#667eea" opacity="0.9"/>
 </svg>

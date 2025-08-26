@@ -1,0 +1,15 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Main document shape -->
+  <path d="M3 2C2.44772 2 2 2.44772 2 3V13C2 13.5523 2.44772 14 3 14H7V18C7 18.5523 7.44772 19 8 19H16C16.5523 19 17 18.5523 17 18V8C17 7.44772 16.5523 7 16 7H12V3C12 2.44772 11.5523 2 11 2H3Z" fill="#10b981" stroke="#ffffff" stroke-width="1"/>
+  
+  <!-- Content lines representing text -->
+  <rect x="4" y="4" width="6" height="1.5" rx="0.75" fill="#ffffff" opacity="0.9"/>
+  <rect x="4" y="6.5" width="4" height="1.5" rx="0.75" fill="#ffffff" opacity="0.7"/>
+  <rect x="4" y="9" width="5" height="1.5" rx="0.75" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Copy indicator -->
+  <path d="M9 4H15C15.5523 4 16 4.44772 16 5V15C16 15.5523 15.5523 16 15 16H9C8.44772 16 8 15.5523 8 15V5C8 4.44772 8.44772 4 9 4Z" fill="#10b981" stroke="#ffffff" stroke-width="1" opacity="0.8"/>
+  
+  <!-- Copy symbol -->
+  <path d="M10 7H14M10 9H14M10 11H13" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+</svg>

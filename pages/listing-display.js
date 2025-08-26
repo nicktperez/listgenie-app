@@ -102,96 +102,105 @@ export default function ListingDisplayPage() {
       setFlyerGenerating(true);
       console.log('🎨 Generating comprehensive flyer with user data:', flyerData);
       
-      // Prepare the data for the flyer engine
-      const flyerRequestData = {
-        style: flyerData.style,
-        flyerType: flyerType, // 'listing' or 'openhouse'
-        propertyInfo: {
-          address: flyerData.address,
-          propertyType: flyerData.propertyType || 'Residential Property',
-          bedrooms: flyerData.bedrooms || 'Contact for details',
-          bathrooms: flyerData.bathrooms || 'Contact for details',
-          sqft: flyerData.sqft || 'Contact for details',
-          price: flyerData.price || 'Contact for pricing',
-          features: flyerData.features ? flyerData.features.split('\n').filter(f => f.trim()) : [],
-          openHouseDate: flyerData.openHouseDate || '',
-          openHouseTime: flyerData.openHouseTime || ''
-        },
-        agentInfo: {
-          name: flyerData.agentName || 'Professional Agent',
-          agency: flyerData.agency || 'Premier Real Estate',
-          phone: flyerData.agentPhone || 'Contact for details',
-          email: flyerData.agentEmail || 'agent@premiere.com'
-        },
-        photos: flyerData.photos || []
-      };
-
-      console.log('🎨 Sending flyer request:', flyerRequestData);
+      // Handle both flyer types if selected
+      const flyerTypes = flyerType === 'both' ? ['listing', 'openhouse'] : [flyerType];
       
-      // Call the actual flyer engine
-      const response = await fetch('/api/flyer', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(flyerRequestData),
-      });
+      for (const currentFlyerType of flyerTypes) {
+        console.log(`🎨 Generating ${currentFlyerType} flyer...`);
+        
+        // Prepare the data for the flyer engine
+        const flyerRequestData = {
+          style: flyerData.style,
+          flyerType: currentFlyerType,
+          propertyInfo: {
+            address: flyerData.address,
+            propertyType: flyerData.propertyType || 'Residential Property',
+            bedrooms: flyerData.bedrooms || 'Contact for details',
+            bathrooms: flyerData.bathrooms || 'Contact for details',
+            sqft: flyerData.sqft || 'Contact for details',
+            price: flyerData.price || 'Contact for pricing',
+            features: flyerData.features ? flyerData.features.split('\n').filter(f => f.trim()) : [],
+            openHouseDate: flyerData.openHouseDate || '',
+            openHouseTime: flyerData.openHouseTime || ''
+          },
+          agentInfo: {
+            name: flyerData.agentName || 'Professional Agent',
+            agency: flyerData.agency || 'Premier Real Estate',
+            phone: flyerData.agentPhone || 'Contact for details',
+            email: flyerData.agentEmail || 'agent@premiere.com'
+          },
+          photos: flyerData.photos || []
+        };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+              console.log('🎨 Sending flyer request:', flyerRequestData);
+        
+        // Call the actual flyer engine
+        const response = await fetch('/api/flyer', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(flyerRequestData),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('🎨 Flyer generation result:', result);
+        
+        if (result.success) {
+          // Create and download the flyer
+          const flyerHTML = result.flyer.html;
+          const flyerCSS = result.flyer.css;
+          
+          // Create a complete HTML document
+          const fullHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>${currentFlyerType === 'openhouse' ? 'Open House' : 'Property Listing'} Flyer - ${flyerData.address}</title>
+              <style>${flyerCSS}</style>
+            </head>
+            <body>
+              ${flyerHTML}
+            </body>
+            </html>
+          `;
+          
+          // Create blob and download
+          const blob = new Blob([fullHTML], { type: 'text/html' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const timestamp = new Date().toISOString().split('T')[0];
+          const fileName = `${currentFlyerType}-flyer-${flyerData.address.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.html`;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          console.log(`✅ ${currentFlyerType} flyer generated successfully!`);
+        } else {
+          throw new Error(result.error || `Failed to generate ${currentFlyerType} flyer`);
+        }
       }
-
-      const result = await response.json();
-      console.log('🎨 Flyer generation result:', result);
       
-      if (result.success) {
-        // Create and download the flyer
-        const flyerHTML = result.flyer.html;
-        const flyerCSS = result.flyer.css;
-        
-        // Create a complete HTML document
-        const fullHTML = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>${flyerType === 'openhouse' ? 'Open House' : 'Property Listing'} Flyer - ${flyerData.address}</title>
-            <style>${flyerCSS}</style>
-          </head>
-          <body>
-            ${flyerHTML}
-          </body>
-          </html>
-        `;
-        
-        // Create blob and download
-        const blob = new Blob([fullHTML], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        const timestamp = new Date().toISOString().split('T')[0];
-        const fileName = `${flyerType}-flyer-${flyerData.address.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.html`;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        alert(`${flyerType === 'openhouse' ? 'Open House' : 'Property Listing'} flyer generated successfully! Downloading now...`);
-        
-        // Close the modal after successful generation
-        setSimpleFlyerModal(false);
-      } else {
-        throw new Error(result.error || 'Failed to generate flyer');
-      }
-    } catch (error) {
-      console.error('❌ Error generating flyer:', error);
-      alert(`Error generating flyer: ${error.message}`);
-    } finally {
-      setFlyerGenerating(false);
-    }
-  };
+      alert(`${flyerType === 'both' ? 'Both flyers' : flyerType === 'listing' ? 'Property listing' : 'Open house'} generated successfully! Downloading now...`);
+      
+             // Close the modal after successful generation
+       setSimpleFlyerModal(false);
+     } catch (error) {
+       console.error('❌ Error generating flyer:', error);
+       alert(`Error generating flyer: ${error.message}`);
+     } finally {
+       setFlyerGenerating(false);
+     }
+   };
 
   const handleEnhancedFlyerGeneration = async (flyerData) => {
     try {
@@ -321,13 +330,66 @@ export default function ListingDisplayPage() {
         </div>
 
         <div className="listing-actions">
-          <button className="copy-listing-btn" onClick={handleCopyListing}>
-            📋 Copy Listing
+          <button 
+            className="copy-listing-btn" 
+            onClick={handleCopyListing}
+            style={{
+              padding: '12px 24px',
+              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '600',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+            }}
+          >
+            <img src="/copy-icon.svg" alt="Copy" style={{ width: '20px', height: '20px', verticalAlign: 'middle' }} />
+            Copy Listing
           </button>
           
           {isPro && (
-            <button className="flyer-generation-btn" onClick={handleGenerateFlyer}>
-              <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '20px', height: '20px', marginRight: '8px', verticalAlign: 'middle' }} />
+            <button 
+              className="flyer-generation-btn" 
+              onClick={handleGenerateFlyer}
+              style={{
+                padding: '12px 24px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: '600',
+                transition: 'all 0.3s ease',
+                boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '20px', height: '20px', verticalAlign: 'middle' }} />
               Generate Flyer
             </button>
           )}
@@ -363,15 +425,17 @@ export default function ListingDisplayPage() {
           padding: '20px'
         }}>
           <div style={{
-            background: 'white',
-            color: 'black',
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+            color: 'white',
             padding: '40px',
             borderRadius: '20px',
-            maxWidth: '800px',
+            maxWidth: '900px',
             width: '90%',
             maxHeight: '90vh',
             overflow: 'auto',
-            textAlign: 'left'
+            textAlign: 'left',
+            border: '2px solid #667eea',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.8)'
           }}>
             <div style={{ 
               display: 'flex', 
@@ -381,99 +445,170 @@ export default function ListingDisplayPage() {
               borderBottom: '2px solid #667eea',
               paddingBottom: '20px'
             }}>
-              <h2 style={{ 
-                color: '#667eea', 
-                margin: 0, 
-                fontSize: '28px',
-                fontWeight: '700'
-              }}>
-                🎨 Create Professional Real Estate Flyer
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <img src="/palette-icon.svg" alt="Palette" style={{ width: '28px', height: '28px' }} />
+                <h2 style={{ 
+                  color: 'white', 
+                  margin: 0, 
+                  fontSize: '28px',
+                  fontWeight: '700'
+                }}>
+                  Create Professional Real Estate Flyer
+                </h2>
+              </div>
               <button
                 onClick={() => setSimpleFlyerModal(false)}
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '8px',
                   fontSize: '24px',
                   cursor: 'pointer',
-                  color: '#666',
-                  padding: '5px'
+                  color: 'white',
+                  width: '40px',
+                  height: '40px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                 }}
               >
-                ✕
+                ×
               </button>
             </div>
 
             {/* Flyer Type Selection */}
             <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ color: '#333', marginBottom: '15px' }}>📋 What type of flyer do you need?</h3>
+              <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/copy-icon.svg" alt="Document" style={{ width: '20px', height: '20px' }} />
+                What type of flyer do you need?
+              </h3>
               <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setFlyerType('listing')}
                   style={{
-                    background: flyerType === 'listing' ? '#667eea' : '#f8f9fa',
-                    color: flyerType === 'listing' ? 'white' : '#333',
-                    border: `2px solid ${flyerType === 'listing' ? '#667eea' : '#ddd'}`,
+                    background: flyerType === 'listing' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerType === 'listing' ? 'white' : 'white',
+                    border: `2px solid ${flyerType === 'listing' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '15px 25px',
                     borderRadius: '12px',
                     cursor: 'pointer',
                     fontSize: '16px',
                     fontWeight: '600',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  🏠 Property Listing Flyer
+                  <img src="/house-icon.svg" alt="House" style={{ width: '20px', height: '20px' }} />
+                  Property Listing Flyer
                 </button>
                 <button
                   onClick={() => setFlyerType('openhouse')}
                   style={{
-                    background: flyerType === 'openhouse' ? '#667eea' : '#f8f9fa',
-                    color: flyerType === 'openhouse' ? 'white' : '#333',
-                    border: `2px solid ${flyerType === 'openhouse' ? '#667eea' : '#ddd'}`,
+                    background: flyerType === 'openhouse' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerType === 'openhouse' ? 'white' : 'white',
+                    border: `2px solid ${flyerType === 'openhouse' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '15px 25px',
                     borderRadius: '12px',
                     cursor: 'pointer',
                     fontSize: '16px',
                     fontWeight: '600',
-                    transition: 'all 0.3s ease'
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                   }}
                 >
-                  🗓️ Open House Flyer
+                  <img src="/calendar-icon.svg" alt="Calendar" style={{ width: '20px', height: '20px' }} />
+                  Open House Flyer
+                </button>
+                <button
+                  onClick={() => setFlyerType('both')}
+                  style={{
+                    background: flyerType === 'both' ? '#10b981' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerType === 'both' ? 'white' : 'white',
+                    border: `2px solid ${flyerType === 'both' ? '#10b981' : 'rgba(255, 255, 255, 0.3)'}`,
+                    padding: '15px 25px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <img src="/star-icon.svg" alt="Star" style={{ width: '20px', height: '20px' }} />
+                  Both Flyers
                 </button>
               </div>
             </div>
 
             {/* Property Details Form */}
             <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ color: '#333', marginBottom: '15px' }}>🏡 Property Details</h3>
+              <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/house-icon.svg" alt="House" style={{ width: '20px', height: '20px' }} />
+                Property Details
+              </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Property Address</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Property Address</label>
                   <input
                     type="text"
                     placeholder="123 Main Street, City, State"
-                    value={flyerData.address || ''}
+                    value={flyerData.address || listing?.address || ''}
                     onChange={(e) => setFlyerData({...flyerData, address: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Property Type</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Property Type</label>
                   <select
-                    value={flyerData.propertyType || ''}
+                    value={flyerData.propertyType || listing?.propertyType || ''}
                     onChange={(e) => setFlyerData({...flyerData, propertyType: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   >
                     <option value="">Select Property Type</option>
@@ -486,66 +621,110 @@ export default function ListingDisplayPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Bedrooms</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Bedrooms</label>
                   <input
                     type="number"
                     placeholder="3"
-                    value={flyerData.bedrooms || ''}
+                    value={flyerData.bedrooms || listing?.bedrooms || ''}
                     onChange={(e) => setFlyerData({...flyerData, bedrooms: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Bathrooms</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Bathrooms</label>
                   <input
                     type="number"
                     placeholder="2"
-                    value={flyerData.bathrooms || ''}
+                    value={flyerData.bathrooms || listing?.bathrooms || ''}
                     onChange={(e) => setFlyerData({...flyerData, bathrooms: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Square Feet</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Square Feet</label>
                   <input
                     type="number"
                     placeholder="2,000"
-                    value={flyerData.sqft || ''}
+                    value={flyerData.sqft || listing?.sqft || ''}
                     onChange={(e) => setFlyerData({...flyerData, sqft: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Price</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Price</label>
                   <input
                     type="text"
                     placeholder="$500,000"
-                    value={flyerData.price || ''}
+                    value={flyerData.price || listing?.price || ''}
                     onChange={(e) => setFlyerData({...flyerData, price: e.target.value})}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
@@ -554,30 +733,47 @@ export default function ListingDisplayPage() {
 
             {/* Property Features */}
             <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ color: '#333', marginBottom: '15px' }}>✨ Property Features</h3>
+              <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/star-icon.svg" alt="Star" style={{ width: '20px', height: '20px' }} />
+                Property Features
+              </h3>
               <textarea
                 placeholder="Enter key features like: Granite countertops, Hardwood floors, Updated kitchen, Large backyard, Garage, etc."
-                value={flyerData.features || ''}
+                value={flyerData.features || listing?.features || ''}
                 onChange={(e) => setFlyerData({...flyerData, features: e.target.value})}
                 style={{
                   width: '100%',
                   padding: '15px',
-                  border: '2px solid #ddd',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
                   borderRadius: '8px',
                   fontSize: '16px',
                   minHeight: '100px',
-                  resize: 'vertical'
+                  resize: 'vertical',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.border = '2px solid #667eea';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                  e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                 }}
               />
             </div>
 
             {/* Open House Specific Fields */}
-            {flyerType === 'openhouse' && (
+            {(flyerType === 'openhouse' || flyerType === 'both') && (
               <div style={{ marginBottom: '30px' }}>
-                <h3 style={{ color: '#333', marginBottom: '15px' }}>🗓️ Open House Details</h3>
+                <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img src="/calendar-icon.svg" alt="Calendar" style={{ width: '20px', height: '20px' }} />
+                  Open House Details
+                </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Date</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Date</label>
                     <input
                       type="date"
                       value={flyerData.openHouseDate || ''}
@@ -585,14 +781,25 @@ export default function ListingDisplayPage() {
                       style={{
                         width: '100%',
                         padding: '12px',
-                        border: '2px solid #ddd',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
                         borderRadius: '8px',
-                        fontSize: '16px'
+                        fontSize: '16px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #667eea';
+                        e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                        e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                       }}
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Time</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Time</label>
                     <input
                       type="time"
                       value={flyerData.openHouseTime || ''}
@@ -600,9 +807,20 @@ export default function ListingDisplayPage() {
                       style={{
                         width: '100%',
                         padding: '12px',
-                        border: '2px solid #ddd',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
                         borderRadius: '8px',
-                        fontSize: '16px'
+                        fontSize: '16px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.border = '2px solid #667eea';
+                        e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                        e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                       }}
                     />
                   </div>
@@ -794,7 +1012,7 @@ export default function ListingDisplayPage() {
                 onClick={handleFlyerGeneration}
                 disabled={flyerGenerating || !flyerData.style || !flyerData.address}
                 style={{
-                  background: (!flyerData.style || !flyerData.address) ? '#ccc' : '#667eea',
+                  background: (!flyerData.style || !flyerData.address) ? 'rgba(255, 255, 255, 0.2)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                   color: 'white',
                   border: 'none',
                   padding: '18px 40px',
@@ -803,10 +1021,36 @@ export default function ListingDisplayPage() {
                   fontWeight: '700',
                   cursor: (!flyerData.style || !flyerData.address) ? 'not-allowed' : 'pointer',
                   transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+                  boxShadow: (!flyerData.style || !flyerData.address) ? 'none' : '0 8px 25px rgba(102, 126, 234, 0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  margin: '0 auto'
+                }}
+                onMouseEnter={(e) => {
+                  if (flyerData.style && flyerData.address) {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 12px 30px rgba(102, 126, 234, 0.5)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (flyerData.style && flyerData.address) {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+                  }
                 }}
               >
-                {flyerGenerating ? '🎨 Generating Flyer...' : '🚀 Generate Professional Flyer'}
+                {flyerGenerating ? (
+                  <>
+                    <img src="/palette-icon.svg" alt="Palette" style={{ width: '24px', height: '24px' }} />
+                    Generating Flyer...
+                  </>
+                ) : (
+                  <>
+                    <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '24px', height: '24px' }} />
+                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} Flyer
+                  </>
+                )}
               </button>
             </div>
           </div>
