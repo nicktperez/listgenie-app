@@ -37,6 +37,9 @@ export default function ChatPage() {
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
+  // ISOLATED TEST STATE - Completely separate from flyer logic
+  const [testModalOpen, setTestModalOpen] = useState(false);
+
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -528,40 +531,100 @@ async function copyToClipboard(text) {
                 Last update: {new Date().toLocaleTimeString()}
               </div>
               
-              {/* Test Button */}
+              {/* ISOLATED REACT STATE TEST */}
               <button
                 style={{
-                  background: 'red',
+                  background: 'purple',
                   color: 'white',
-                  padding: '10px',
+                  padding: '15px',
                   marginBottom: '10px',
                   borderRadius: '5px',
                   border: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
                 }}
                 onClick={() => {
-                  console.log('🧪 TEST BUTTON CLICKED');
-                  console.log('🧪 Before setFlyerOpen, flyerOpen =', flyerOpen);
+                  console.log('🟣 ISOLATED REACT TEST BUTTON CLICKED');
+                  console.log('🟣 Current testModalOpen state:', testModalOpen);
+                  console.log('🟣 Setting testModalOpen to true...');
                   
-                  // Force state update
-                  setFlyerOpen(prev => {
-                    console.log('🧪 setFlyerOpen called with prev =', prev);
-                    const newValue = true;
-                    console.log('🧪 Setting flyerOpen to:', newValue);
-                    return newValue;
-                  });
+                  setTestModalOpen(true);
                   
-                  // Check state after a few renders
+                  console.log('🟣 setTestModalOpen(true) called');
+                  
+                  // Check state after a delay
                   setTimeout(() => {
-                    console.log('🧪 After 100ms timeout, flyerOpen =', flyerOpen);
+                    console.log('🟣 After 100ms, testModalOpen =', testModalOpen);
                   }, 100);
-                  
-                  setTimeout(() => {
-                    console.log('🧪 After 500ms timeout, flyerOpen =', flyerOpen);
-                  }, 500);
                 }}
               >
-                🧪 TEST: Set flyerOpen to true
+                🟣 ISOLATED TEST: React State Only
+              </button>
+              
+              {/* Simple Test Button - Bypass all complex state */}
+              <button
+                style={{
+                  background: 'green',
+                  color: 'white',
+                  padding: '15px',
+                  marginBottom: '10px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold'
+                }}
+                onClick={() => {
+                  console.log('🟢 SIMPLE TEST BUTTON CLICKED');
+                  console.log('🟢 This button should work regardless of state');
+                  
+                  // Force a simple modal to appear
+                  const modal = document.createElement('div');
+                  modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 99999;
+                    background-color: rgba(0, 0, 0, 0.9);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  `;
+                  
+                  modal.innerHTML = `
+                    <div style="
+                      background: white;
+                      color: black;
+                      padding: 40px;
+                      border-radius: 10px;
+                      max-width: 500px;
+                      text-align: center;
+                    ">
+                      <h2>🟢 SIMPLE MODAL TEST!</h2>
+                      <p>This modal was created directly with DOM manipulation</p>
+                      <p>If you see this, modal rendering works!</p>
+                      <button onclick="this.parentElement.parentElement.remove()" style="
+                        background: #10b981;
+                        color: white;
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 20px;
+                      ">
+                        Close Modal
+                      </button>
+                    </div>
+                  `;
+                  
+                  document.body.appendChild(modal);
+                  console.log('🟢 Simple modal added to DOM');
+                }}
+              >
+                🟢 SIMPLE TEST: Create Modal with DOM
               </button>
               
               {/* Force State Button */}
@@ -659,6 +722,52 @@ async function copyToClipboard(text) {
           )}
         </div>
       </div>
+
+      {/* ISOLATED TEST MODAL - Simple React state test */}
+      {testModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 99999,
+          backgroundColor: 'rgba(128, 0, 128, 0.9)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '40px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            textAlign: 'center'
+          }}>
+            <h2>🟣 ISOLATED REACT MODAL!</h2>
+            <p>This modal uses isolated React state: testModalOpen = {testModalOpen ? 'TRUE' : 'FALSE'}</p>
+            <p>If you see this, React state management works!</p>
+            <button
+              onClick={() => {
+                console.log('🟣 Closing isolated test modal');
+                setTestModalOpen(false);
+              }}
+              style={{
+                background: '#8b5cf6',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Close Isolated Modal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Test Modal - Enhanced debugging */}
       {(() => {
