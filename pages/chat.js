@@ -37,20 +37,6 @@ export default function ChatPage() {
   const [showFlyerPreview, setShowFlyerPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
 
-  // Debug state changes
-  useEffect(() => {
-    console.log('🔍 FLYER STATE CHANGED:', { flyerOpen, flyerGenerating, hasListing, isPro });
-  }, [flyerOpen, flyerGenerating, hasListing, isPro]);
-
-  // Debug currentListing changes
-  useEffect(() => {
-    console.log('📝 CURRENT LISTING CHANGED:', { 
-      currentListing: currentListing?.substring(0, 100), 
-      hasListing, 
-      type: typeof currentListing 
-    });
-  }, [currentListing, hasListing]);
-
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
   const [questions, setQuestions] = useState([]);
@@ -63,6 +49,20 @@ export default function ChatPage() {
   const [currentListing, setCurrentListing] = useState("");
   const [hasListing, setHasListing] = useState(false);
   const [originalInput, setOriginalInput] = useState("");
+
+  // Debug state changes - MOVED HERE after variables are declared
+  useEffect(() => {
+    console.log('🔍 FLYER STATE CHANGED:', { flyerOpen, flyerGenerating, hasListing, isPro });
+  }, [flyerOpen, flyerGenerating, hasListing, isPro]);
+
+  // Debug currentListing changes - MOVED HERE after variables are declared
+  useEffect(() => {
+    console.log('📝 CURRENT LISTING CHANGED:', { 
+      currentListing: currentListing?.substring(0, 100), 
+      hasListing, 
+      type: typeof currentListing 
+    });
+  }, [currentListing, hasListing]);
 
   // Refs
   const composerRef = useRef(null);
