@@ -1930,80 +1930,53 @@ input[class*="cl-"]::placeholder, textarea[class*="cl-"]::placeholder {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
 }
 
-.flyer-modal {
-  background: #1f2937;
+/* Ensure EnhancedFlyerModal is visible */
+[data-testid="enhanced-flyer-modal"],
+.enhanced-flyer-modal {
+  z-index: 10000 !important;
+  position: relative !important;
+}
+
+/* AI Listing Generator Section */
+.ai-listing-generator-section {
+  text-align: center;
+  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
-  overflow: hidden;
+  margin-bottom: 30px;
+  backdrop-filter: blur(10px);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.flyer-modal-header {
-  padding: 20px 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.ai-listing-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 15px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.flyer-modal-header h3 {
-  margin: 0;
-  color: white;
-  font-size: 20px;
-  font-weight: 600;
+.ai-listing-subtitle {
+  font-size: 1.1rem;
+  color: #e2e8f0;
+  margin-bottom: 30px;
+  opacity: 0.9;
 }
 
-.flyer-modal-header button {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s ease;
+.chat-input-section {
+  margin-top: 30px;
 }
 
-.flyer-modal-header button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.flyer-modal-body {
-  padding: 24px;
-  color: #d1d5db;
-  line-height: 1.6;
-}
-
-.copy-listing-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  align-self: center;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
-}
-
-.copy-listing-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
-}
+/* Chat Page Styling */

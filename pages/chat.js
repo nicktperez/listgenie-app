@@ -429,19 +429,23 @@ export default function ChatPage() {
 
   return (
     <div className="chat-page">
-      <ChatHeader />
-      
-      <div className="chat-content">
-        <div className="chat-wrap">
-          <div className="ai-chat-section">
-            <h1 className="ai-chat-title">AI Listing Generator</h1>
-            <p className="ai-chat-subtitle">Describe your property and let AI create professional listings</p>
+      <div className="chat-container">
+        <ChatHeader />
+        
+        <div className="chat-content">
+          {/* Centered AI Listing Generator Section */}
+          <div className="ai-listing-generator-section">
+            <h1 className="ai-listing-title">AI Listing Generator</h1>
+            <p className="ai-listing-subtitle">Describe your property and let AI create professional listings</p>
+            
             {!isListingMode && (
               <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
             )}
+            
             <div className="chat-input-section">
               <Composer ref={composerRef} onSend={handleSend} loading={loading} />
             </div>
+            
             {loading && (
               <div className="generating-animation">
                 <div className="generating-dots">
@@ -452,66 +456,98 @@ export default function ChatPage() {
                 <div className="generating-text">Generating...</div>
               </div>
             )}
-            
-            {/* Flyer Generation Button - Only show if user stays on this page */}
-            {hasListing && (
-              <div className="flyer-generation-section">
-                <button
-                  className="flyer-generation-btn"
-                  onClick={() => {
-                    console.log('🎨 Flyer button clicked!');
-                    console.log('🎨 Current state:', { 
-                      flyerOpen, 
-                      hasListing, 
-                      isPro,
-                      isTrial,
-                      currentListing: currentListing?.substring(0, 100) 
-                    });
-                    
-                    if (!isPro) {
-                      console.log('❌ User is not Pro, showing upgrade alert');
-                      alert("Please upgrade to Pro to generate flyers");
-                      return;
-                    }
-                    
-                    console.log('✅ User is Pro, opening flyer modal...');
-                    setFlyerOpen(true);
-                    console.log('🎨 Flyer modal state set to true');
-                  }}
-                  disabled={!isPro}
-                >
-                  🎨 Generate Flyer {!isPro && '(Upgrade Required)'}
-                </button>
-                {!isPro && (
-                  <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
-                )}
-              </div>
-            )}
-            
-            {/* Debug info - only show in development */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="debug-info" style={{ 
-                marginTop: '20px', 
-                padding: '15px', 
-                background: 'rgba(0,0,0,0.1)', 
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontFamily: 'monospace'
-              }}>
-                <strong>Debug Info:</strong><br/>
-                hasListing: {hasListing ? 'true' : 'false'}<br/>
-                currentListing: {currentListing ? `"${currentListing.substring(0, 100)}..."` : 'null'}<br/>
-                messages.length: {messages.length}<br/>
-                isPro: {isPro ? 'true' : 'false'}
-              </div>
-            )}
           </div>
+
+          {/* Messages Container */}
+          {messages.length > 0 && (
+            <div className="messages-container">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
+                >
+                  <div className="message-content">
+                    {message.role === 'assistant' && message.content.includes('```') ? (
+                      <div className="code-block">
+                        <pre>
+                          <code>{message.content.replace(/```/g, '')}</code>
+                        </pre>
+                      </div>
+                    ) : (
+                      <div className="text-content">{message.content}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Flyer Generation Button - Only show if user stays on this page */}
+          {hasListing && (
+            <div className="flyer-generation-section">
+              <button
+                className="flyer-generation-btn"
+                onClick={() => {
+                  console.log('🎨 Flyer button clicked!');
+                  console.log('🎨 Current state:', { 
+                    flyerOpen, 
+                    hasListing, 
+                    isPro,
+                    isTrial,
+                    currentListing: currentListing?.substring(0, 100) 
+                  });
+                  
+                  if (!isPro) {
+                    console.log('❌ User is not Pro, showing upgrade alert');
+                    alert("Please upgrade to Pro to generate flyers");
+                    return;
+                  }
+                  
+                  console.log('✅ User is Pro, opening flyer modal...');
+                  setFlyerOpen(true);
+                  console.log('🎨 Flyer modal state set to true');
+                }}
+                disabled={!isPro}
+              >
+                🎨 Generate Flyer {!isPro && '(Upgrade Required)'}
+              </button>
+              {!isPro && (
+                <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
+              )}
+            </div>
+          )}
+          
+          {/* Debug info - only show in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="debug-info" style={{ 
+              marginTop: '20px', 
+              padding: '15px', 
+              background: 'rgba(0,0,0,0.1)', 
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontFamily: 'monospace'
+            }}>
+              <strong>Debug Info:</strong><br/>
+              hasListing: {hasListing ? 'true' : 'false'}<br/>
+              currentListing: {currentListing ? `"${currentListing.substring(0, 100)}..."` : 'null'}<br/>
+              messages.length: {messages.length}<br/>
+              isPro: {isPro ? 'true' : 'false'}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
-        <div>
+        <div style={{ 
+          position: 'fixed', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          zIndex: 9999,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)'
+        }}>
           {console.log('🎨 Rendering EnhancedFlyerModal, flyerOpen:', flyerOpen)}
           <EnhancedFlyerModal
             onClose={() => {
