@@ -269,7 +269,19 @@ export default function ListingDisplayPage() {
             }}>
               <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>Property Listing:</h4>
               <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
-                {listing?.content?.substring(0, 200) || listing?.substring(0, 200) || 'Listing content...'}...
+                {(() => {
+                  let content = '';
+                  if (typeof listing === 'string') {
+                    content = listing;
+                  } else if (listing && typeof listing === 'object' && listing.content) {
+                    content = listing.content;
+                  } else if (listing && typeof listing === 'object' && listing.mls) {
+                    content = listing.mls.headline || listing.mls.body || 'Property listing';
+                  } else {
+                    content = 'Listing content not available';
+                  }
+                  return typeof content === 'string' ? content.substring(0, 200) + '...' : 'Listing content...';
+                })()}
               </p>
             </div>
             
