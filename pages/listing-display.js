@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import PerformanceAnalytics from '../components/PerformanceAnalytics';
 import { useRouter } from 'next/router';
 import { useUser } from '@clerk/nextjs';
 import useUserPlan from '../hooks/useUserPlan';
@@ -12,7 +11,6 @@ export default function ListingDisplayPage() {
   const [listing, setListing] = useState(null);
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerGenerating, setFlyerGenerating] = useState(false);
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
   
   // SIMPLE WORKING FLYER MODAL STATE
   const [simpleFlyerModal, setSimpleFlyerModal] = useState(false);
@@ -95,11 +93,11 @@ export default function ListingDisplayPage() {
       return;
     }
 
-    if (!flyerData.address || !flyerData.style) {
-      alert('Please fill in the property address and select a design style');
-      return;
-    }
+    // Open the modal to collect flyer data
+    setSimpleFlyerModal(true);
+  };
 
+  const handleFlyerGeneration = async () => {
     try {
       setFlyerGenerating(true);
       console.log('🎨 Generating comprehensive flyer with user data:', flyerData);
@@ -329,36 +327,12 @@ export default function ListingDisplayPage() {
           
           {isPro && (
             <button className="flyer-generation-btn" onClick={handleGenerateFlyer}>
-              🎨 Generate Flyer
+              <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '20px', height: '20px', marginRight: '8px', verticalAlign: 'middle' }} />
+              Generate Flyer
             </button>
           )}
           
-          <button 
-            className="analytics-btn" 
-            onClick={() => setAnalyticsOpen(true)}
-            style={{
-              padding: '12px 24px',
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: '600',
-              transition: 'all 0.3s ease',
-              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-2px)';
-              e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
-            }}
-          >
-            📊 Analytics Dashboard
-          </button>
+
           
           {!isPro && (
             <div className="upgrade-notice">
@@ -371,11 +345,7 @@ export default function ListingDisplayPage() {
         </div>
       </div>
 
-      {/* Performance Analytics Dashboard */}
-      <PerformanceAnalytics 
-        isOpen={analyticsOpen} 
-        onClose={() => setAnalyticsOpen(false)} 
-      />
+
 
       {/* COMPREHENSIVE FLYER CREATION WIZARD */}
       {simpleFlyerModal && (
@@ -821,7 +791,7 @@ export default function ListingDisplayPage() {
             {/* Generate Button */}
             <div style={{ textAlign: 'center', marginTop: '40px' }}>
               <button
-                onClick={handleGenerateFlyer}
+                onClick={handleFlyerGeneration}
                 disabled={flyerGenerating || !flyerData.style || !flyerData.address}
                 style={{
                   background: (!flyerData.style || !flyerData.address) ? '#ccc' : '#667eea',

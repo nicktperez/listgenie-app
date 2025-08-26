@@ -1,16 +1,46 @@
 // pages/admin/index.js
 import { useEffect, useMemo, useState } from "react";
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import PerformanceAnalytics from "../../components/PerformanceAnalytics";
 
 const ENV_TOKEN = process.env.NEXT_PUBLIC_ADMIN_TOKEN || "";
 
 export default function AdminPage() {
   return (
     <div className="chat-wrap">
-      <h1 className="chat-title" style={{ marginBottom: 8 }}>Admin Dashboard</h1>
-      <p className="chat-sub" style={{ marginBottom: 12 }}>
-        Protected by ADMIN_TOKEN. Set <code>ADMIN_TOKEN</code> and <code>NEXT_PUBLIC_ADMIN_TOKEN</code> (same value) in Vercel.
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div>
+          <h1 className="chat-title" style={{ marginBottom: 8 }}>Admin Dashboard</h1>
+          <p className="chat-sub" style={{ marginBottom: 0 }}>
+            Protected by ADMIN_TOKEN. Set <code>ADMIN_TOKEN</code> and <code>NEXT_PUBLIC_ADMIN_TOKEN</code> (same value) in Vercel.
+          </p>
+        </div>
+        <button
+          onClick={() => setAnalyticsOpen(true)}
+          style={{
+            padding: '12px 24px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: '600',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'translateY(-2px)';
+            e.target.style.boxShadow = '0 6px 20px rgba(16, 185, 129, 0.4)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+          }}
+        >
+          📊 Analytics Dashboard
+        </button>
+      </div>
 
       <SignedOut>
         <div className="card" style={{ padding: 16 }}>
@@ -70,6 +100,7 @@ function AdminInner() {
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
   const [Toast, showToast] = useToast();
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
 
   // Load q & page from URL on first render
   useEffect(() => {
@@ -327,6 +358,12 @@ function AdminInner() {
           </div>
         </div>
       </div>
+
+      {/* Performance Analytics Dashboard */}
+      <PerformanceAnalytics 
+        isOpen={analyticsOpen} 
+        onClose={() => setAnalyticsOpen(false)} 
+      />
 
       {Toast}
     </>
