@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useUser } from '@clerk/nextjs';
 import useUserPlan from '../hooks/useUserPlan';
+import EnhancedFlyerModal from '../components/chat/EnhancedFlyerModal';
 
 export default function ListingDisplayPage() {
   const router = useRouter();
@@ -71,6 +72,54 @@ export default function ListingDisplayPage() {
       return;
     }
     setFlyerOpen(true);
+  };
+
+  const handleEnhancedFlyerGeneration = async (flyerData) => {
+    try {
+      setFlyerGenerating(true);
+      
+      const response = await fetch('/api/flyer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...flyerData,
+          listing: listing
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Download the generated PDF
+        const link = document.createElement('a');
+        link.href = result.pdfUrl;
+        link.download = `professional-flyer-${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setFlyerOpen(false);
+        alert('Flyer generated successfully! Downloading now...');
+      } else {
+        throw new Error(result.error || 'Failed to generate flyer');
+      }
+    } catch (error) {
+      console.error('Error generating flyer:', error);
+      alert(`Error generating flyer: ${error.message}`);
+    } finally {
+      setFlyerGenerating(false);
+    }
+  };
+
+  const handleFlyerPreview = (previewData) => {
+    // Handle flyer preview if needed
+    console.log('Flyer preview:', previewData);
   };
 
   const handleBackToChat = () => {
@@ -174,20 +223,15 @@ export default function ListingDisplayPage() {
         </div>
       </div>
 
-      {/* Flyer Modal would go here */}
+      {/* Enhanced Flyer Modal */}
       {flyerOpen && (
-        <div className="flyer-modal-overlay">
-          <div className="flyer-modal">
-            <div className="flyer-modal-header">
-              <h3>Generate Professional Flyer</h3>
-              <button onClick={() => setFlyerOpen(false)}>✕</button>
-            </div>
-            <div className="flyer-modal-body">
-              <p>Flyer generation modal will be implemented here.</p>
-              <p>This is a placeholder for the enhanced flyer modal.</p>
-            </div>
-          </div>
-        </div>
+        <EnhancedFlyerModal
+          onClose={() => setFlyerOpen(false)}
+          onGenerate={handleEnhancedFlyerGeneration}
+          listing={listing}
+          loading={flyerGenerating}
+          onPreview={handleFlyerPreview}
+        />
       )}
     </div>
   );
