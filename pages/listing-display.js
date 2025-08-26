@@ -292,15 +292,84 @@ export default function ListingDisplayPage() {
               marginBottom: '20px'
             }}>
               <button
-                onClick={() => {
-                  console.log('🎨 Generating luxury flyer...');
-                  setFlyerGenerating(true);
-                  
-                  // Simulate flyer generation
-                  setTimeout(() => {
+                onClick={async () => {
+                  try {
+                    setFlyerGenerating(true);
+                    console.log('🎨 Generating luxury flyer with professional engine...');
+                    
+                    // Call the actual flyer engine
+                    const response = await fetch('/api/flyer', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        style: 'luxury-real-estate',
+                        listing: listing,
+                        propertyInfo: {
+                          headline: listing?.mls?.headline || 'Luxury Property',
+                          description: listing?.mls?.body || listing?.content || 'Exceptional property details',
+                          features: listing?.mls?.bullets || ['Premium features', 'Luxury amenities'],
+                          price: 'Contact for pricing'
+                        },
+                        agentInfo: {
+                          name: 'Professional Agent',
+                          agency: 'Premier Real Estate',
+                          phone: 'Contact for details',
+                          email: 'agent@premiere.com'
+                        }
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('🎨 Flyer generation result:', result);
+                    
+                    if (result.success) {
+                      // Create and download the flyer
+                      const flyerHTML = result.flyer.html;
+                      const flyerCSS = result.flyer.css;
+                      
+                      // Create a complete HTML document
+                      const fullHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <meta charset="UTF-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <title>Luxury Real Estate Flyer</title>
+                          <style>${flyerCSS}</style>
+                        </head>
+                        <body>
+                          ${flyerHTML}
+                        </body>
+                        </html>
+                      `;
+                      
+                      // Create blob and download
+                      const blob = new Blob([fullHTML], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `luxury-flyer-${Date.now()}.html`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      
+                      alert('Luxury flyer generated successfully! Downloading now...');
+                    } else {
+                      throw new Error(result.error || 'Failed to generate flyer');
+                    }
+                  } catch (error) {
+                    console.error('❌ Error generating luxury flyer:', error);
+                    alert(`Error generating flyer: ${error.message}`);
+                  } finally {
                     setFlyerGenerating(false);
-                    alert('Luxury flyer generated! (This would download the PDF)');
-                  }, 2000);
+                  }
                 }}
                 disabled={flyerGenerating}
                 style={{
@@ -319,15 +388,84 @@ export default function ListingDisplayPage() {
               </button>
               
               <button
-                onClick={() => {
-                  console.log('🎨 Generating modern flyer...');
-                  setFlyerGenerating(true);
-                  
-                  // Simulate flyer generation
-                  setTimeout(() => {
+                onClick={async () => {
+                  try {
+                    setFlyerGenerating(true);
+                    console.log('🎨 Generating modern flyer with professional engine...');
+                    
+                    // Call the actual flyer engine
+                    const response = await fetch('/api/flyer', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        style: 'modern-contemporary',
+                        listing: listing,
+                        propertyInfo: {
+                          headline: listing?.mls?.headline || 'Modern Property',
+                          description: listing?.mls?.body || listing?.content || 'Contemporary property details',
+                          features: listing?.mls?.bullets || ['Modern features', 'Contemporary amenities'],
+                          price: 'Contact for pricing'
+                        },
+                        agentInfo: {
+                          name: 'Professional Agent',
+                          agency: 'Premier Real Estate',
+                          phone: 'Contact for details',
+                          email: 'agent@premiere.com'
+                        }
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('🎨 Flyer generation result:', result);
+                    
+                    if (result.success) {
+                      // Create and download the flyer
+                      const flyerHTML = result.flyer.html;
+                      const flyerCSS = result.flyer.css;
+                      
+                      // Create a complete HTML document
+                      const fullHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <meta charset="UTF-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <title>Modern Real Estate Flyer</title>
+                          <style>${flyerCSS}</style>
+                        </head>
+                        <body>
+                          ${flyerHTML}
+                        </body>
+                        </html>
+                      `;
+                      
+                      // Create blob and download
+                      const blob = new Blob([fullHTML], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `modern-flyer-${Date.now()}.html`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      
+                      alert('Modern flyer generated successfully! Downloading now...');
+                    } else {
+                      throw new Error(result.error || 'Failed to generate flyer');
+                    }
+                  } catch (error) {
+                    console.error('❌ Error generating modern flyer:', error);
+                    alert(`Error generating flyer: ${error.message}`);
+                  } finally {
                     setFlyerGenerating(false);
-                    alert('Modern flyer generated! (This would download the PDF)');
-                  }, 2000);
+                  }
                 }}
                 disabled={flyerGenerating}
                 style={{
@@ -346,15 +484,84 @@ export default function ListingDisplayPage() {
               </button>
               
               <button
-                onClick={() => {
-                  console.log('🎨 Generating classic flyer...');
-                  setFlyerGenerating(true);
-                  
-                  // Simulate flyer generation
-                  setTimeout(() => {
+                onClick={async () => {
+                  try {
+                    setFlyerGenerating(true);
+                    console.log('🎨 Generating classic flyer with professional engine...');
+                    
+                    // Call the actual flyer engine
+                    const response = await fetch('/api/flyer', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        style: 'classic-elegant',
+                        listing: listing,
+                        propertyInfo: {
+                          headline: listing?.mls?.headline || 'Classic Property',
+                          description: listing?.mls?.body || listing?.content || 'Elegant property details',
+                          features: listing?.mls?.bullets || ['Classic features', 'Elegant amenities'],
+                          price: 'Contact for pricing'
+                        },
+                        agentInfo: {
+                          name: 'Professional Agent',
+                          agency: 'Premier Real Estate',
+                          phone: 'Contact for details',
+                          email: 'agent@premiere.com'
+                        }
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('🎨 Flyer generation result:', result);
+                    
+                    if (result.success) {
+                      // Create and download the flyer
+                      const flyerHTML = result.flyer.html;
+                      const flyerCSS = result.flyer.css;
+                      
+                      // Create a complete HTML document
+                      const fullHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                          <meta charset="UTF-8">
+                          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                          <title>Classic Real Estate Flyer</title>
+                          <style>${flyerCSS}</style>
+                        </head>
+                        <body>
+                          ${flyerHTML}
+                        </body>
+                        </html>
+                      `;
+                      
+                      // Create blob and download
+                      const blob = new Blob([fullHTML], { type: 'text/html' });
+                      const url = URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `classic-flyer-${Date.now()}.html`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      URL.revokeObjectURL(url);
+                      
+                      alert('Classic flyer generated successfully! Downloading now...');
+                    } else {
+                      throw new Error(result.error || 'Failed to generate flyer');
+                    }
+                  } catch (error) {
+                    console.error('❌ Error generating classic flyer:', error);
+                    alert(`Error generating flyer: ${error.message}`);
+                  } finally {
                     setFlyerGenerating(false);
-                    alert('Classic flyer generated! (This would download the PDF)');
-                  }, 2000);
+                  }
                 }}
                 disabled={flyerGenerating}
                 style={{
