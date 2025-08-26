@@ -492,6 +492,34 @@ export default function ChatPage() {
               </div>
             )}
             
+            {/* Generated Listing Display */}
+            {hasListing && currentListing && (
+              <div className="listing-display-section">
+                <h3 className="listing-display-title">Generated Listing</h3>
+                <div className="listing-content">
+                  <pre className="listing-text">{currentListing}</pre>
+                  <button 
+                    className="copy-listing-btn"
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentListing);
+                      const btn = document.querySelector('.copy-listing-btn');
+                      if (btn) {
+                        const originalText = btn.textContent;
+                        btn.textContent = '✅ Copied!';
+                        btn.style.background = '#10b981';
+                        setTimeout(() => {
+                          btn.textContent = originalText;
+                          btn.style.background = '';
+                        }, 2000);
+                      }
+                    }}
+                  >
+                    📋 Copy Listing
+                  </button>
+                </div>
+              </div>
+            )}
+            
             {/* Flyer Generation Button */}
             {hasListing && (
               <div className="flyer-generation-section">
