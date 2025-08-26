@@ -1843,6 +1843,7 @@ input[class*="cl-"]::placeholder, textarea[class*="cl-"]::placeholder {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
 }
 
 .back-btn {
@@ -1855,6 +1856,8 @@ input[class*="cl-"]::placeholder, textarea[class*="cl-"]::placeholder {
   transition: all 0.3s ease;
   font-size: 14px;
   font-weight: 500;
+  position: absolute;
+  left: 20px;
 }
 
 .back-btn:hover {
@@ -1866,6 +1869,8 @@ input[class*="cl-"]::placeholder, textarea[class*="cl-"]::placeholder {
   margin: 0;
   font-size: 28px;
   font-weight: 700;
+  text-align: center;
+  width: 100%;
 }
 
 .listing-container {

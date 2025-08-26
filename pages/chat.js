@@ -636,59 +636,50 @@ async function copyToClipboard(text) {
       </div>
 
       {/* Test Modal - Simple version to verify modal rendering works */}
-      {(() => {
-        console.log('🧪 TEST MODAL RENDER CHECK - flyerOpen:', flyerOpen);
-        if (flyerOpen) {
-          console.log('🧪 TEST MODAL SHOULD RENDER - flyerOpen is true');
-          return (
-            <div style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 9999,
-              backgroundColor: 'rgba(0, 0, 0, 0.8)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <div style={{
-                background: 'white',
-                color: 'black',
-                padding: '40px',
-                borderRadius: '10px',
-                maxWidth: '500px',
-                textAlign: 'center'
-              }}>
-                <h2>🧪 TEST MODAL WORKING!</h2>
-                <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
-                <p>This proves modal rendering works!</p>
-                <button
-                  onClick={() => {
-                    console.log('🧪 Test modal close clicked');
-                    setFlyerOpen(false);
-                  }}
-                  style={{
-                    background: 'red',
-                    color: 'white',
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    marginTop: '20px'
-                  }}
-                >
-                  Close Test Modal
-                </button>
-              </div>
-            </div>
-          );
-        } else {
-          console.log('🧪 TEST MODAL NOT RENDERING - flyerOpen is false');
-          return null;
-        }
-      })()}
+      {flyerOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '40px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            textAlign: 'center'
+          }}>
+            <h2>🧪 TEST MODAL WORKING!</h2>
+            <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
+            <p>This proves modal rendering works!</p>
+            <button
+              onClick={() => {
+                console.log('🧪 Test modal close clicked');
+                setFlyerOpen(false);
+              }}
+              style={{
+                background: 'red',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Close Test Modal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
