@@ -31,9 +31,25 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Flyer modal state
+  // State for flyer generation
   const [flyerOpen, setFlyerOpen] = useState(false);
   const [flyerGenerating, setFlyerGenerating] = useState(false);
+  const [showFlyerPreview, setShowFlyerPreview] = useState(false);
+  const [previewData, setPreviewData] = useState(null);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log('🔍 FLYER STATE CHANGED:', { flyerOpen, flyerGenerating, hasListing, isPro });
+  }, [flyerOpen, flyerGenerating, hasListing, isPro]);
+
+  // Debug currentListing changes
+  useEffect(() => {
+    console.log('📝 CURRENT LISTING CHANGED:', { 
+      currentListing: currentListing?.substring(0, 100), 
+      hasListing, 
+      type: typeof currentListing 
+    });
+  }, [currentListing, hasListing]);
 
   // Questions modal
   const [questionsOpen, setQuestionsOpen] = useState(false);
@@ -47,10 +63,6 @@ export default function ChatPage() {
   const [currentListing, setCurrentListing] = useState("");
   const [hasListing, setHasListing] = useState(false);
   const [originalInput, setOriginalInput] = useState("");
-
-  // Flyer preview
-  const [showFlyerPreview, setShowFlyerPreview] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
 
   // Refs
   const composerRef = useRef(null);
@@ -118,62 +130,62 @@ export default function ChatPage() {
     setShowFlyerPreview(true);
   };
 
-  /** ---------------- Utilities ---------------- */
-  function stripFences(s = "") {
-    return s
-      .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
-      .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
-      .trim();
+/** ---------------- Utilities ---------------- */
+function stripFences(s = "") {
+  return s
+    .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
+    .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
+    .trim();
+}
+
+// Coerce any LLM output (raw string, fenced JSON, or object) to readable text
+function coerceToReadableText(raw) {
+  if (!raw) return "";
+
+  // If object-like, try common shapes
+  if (typeof raw === "object") {
+    const candidate = raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
+    if (candidate) return stripFences(String(candidate));
+    try { return stripFences(JSON.stringify(raw, null, 2)); } catch { /* noop */ }
   }
 
-  // Coerce any LLM output (raw string, fenced JSON, or object) to readable text
-  function coerceToReadableText(raw) {
-    if (!raw) return "";
-
-    // If object-like, try common shapes
-    if (typeof raw === "object") {
-      const candidate = raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
-      if (candidate) return stripFences(String(candidate));
-      try { return stripFences(JSON.stringify(raw, null, 2)); } catch { /* noop */ }
-    }
-
-    const txt = String(raw);
-    // Try to parse JSON
-    try {
-      const j = JSON.parse(stripFences(txt));
-      const candidate = j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
-      if (candidate) return stripFences(String(candidate));
-      return stripFences(JSON.stringify(j, null, 2));
-    } catch {
-      return stripFences(txt);
-    }
+  const txt = String(raw);
+  // Try to parse JSON
+  try {
+    const j = JSON.parse(stripFences(txt));
+    const candidate = j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
+    if (candidate) return stripFences(String(candidate));
+    return stripFences(JSON.stringify(j, null, 2));
+  } catch {
+    return stripFences(txt);
   }
+}
 
-  // Detect formatted sections
-  function splitVariants(text) {
-    if (!text) return null;
-    const patterns = [
-      { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-      { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-      { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-      { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    ];
-    const out = {}; let found = false;
-    for (const { key, rx } of patterns) {
-      const m = text.match(rx);
-      if (m) { out[key] = (m[3] || m[2] || "").trim(); found = true; }
-    }
-    return found ? out : null;
+// Detect formatted sections
+function splitVariants(text) {
+  if (!text) return null;
+  const patterns = [
+    { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
+  ];
+  const out = {}; let found = false;
+  for (const { key, rx } of patterns) {
+    const m = text.match(rx);
+    if (m) { out[key] = (m[3] || m[2] || "").trim(); found = true; }
   }
+  return found ? out : null;
+}
 
-  async function copyToClipboard(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      return false;
-    }
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
   }
+}
 
   /** ---------------- Event Handlers ---------------- */
   function handleNewListing() {
@@ -235,9 +247,9 @@ export default function ChatPage() {
     }
   };
 
-  async function handleSend(text) {
-    const trimmed = text.trim();
-    if (!trimmed || loading) return;
+    async function handleSend(text) {
+      const trimmed = text.trim();
+      if (!trimmed || loading) return;
     
     // Check authentication first
     if (!isSignedIn) {
@@ -252,37 +264,37 @@ export default function ChatPage() {
     // Check if we're modifying an existing listing
     const isModifyingListing = hasListing && messages.length > 0;
     
-    const baseInput = messages.length === 0 ? trimmed : originalInput;
-    if (messages.length === 0) setOriginalInput(trimmed);
+      const baseInput = messages.length === 0 ? trimmed : originalInput;
+      if (messages.length === 0) setOriginalInput(trimmed);
 
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: "user", content: trimmed }]);
-    setError(null);
+      // Add user message to chat
+      setMessages(prev => [...prev, { role: "user", content: trimmed }]);
+      setError(null);
 
     // Don't scroll - let the page stay where it is
 
-    try {
-      setLoading(true);
+      try {
+        setLoading(true);
 
-      // Build conversation context with full history
-      const conversationContext = [
-        // Include the original request and any previous Q&A
-        ...(allQuestionsAndAnswers.length > 0 ? [
-          { role: "user", content: `Original request: ${baseInput}` },
-          { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
-        ] : []),
+        // Build conversation context with full history
+        const conversationContext = [
+          // Include the original request and any previous Q&A
+          ...(allQuestionsAndAnswers.length > 0 ? [
+            { role: "user", content: `Original request: ${baseInput}` },
+            { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
+          ] : []),
         // If modifying a listing, include the current listing content
         ...(isModifyingListing ? [
           { role: "assistant", content: `Current listing: ${currentListing}` }
-        ] : []),
-        // Current message
-        { role: "user", content: trimmed },
-        // System instruction for edit requests
+          ] : []),
+          // Current message
+          { role: "user", content: trimmed },
+          // System instruction for edit requests
         { role: "system", content: isModifyingListing 
           ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
           : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`
         }
-      ];
+        ];
 
       console.log("Sending this context to AI:", conversationContext); // Debug log
 
@@ -398,14 +410,14 @@ export default function ChatPage() {
     // Send the answers to continue the conversation
     const answerText = answers.join('\n\n');
     console.log('📝 Submitting question answers:', answerText);
-    
+
     // Add the answers to the chat
     setMessages(prev => [
       ...prev,
       { role: "user", content: `Here are my answers:\n\n${answerText}` },
       { role: "assistant", content: "", pretty: "" }
     ]);
-    
+
     // Send the answers to get the final listing
     handleSend(answerText);
   }
@@ -431,12 +443,12 @@ export default function ChatPage() {
             <h1 className="ai-listing-title">AI Listing Generator</h1>
             <p className="ai-listing-subtitle">Describe your property and let AI create professional listings</p>
             
-            {!isListingMode && (
-              <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
-            )}
+          {!isListingMode && (
+            <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
+          )}
             
             <div className="chat-input-section">
-              <Composer ref={composerRef} onSend={handleSend} loading={loading} />
+            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
             </div>
             
             {loading && (
@@ -509,16 +521,51 @@ export default function ChatPage() {
                 onClick={() => {
                   console.log('🧪 TEST BUTTON CLICKED');
                   console.log('🧪 Before setFlyerOpen, flyerOpen =', flyerOpen);
-                  setFlyerOpen(true);
-                  console.log('🧪 After setFlyerOpen, flyerOpen =', flyerOpen);
                   
-                  // Force a re-render to see if state changes
+                  // Force state update
+                  setFlyerOpen(prev => {
+                    console.log('🧪 setFlyerOpen called with prev =', prev);
+                    const newValue = true;
+                    console.log('🧪 Setting flyerOpen to:', newValue);
+                    return newValue;
+                  });
+                  
+                  // Check state after a few renders
                   setTimeout(() => {
                     console.log('🧪 After 100ms timeout, flyerOpen =', flyerOpen);
                   }, 100);
+                  
+                  setTimeout(() => {
+                    console.log('🧪 After 500ms timeout, flyerOpen =', flyerOpen);
+                  }, 500);
                 }}
               >
                 🧪 TEST: Set flyerOpen to true
+              </button>
+              
+              {/* Force State Button */}
+              <button
+                style={{
+                  background: 'orange',
+                  color: 'white',
+                  padding: '10px',
+                  marginBottom: '10px',
+                  borderRadius: '5px',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  console.log('🟠 FORCE STATE BUTTON CLICKED');
+                  console.log('🟠 Current flyerOpen state:', flyerOpen);
+                  
+                  // Force a re-render by updating multiple states
+                  setFlyerOpen(true);
+                  setFlyerGenerating(false);
+                  
+                  console.log('🟠 States updated, flyerOpen should now be true');
+                }}
+              >
+                🟠 FORCE: Update all flyer states
               </button>
               
               <button
@@ -579,6 +626,52 @@ export default function ChatPage() {
           )}
         </div>
       </div>
+
+      {/* Test Modal - Simple version to verify modal rendering works */}
+      {flyerOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 9999,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            color: 'black',
+            padding: '40px',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            textAlign: 'center'
+          }}>
+            <h2>🧪 TEST MODAL WORKING!</h2>
+            <p>flyerOpen state is: <strong>{flyerOpen ? 'TRUE' : 'FALSE'}</strong></p>
+            <p>This proves modal rendering works!</p>
+            <button
+              onClick={() => {
+                console.log('🧪 Test modal close clicked');
+                setFlyerOpen(false);
+              }}
+              style={{
+                background: 'red',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                marginTop: '20px'
+              }}
+            >
+              Close Test Modal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (

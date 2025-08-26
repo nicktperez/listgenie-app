@@ -7,13 +7,10 @@
   --chip-border: rgba(255, 255, 255, 0.12) !important;
   --field-bg: rgba(255, 255, 255, 0.05) !important;
   --field-border: rgba(255, 255, 255, 0.12) !important;
-  color: #eaeaea !important;
+  color: white !important;
   min-height: 100vh !important;
-  padding: 32px 24px 64px !important;
-  background:
-    radial-gradient(1200px 600px at 10% -5%, rgba(86, 94, 222, 0.25), transparent 50%),
-    radial-gradient(1200px 600px at 90% -10%, rgba(112, 59, 247, 0.25), transparent 55%),
-    #0b1220 !important;
+  padding: 20px !important;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -60,10 +57,7 @@
   font-weight: 700 !important;
   letter-spacing: -0.02em !important;
   margin-bottom: 16px !important;
-  background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
-  -webkit-background-clip: text !important;
-  -webkit-text-fill-color: transparent !important;
-  background-clip: text !important;
+  color: white !important;
   text-align: center !important;
   width: 100% !important;
 }

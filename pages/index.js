@@ -16,7 +16,7 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, [router]);
 
-  return (
+    return (
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%)',
@@ -58,8 +58,8 @@ export default function HomePage() {
         }}>
           AI-Powered Real Estate Listings
         </p>
-      </div>
-
+          </div>
+          
       {/* Loading Animation */}
       <div style={{
         textAlign: 'center',
@@ -111,8 +111,8 @@ export default function HomePage() {
           animation: 'progress 2s ease-in-out infinite',
           background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)'
         }}></div>
-      </div>
-
+            </div>
+            
       {/* Features Preview */}
       <div style={{
         display: 'grid',
@@ -146,10 +146,10 @@ export default function HomePage() {
               color: '#94a3b8',
               lineHeight: '1.4'
             }}>{feature.desc}</div>
-          </div>
-        ))}
-      </div>
-
+                        </div>
+                      ))}
+                  </div>
+                  
       <style jsx>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
