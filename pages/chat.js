@@ -74,6 +74,57 @@ export default function ChatPage() {
     console.log('🎨 Flyer modal state changed:', flyerOpen);
   }, [flyerOpen]);
 
+  /** ---------------- Flyer Generation Functions ---------------- */
+  const handleEnhancedFlyerGeneration = async (flyerData) => {
+    try {
+      setFlyerGenerating(true);
+      
+      const response = await fetch('/api/flyer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...flyerData,
+          listing: currentListing
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Download the generated PDF
+        const link = document.createElement('a');
+        link.href = result.pdfUrl;
+        link.download = `professional-flyer-${Date.now()}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        setFlyerOpen(false);
+        alert('Flyer generated successfully! Downloading now...');
+      } else {
+        throw new Error(result.error || 'Failed to generate flyer');
+      }
+    } catch (error) {
+      console.error('Error generating flyer:', error);
+      alert(`Error generating flyer: ${error.message}`);
+    } finally {
+      setFlyerGenerating(false);
+    }
+  };
+
+  const handleFlyerPreview = (previewData) => {
+    // Handle flyer preview if needed
+    console.log('Flyer preview:', previewData);
+    setPreviewData(previewData);
+    setShowFlyerPreview(true);
+  };
+
   /** ---------------- Utilities ---------------- */
   function stripFences(s = "") {
     return s
@@ -143,11 +194,6 @@ export default function ChatPage() {
     setCurrentQuestionIndex(0);
   }
 
-  function handleFlyerPreview(data) {
-    setPreviewData(data);
-    setShowFlyerPreview(true);
-  }
-
   function closeFlyerPreview() {
     setShowFlyerPreview(false);
     setPreviewData(null);
@@ -193,96 +239,6 @@ export default function ChatPage() {
       console.error('❌ generateProfessionalFlyer: Error name:', error.name);
       console.error('❌ generateProfessionalFlyer: Error message:', error.message);
       throw error;
-    }
-  };
-
-  // Handle enhanced flyer generation with our professional engine
-  const handleEnhancedFlyerGeneration = async (flyerData) => {
-    console.log('🎯 handleEnhancedFlyerGeneration: Function called');
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData received:', flyerData);
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData type:', typeof flyerData);
-    console.log('🎯 handleEnhancedFlyerGeneration: flyerData keys:', Object.keys(flyerData || {}));
-
-    try {
-      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to true');
-      setFlyerGenerating(true);
-
-      console.log('🎯 handleEnhancedFlyerGeneration: Calling generateProfessionalFlyer...');
-      const canvaProject = await generateProfessionalFlyer(flyerData);
-      console.log('🎯 handleEnhancedFlyerGeneration: generateProfessionalFlyer result:', canvaProject);
-      console.log('🎯 handleEnhancedFlyerGeneration: Result type:', typeof canvaProject);
-      console.log('🎯 handleEnhancedFlyerGeneration: Result keys:', Object.keys(canvaProject || {}));
-
-      if (canvaProject && canvaProject.type === 'professional-flyer') {
-        console.log('🎯 handleEnhancedFlyerGeneration: Professional flyer generated successfully');
-        console.log('🎯 handleEnhancedFlyerGeneration: Flyer data:', canvaProject.flyer);
-
-        const downloadProfessionalFlyer = () => {
-          console.log('🎯 handleEnhancedFlyerGeneration: Starting download process');
-          try {
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating HTML document...');
-            const htmlDocument = `<!DOCTYPE html><html><head><style>${canvaProject.flyer.css}</style></head><body>${canvaProject.flyer.html}<script>${canvaProject.flyer.animations} /* ... animation init ... */</script></body></html>`;
-            console.log('🎯 handleEnhancedFlyerGeneration: HTML document created, length:', htmlDocument.length);
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating blob...');
-            const blob = new Blob([htmlDocument], { type: 'text/html' });
-            console.log('🎯 handleEnhancedFlyerGeneration: Blob created, size:', blob.size);
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating download URL...');
-            const url = URL.createObjectURL(blob);
-            console.log('🎯 handleEnhancedFlyerGeneration: Download URL created:', url);
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Creating download link...');
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `professional-flyer-${flyerData.style}-${Date.now()}.html`;
-            console.log('🎯 handleEnhancedFlyerGeneration: Download link created, filename:', a.download);
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Appending link to DOM...');
-            document.body.appendChild(a);
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Triggering download...');
-            a.click();
-
-            console.log('🎯 handleEnhancedFlyerGeneration: Cleaning up...');
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            console.log('✅ handleEnhancedFlyerGeneration: Download completed successfully');
-          } catch (downloadError) {
-            console.error('❌ handleEnhancedFlyerGeneration: Download failed:', downloadError);
-            console.error('❌ handleEnhancedFlyerGeneration: Download error stack:', downloadError.stack);
-            throw downloadError;
-          }
-        };
-
-        const message = `🎉 Your professional marketing flyer has been created successfully!\n\nDesign System: ${canvaProject.designSystem}\nQuality: ${canvaProject.quality}\n\nYour flyer is ready for download!`;
-        console.log('🎯 handleEnhancedFlyerGeneration: Showing confirmation dialog');
-
-        if (confirm(message + '\n\nClick OK to download your professional flyer now!')) {
-          console.log('🎯 handleEnhancedFlyerGeneration: User confirmed, starting download');
-          downloadProfessionalFlyer();
-        } else {
-          console.log('🎯 handleEnhancedFlyerGeneration: User cancelled download');
-        }
-
-        console.log('🎯 handleEnhancedFlyerGeneration: Closing flyer modal');
-        setFlyerOpen(false);
-        console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
-        setFlyerGenerating(false);
-      } else {
-        console.log('❌ handleEnhancedFlyerGeneration: Invalid response format:', canvaProject);
-        throw new Error('Invalid response format from flyer generation');
-      }
-    } catch (error) {
-      console.error('❌ handleEnhancedFlyerGeneration: Error occurred:', error);
-      console.error('❌ handleEnhancedFlyerGeneration: Error stack:', error.stack);
-      console.error('❌ handleEnhancedFlyerGeneration: Error name:', error.name);
-      console.error('❌ handleEnhancedFlyerGeneration: Error message:', error.message);
-
-      alert(`❌ Error generating professional flyer: ${error.message}`);
-      console.log('🎯 handleEnhancedFlyerGeneration: Setting flyerGenerating to false');
-      setFlyerGenerating(false);
     }
   };
 
@@ -462,7 +418,7 @@ export default function ChatPage() {
   }
 
   // Don't render until user is loaded
-  if (!isLoaded) {
+  if (!isLoaded || !isSignedIn) {
     return (
       <div className="loading-page">
         <div className="loading-spinner"></div>
@@ -471,20 +427,11 @@ export default function ChatPage() {
     );
   }
 
-  // Redirect if not signed in
-  if (!isSignedIn) {
-    return null; // Will redirect in useEffect
-  }
-
   return (
     <div className="chat-page">
-      <ChatHeader
-        isListingMode={isListingMode}
-        onNewListing={handleNewListing}
-        isPro={isPro}
-        isTrial={isTrial}
-      />
-      <main className="chat-container">
+      <ChatHeader />
+      
+      <div className="chat-content">
         <div className="chat-wrap">
           <div className="ai-chat-section">
             <h1 className="ai-chat-title">AI Listing Generator</h1>
@@ -560,7 +507,7 @@ export default function ChatPage() {
             )}
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
