@@ -62,13 +62,6 @@ export default function ChatPage() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // Scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (messages.length > 0) {
-      window.scrollTo(0, document.body.scrollHeight);
-    }
-  }, [messages.length]);
-
   // Monitor flyer modal state changes
   useEffect(() => {
     console.log('🎨 Flyer modal state changed:', flyerOpen);
@@ -485,10 +478,28 @@ export default function ChatPage() {
           {/* Flyer Generation Button - Only show if user stays on this page */}
           {hasListing && (
             <div className="flyer-generation-section">
+              <div className="debug-flyer-info" style={{
+                background: 'rgba(255, 0, 0, 0.1)',
+                padding: '10px',
+                marginBottom: '10px',
+                borderRadius: '5px',
+                fontSize: '12px',
+                fontFamily: 'monospace'
+              }}>
+                <strong>🔍 FLYER DEBUG INFO:</strong><br/>
+                hasListing: {hasListing ? '✅ true' : '❌ false'}<br/>
+                flyerOpen: {flyerOpen ? '✅ true' : '❌ false'}<br/>
+                isPro: {isPro ? '✅ true' : '❌ false'}<br/>
+                currentListing exists: {currentListing ? '✅ yes' : '❌ no'}<br/>
+                currentListing type: {typeof currentListing}<br/>
+                currentListing length: {currentListing ? currentListing.length : 'N/A'}
+              </div>
+              
               <button
                 className="flyer-generation-btn"
                 onClick={() => {
-                  console.log('🎨 Flyer button clicked!');
+                  console.log('🎨 ===== FLYER BUTTON CLICKED =====');
+                  console.log('🎨 Button clicked at:', new Date().toISOString());
                   console.log('🎨 Current state:', { 
                     flyerOpen, 
                     hasListing, 
@@ -504,8 +515,14 @@ export default function ChatPage() {
                   }
                   
                   console.log('✅ User is Pro, opening flyer modal...');
+                  console.log('🎨 Setting flyerOpen to true...');
                   setFlyerOpen(true);
-                  console.log('🎨 Flyer modal state set to true');
+                  console.log('🎨 flyerOpen state set to true');
+                  
+                  // Add a small delay to check if state actually changed
+                  setTimeout(() => {
+                    console.log('🎨 After 100ms, flyerOpen state is:', flyerOpen);
+                  }, 100);
                 }}
                 disabled={!isPro}
               >
@@ -538,29 +555,38 @@ export default function ChatPage() {
       </div>
 
       {/* Enhanced Flyer Modal */}
-      {flyerOpen && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 9999,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)'
-        }}>
-          {console.log('🎨 Rendering EnhancedFlyerModal, flyerOpen:', flyerOpen)}
-          <EnhancedFlyerModal
-            onClose={() => {
-              console.log('🎨 Modal close button clicked');
-              setFlyerOpen(false);
-            }}
-            onGenerate={handleEnhancedFlyerGeneration}
-            listing={currentListing}
-            loading={flyerGenerating}
-            onPreview={handleFlyerPreview}
-          />
-        </div>
-      )}
+      {(() => {
+        console.log('🎨 Modal render check - flyerOpen:', flyerOpen);
+        if (flyerOpen) {
+          console.log('🎨 Modal should be rendering now!');
+          return (
+            <div style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0, 
+              zIndex: 9999,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            }}>
+              {console.log('🎨 Rendering EnhancedFlyerModal, flyerOpen:', flyerOpen)}
+              <EnhancedFlyerModal
+                onClose={() => {
+                  console.log('🎨 Modal close button clicked');
+                  setFlyerOpen(false);
+                }}
+                onGenerate={handleEnhancedFlyerGeneration}
+                listing={currentListing}
+                loading={flyerGenerating}
+                onPreview={handleFlyerPreview}
+              />
+            </div>
+          );
+        } else {
+          console.log('🎨 Modal not rendering - flyerOpen is false');
+          return null;
+        }
+      })()}
 
       {/* Professional Flyer Preview */}
       <ProfessionalFlyerPreview
