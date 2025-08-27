@@ -7,11 +7,11 @@ export default function HomePage() {
   const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
-    // Longer delay to appreciate the beautiful page
+    // Shorter delay for better user experience
     const timer = setTimeout(() => {
       setRedirecting(true);
       router.replace("/chat");
-    }, 3500); // Increased from 800ms to 3.5 seconds
+    }, 1500); // Reduced from 3.5 seconds to 1.5 seconds
 
     return () => clearTimeout(timer);
   }, [router]);
@@ -108,7 +108,7 @@ export default function HomePage() {
           height: '100%',
           backgroundColor: 'linear-gradient(90deg, #8b5cf6, #3b82f6)',
           borderRadius: '2px',
-          animation: 'progress 2s ease-in-out infinite',
+          animation: 'progress 1.5s ease-in-out infinite',
           background: 'linear-gradient(90deg, #8b5cf6, #3b82f6)'
         }}></div>
             </div>

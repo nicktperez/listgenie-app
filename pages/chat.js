@@ -454,22 +454,24 @@ async function copyToClipboard(text) {
           {messages.length > 0 && (
             <div className="messages-container">
               {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`message ${message.role === 'user' ? 'user-message' : 'assistant-message'}`}
-                >
-                  <div className="message-content">
-                    {message.role === 'assistant' && message.content.includes('```') ? (
-                      <div className="code-block">
-                        <pre>
-                          <code>{message.content.replace(/```/g, '')}</code>
-                        </pre>
-                      </div>
-                    ) : (
-                      <div className="text-content">{message.content}</div>
-                    )}
+                message.role === 'assistant' && (
+                  <div
+                    key={index}
+                    className="message assistant-message"
+                  >
+                    <div className="message-content">
+                      {message.content.includes('```') ? (
+                        <div className="code-block">
+                          <pre>
+                            <code>{message.content.replace(/```/g, '')}</code>
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className="text-content">{message.content}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )
               ))}
             </div>
           )}

@@ -1247,7 +1247,7 @@ export default function ListingDisplayPage() {
                 ) : (
                   <>
                     <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '24px', height: '24px' }} />
-                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} Flyer
+                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'}
                   </>
                 )}
               </button>

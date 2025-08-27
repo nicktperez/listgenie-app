@@ -914,37 +914,36 @@
 /* Regular composer - HIGH PRIORITY */
 .composer {
   width: 100% !important;
+  max-width: 1000px !important; /* Increased width */
+  margin: 0 auto !important;
 }
 
 .composer .composer-input-wrapper {
   display: flex !important;
-  gap: 12px !important;
-  align-items: flex-start !important;
-  background: rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  border-radius: 12px !important;
-  padding: 12px 20px !important;
-  backdrop-filter: blur(10px) !important;
-  min-height: 52px !important;
+  align-items: flex-end !important;
+  gap: 16px !important;
   width: 100% !important;
-  transition: all 0.2s ease !important;
 }
 
 .composer .composer-textarea {
   flex: 1 !important;
-  background: transparent !important;
-  border: none !important;
-  color: #fff !important;
+  min-height: 80px !important; /* Reduced height for more horizontal feel */
+  max-height: 120px !important;
+  padding: 20px !important;
+  border-radius: 16px !important;
+  border: 2px solid rgba(139, 92, 246, 0.3) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: white !important;
   font-size: 16px !important;
-  line-height: 1.4 !important;
+  line-height: 1.5 !important;
   resize: none !important;
   outline: none !important;
-  min-height: 28px !important;
-  max-height: 200px !important;
-  padding: 8px 12px !important;
-  display: block !important;
-  overflow-y: auto !important;
-  transition: height 0.2s ease !important;
+  transition: all 0.3s ease !important;
+}
+
+.composer .composer-textarea:focus {
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1) !important;
 }
 
 .composer .composer-textarea::placeholder {
@@ -1020,4 +1019,74 @@
   font-size: 16px !important;
   color: rgba(255, 255, 255, 0.8) !important;
   margin: 0 !important;
+}
+
+/* AI Listing Generator Section - Make it wider and more horizontal */
+.ai-listing-generator-section {
+  width: 100% !important;
+  max-width: 1200px !important; /* Increased from default */
+  margin: 0 auto 40px auto !important;
+  text-align: center !important;
+  padding: 0 20px !important;
+}
+
+.ai-listing-title {
+  font-size: 42px !important;
+  line-height: 1.1 !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important;
+  margin-bottom: 16px !important;
+  color: white !important;
+  text-align: center !important;
+  width: 100% !important;
+}
+
+.ai-listing-subtitle {
+  font-size: 18px !important;
+  line-height: 1.4 !important;
+  opacity: 0.8 !important;
+  margin-bottom: 32px !important;
+  max-width: 600px !important; /* Increased from 450px */
+  margin-left: auto !important;
+  margin-right: auto !important;
+  font-weight: 400 !important;
+  color: #cbd5e1 !important;
+}
+
+/* Examples row - make it more horizontal */
+.examples-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  justify-content: center !important;
+  margin-bottom: 32px !important;
+  max-width: 1000px !important; /* Increased width */
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+.example-chip {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 20px !important;
+  padding: 12px 20px !important;
+  color: white !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+}
+
+.example-chip:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(139, 92, 246, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Chat input section */
+.chat-input-section {
+  width: 100% !important;
+  max-width: 1000px !important; /* Increased width for more horizontal layout */
+  margin: 0 auto !important;
 }
