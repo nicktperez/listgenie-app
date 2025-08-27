@@ -193,7 +193,7 @@ The design should look like it was created by a professional marketing agency sp
     // Try multiple approaches for image generation
     const approaches = [
       {
-        name: 'Google Gemini 2.5 Flash Image Preview (Free)',
+        name: 'Google Gemini 2.0 Flash (Image Generation)',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
@@ -203,7 +203,7 @@ The design should look like it was created by a professional marketing agency sp
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
-          model: 'google/gemini-2.5-flash-image-preview:free',
+          model: 'google/gemini-2.0-flash-exp',
           prompt: imagePrompt,
           n: 1,
           size: '1024x1024'
@@ -482,17 +482,17 @@ async function testOpenRouter(req, res) {
   }
 }
 
-// Test Gemini model directly through OpenRouter
+// Test Gemini image generation through OpenRouter
 async function testGeminiModel(req, res) {
   try {
-    console.log('🧪 Testing Gemini model through OpenRouter...');
+    console.log('🧪 Testing Gemini image generation through OpenRouter...');
     console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
-    // Test 1: Check if we can reach OpenRouter
-    console.log('📡 Testing OpenRouter connectivity...');
+    // Test 1: Check if we can reach OpenRouter for image generation
+    console.log('📡 Testing OpenRouter image generation...');
     
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
@@ -500,16 +500,12 @@ async function testGeminiModel(req, res) {
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
         'X-Title': 'ListGenie Gemini Test'
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview:free',
-        messages: [
-          {
-            role: 'user',
-            content: 'Hello, Gemini!'
-          }
-        ],
-        max_tokens: 50
-      })
+              body: JSON.stringify({
+          model: 'google/gemini-2.0-flash-exp',
+          prompt: 'Create a simple test image of a house',
+          n: 1,
+          size: '1024x1024'
+        })
     });
 
     console.log('📡 OpenRouter response status:', response.status);
@@ -520,9 +516,9 @@ async function testGeminiModel(req, res) {
       console.log('✅ Gemini model test successful:', data);
       return res.status(200).json({
         success: true,
-        message: 'Gemini model is working correctly through OpenRouter.',
+        message: 'Gemini image generation is working correctly through OpenRouter.',
         response: data,
-        model: 'google/gemini-2.5-flash-image-preview:free'
+        model: 'google/gemini-2.0-flash-exp'
       });
     } else {
       const errorText = await response.text();
@@ -538,20 +534,20 @@ async function testGeminiModel(req, res) {
       
       return res.status(500).json({
         success: false,
-        message: `Gemini model test failed: ${response.status} - ${errorText}`,
+        message: `Gemini image generation test failed: ${response.status} - ${errorText}`,
         status: response.status,
         error: errorText,
-        model: 'google/gemini-2.5-flash-image-preview:free'
+        model: 'google/gemini-2.0-flash-exp'
       });
     }
   } catch (error) {
     console.error('❌ Critical error during Gemini model test:', error);
     return res.status(500).json({
       success: false,
-      message: `Gemini model test encountered an error: ${error.message}`,
-      error: error.message,
-      stack: error.stack,
-      model: 'google/gemini-2.5-flash-image-preview:free'
+              message: `Gemini image generation test encountered an error: ${error.message}`,
+        error: error.message,
+        stack: error.stack,
+        model: 'google/gemini-2.0-flash-exp'
     });
   }
 }

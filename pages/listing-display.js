@@ -1421,17 +1421,18 @@ export default function ListingDisplayPage() {
       )}
 
       {/* Debug Section - Remove in production */}
-      <div style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        background: 'rgba(0, 0, 0, 0.8)',
-        padding: '20px',
-        borderRadius: '12px',
-        color: 'white',
-        fontSize: '14px',
-        zIndex: 1000
-      }}>
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'rgba(0, 0, 0, 0.8)',
+          padding: '20px',
+          borderRadius: '12px',
+          color: 'white',
+          fontSize: '14px',
+          zIndex: 1000
+        }}>
         <h4 style={{ margin: '0 0 16px 0', color: '#667eea' }}>🔧 Debug Tools</h4>
         
         <div style={{ marginBottom: '16px' }}>
@@ -1502,6 +1503,7 @@ export default function ListingDisplayPage() {
           <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
         </div>
       </div>
+        )}
 
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
