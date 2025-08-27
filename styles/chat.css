@@ -1086,18 +1086,6 @@
   color: #cbd5e1 !important;
 }
 
-/* Center the entire chat content vertically */
-.chat-content {
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-height: calc(100vh - 200px) !important; /* Account for header and padding */
-  width: 100% !important;
-  max-width: 1400px !important;
-  margin: 0 auto !important;
-}
-
 /* Examples row - make it more horizontal */
 .examples-row {
   display: flex !important;
@@ -1134,4 +1122,60 @@
   width: 100% !important;
   max-width: 1000px !important; /* Increased width for more horizontal layout */
   margin: 0 auto !important;
+}
+
+/* Center the entire chat content vertically */
+.chat-content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 200px) !important; /* Account for header and padding */
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  position: relative !important; /* Ensure proper positioning context */
+}
+
+/* Remove any unwanted scrollbars or indicators */
+.chat-page::-webkit-scrollbar {
+  display: none !important;
+}
+
+.chat-page {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Ensure the flyer generation section is properly positioned */
+.flyer-generation-section {
+  width: 100% !important;
+  max-width: 1000px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+  padding: 20px 0 !important;
+}
+
+.flyer-generation-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 16px 32px !important;
+  border-radius: 12px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3) !important;
+}
+
+.flyer-generation-btn:hover:not(:disabled) {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4) !important;
+}
+
+.flyer-generation-btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
 }

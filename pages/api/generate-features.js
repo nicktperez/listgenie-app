@@ -18,6 +18,11 @@ export default async function handler(req, res) {
       return await testGeminiModel(req, res);
     }
 
+    // If this is an environment test, check all environment variables
+    if (test === 'env') {
+      return await testEnvironment(req, res);
+    }
+
     // If this is an AI image generation request
     if (generationType === 'midjourney-image') {
       return await generateMidjourneyImage(req, res);
@@ -193,7 +198,7 @@ The design should look like it was created by a professional marketing agency sp
     // Try multiple approaches for image generation
     const approaches = [
       {
-        name: 'OpenAI DALL-E 3 (HD Quality)',
+        name: 'Google Gemini 2.0 Flash (Primary)',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
@@ -203,12 +208,10 @@ The design should look like it was created by a professional marketing agency sp
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
-          model: 'openai/dall-e-3',
+          model: 'google/gemini-2.0-flash-exp',
           prompt: imagePrompt,
           n: 1,
-          size: '1024x1024',
-          quality: 'hd',
-          style: 'natural'
+          size: '1024x1024'
         }
       },
       {
@@ -484,10 +487,10 @@ async function testOpenRouter(req, res) {
   }
 }
 
-// Test DALL-E 3 image generation through OpenRouter
+// Test Gemini 2.0 Flash image generation through OpenRouter
 async function testGeminiModel(req, res) {
   try {
-    console.log('🧪 Testing DALL-E 3 image generation through OpenRouter...');
+    console.log('🧪 Testing Gemini 2.0 Flash image generation through OpenRouter...');
     console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
@@ -500,15 +503,13 @@ async function testGeminiModel(req, res) {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie DALL-E 3 Test'
+        'X-Title': 'ListGenie Gemini Image Test'
       },
       body: JSON.stringify({
-        model: 'openai/dall-e-3',
+        model: 'google/gemini-2.0-flash-exp',
         prompt: 'Create a simple test image of a house',
         n: 1,
-        size: '1024x1024',
-        quality: 'hd',
-        style: 'natural'
+        size: '1024x1024'
       })
     });
 
@@ -517,16 +518,16 @@ async function testGeminiModel(req, res) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ DALL-E 3 model test successful:', data);
+      console.log('✅ Gemini 2.0 Flash model test successful:', data);
       return res.status(200).json({
         success: true,
-        message: 'DALL-E 3 image generation is working correctly through OpenRouter.',
+        message: 'Gemini 2.0 Flash image generation is working correctly through OpenRouter.',
         response: data,
-        model: 'openai/dall-e-3'
+        model: 'google/gemini-2.0-flash-exp'
       });
     } else {
       const errorText = await response.text();
-      console.error('❌ DALL-E 3 model test failed:', response.status, errorText);
+      console.error('❌ Gemini 2.0 Flash model test failed:', response.status, errorText);
       
       // Try to parse error response
       try {
@@ -538,20 +539,90 @@ async function testGeminiModel(req, res) {
       
       return res.status(500).json({
         success: false,
-        message: `DALL-E 3 image generation test failed: ${response.status} - ${errorText}`,
+        message: `Gemini 2.0 Flash image generation test failed: ${response.status} - ${errorText}`,
         status: response.status,
         error: errorText,
-        model: 'openai/dall-e-3'
+        model: 'google/gemini-2.0-flash-exp'
       });
     }
   } catch (error) {
-    console.error('❌ Critical error during DALL-E 3 model test:', error);
+    console.error('❌ Critical error during Gemini 2.0 Flash model test:', error);
     return res.status(500).json({
       success: false,
-      message: `DALL-E 3 image generation test encountered an error: ${error.message}`,
+      message: `Gemini 2.0 Flash image generation test encountered an error: ${error.message}`,
       error: error.message,
       stack: error.stack,
-      model: 'openai/dall-e-3'
+      model: 'google/gemini-2.0-flash-exp'
+    });
+  }
+}
+
+// Test environment variables and configuration
+async function testEnvironment(req, res) {
+  try {
+    console.log('🔍 Testing environment configuration...');
+    
+    const envCheck = {
+      openRouterApiKey: {
+        present: !!process.env.OPENROUTER_API_KEY,
+        length: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.length : 0,
+        startsWith: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.substring(0, 8) + '...' : 'N/A'
+      },
+      appUrl: {
+        present: !!process.env.NEXT_PUBLIC_APP_URL,
+        value: process.env.NEXT_PUBLIC_APP_URL || 'Not set',
+        isLocalhost: process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL.includes('localhost') : false
+      },
+      siteUrl: {
+        present: !!process.env.NEXT_PUBLIC_SITE_URL,
+        value: process.env.NEXT_PUBLIC_SITE_URL || 'Not set'
+      },
+      nodeEnv: process.env.NODE_ENV || 'Not set',
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('🔍 Environment check results:', envCheck);
+
+    // Check if we can make a basic request to OpenRouter
+    let openRouterTest = 'Not tested';
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'ListGenie Environment Test'
+        }
+      });
+      
+      if (response.ok) {
+        openRouterTest = 'SUCCESS';
+      } else {
+        openRouterTest = `FAILED: ${response.status}`;
+      }
+    } catch (error) {
+      openRouterTest = `ERROR: ${error.message}`;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Environment configuration test completed.',
+      environment: envCheck,
+      openRouterTest,
+      recommendations: [
+        envCheck.openRouterApiKey.present ? '✅ OpenRouter API key is present' : '❌ OpenRouter API key is missing',
+        envCheck.appUrl.present ? '✅ App URL is set' : '❌ App URL is missing',
+        envCheck.appUrl.isLocalhost ? '⚠️ App URL is localhost (may cause issues with OpenRouter)' : '✅ App URL is not localhost',
+        envCheck.siteUrl.present ? '✅ Site URL is set' : '⚠️ Site URL is not set (fallback to App URL)'
+      ]
+    });
+  } catch (error) {
+    console.error('❌ Critical error during environment test:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Environment test encountered an error: ${error.message}`,
+      error: error.message,
+      stack: error.stack
     });
   }
 }

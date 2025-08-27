@@ -1470,15 +1470,15 @@ export default function ListingDisplayPage() {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Testing DALL-E 3 model...');
+                console.log('🧪 Testing Gemini 2.0 Flash model...');
                 const response = await fetch('/api/generate-features', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ test: 'gemini' })
                 });
                 const result = await response.json();
-                console.log('🧪 DALL-E 3 test result:', result);
-                alert(`DALL-E 3 test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+                console.log('🧪 Gemini 2.0 Flash test result:', result);
+                alert(`Gemini 2.0 Flash test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
               } catch (error) {
                 console.error('🧪 Test error:', error);
                 alert(`Test error: ${error.message}`);
@@ -1494,13 +1494,90 @@ export default function ListingDisplayPage() {
               fontSize: '12px'
             }}
           >
-            Test DALL-E 3
+            Test Gemini 2.0 Flash
+          </button>
+        </div>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            onClick={async () => {
+              try {
+                console.log('🔍 Testing environment variables...');
+                const response = await fetch('/api/generate-features', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test: 'env' })
+                });
+                const result = await response.json();
+                console.log('🔍 Environment test result:', result);
+                alert(`Environment test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+              } catch (error) {
+                console.error('🔍 Test error:', error);
+                alert(`Test error: ${error.message}`);
+              }
+            }}
+            style={{
+              background: '#f59e0b',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              marginRight: '8px'
+            }}
+          >
+            Test Environment
+          </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                console.log('🧪 Testing actual flyer generation...');
+                const response = await fetch('/api/generate-features', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    generationType: 'midjourney-image',
+                    propertyType: 'House',
+                    address: '123 Test St',
+                    price: '$500,000',
+                    bedrooms: '3',
+                    bathrooms: '2',
+                    sqft: '1500'
+                  })
+                });
+                const result = await response.json();
+                console.log('🧪 Flyer generation test result:', result);
+                if (result.success) {
+                  alert(`✅ Flyer generation SUCCESS!\nImage URL: ${result.imageUrl}\nModel: ${result.model}`);
+                } else {
+                  alert(`❌ Flyer generation FAILED\nError: ${result.error || 'Unknown error'}`);
+                }
+              } catch (error) {
+                console.error('🧪 Test error:', error);
+                alert(`Test error: ${error.message}`);
+              }
+            }}
+            style={{
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Test Flyer Gen
           </button>
         </div>
         
         <div style={{ fontSize: '12px', opacity: 0.8 }}>
           <div>🔑 API Key: {process.env.NODE_ENV === 'development' ? 'Checking...' : 'Hidden'}</div>
           <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
+          <div>🔧 Model: Gemini 2.0 Flash</div>
+          <div>📡 Endpoint: /api/generate-features</div>
         </div>
       </div>
         )}
