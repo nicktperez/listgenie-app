@@ -13,6 +13,11 @@ export default async function handler(req, res) {
       return await testOpenRouter(req, res);
     }
 
+    // If this is a simple Gemini test, test just the model
+    if (test === 'gemini') {
+      return await testGeminiModel(req, res);
+    }
+
     // If this is an AI image generation request
     if (generationType === 'midjourney-image') {
       return await generateMidjourneyImage(req, res);
@@ -29,8 +34,8 @@ export default async function handler(req, res) {
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie Flyer Generator'
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'ListGenie.ai'
         },
         body: JSON.stringify({
           model: 'anthropic/claude-3.5-sonnet',
@@ -439,6 +444,80 @@ async function testOpenRouter(req, res) {
       message: `OpenRouter API test encountered an error: ${error.message}`,
       error: error.message,
       stack: error.stack
+    });
+  }
+}
+
+// Test Gemini model directly through OpenRouter
+async function testGeminiModel(req, res) {
+  try {
+    console.log('🧪 Testing Gemini model through OpenRouter...');
+    console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
+    console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
+
+    // Test 1: Check if we can reach OpenRouter
+    console.log('📡 Testing OpenRouter connectivity...');
+    
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+        'X-Title': 'ListGenie Gemini Test'
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash-image-preview:free',
+        messages: [
+          {
+            role: 'user',
+            content: 'Hello, Gemini!'
+          }
+        ],
+        max_tokens: 50
+      })
+    });
+
+    console.log('📡 OpenRouter response status:', response.status);
+    console.log('📡 OpenRouter response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Gemini model test successful:', data);
+      return res.status(200).json({
+        success: true,
+        message: 'Gemini model is working correctly through OpenRouter.',
+        response: data,
+        model: 'google/gemini-2.5-flash-image-preview:free'
+      });
+    } else {
+      const errorText = await response.text();
+      console.error('❌ Gemini model test failed:', response.status, errorText);
+      
+      // Try to parse error response
+      try {
+        const errorJson = JSON.parse(errorText);
+        console.error('🔍 Error response JSON:', errorJson);
+      } catch (e) {
+        console.error('🔍 Error response is not JSON:', errorText);
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: `Gemini model test failed: ${response.status} - ${errorText}`,
+        status: response.status,
+        error: errorText,
+        model: 'google/gemini-2.5-flash-image-preview:free'
+      });
+    }
+  } catch (error) {
+    console.error('❌ Critical error during Gemini model test:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Gemini model test encountered an error: ${error.message}`,
+      error: error.message,
+      stack: error.stack,
+      model: 'google/gemini-2.5-flash-image-preview:free'
     });
   }
 }
