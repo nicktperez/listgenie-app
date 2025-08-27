@@ -951,35 +951,150 @@
 }
 
 .composer .composer-send-btn {
-  background: #8b5cf6 !important;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
   color: #fff !important;
   border: none !important;
-  border-radius: 8px !important;
-  padding: 6px 10px !important;
+  border-radius: 12px !important;
+  padding: 8px 12px !important;
   font-size: 14px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  min-width: 36px !important;
-  height: 36px !important;
+  min-width: 40px !important;
+  height: 40px !important;
   margin-top: 4px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
 }
 
 .composer .composer-send-btn:hover:not(:disabled) {
-  background: #7c3aed !important;
-  transform: translateY(-1px) !important;
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
+  transform: translateY(-2px) scale(1.05) !important;
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4) !important;
+}
+
+.composer .composer-send-btn:active:not(:disabled) {
+  transform: translateY(0px) scale(0.98) !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3) !important;
+  transition: all 0.1s ease !important;
 }
 
 .composer .composer-send-btn:disabled {
-  background: rgba(139, 92, 246, 0.3) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(124, 58, 237, 0.3) 100%) !important;
   cursor: not-allowed !important;
+  animation: none !important;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1) !important;
 }
 
+/* Enhanced loading icon */
 .composer .loading-icon {
   animation: spin 1s linear infinite !important;
+  color: #fff !important;
+  font-size: 16px !important;
+}
+
+/* Pulse animation for enabled button */
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(139, 92, 246, 0.5) !important;
+  }
+}
+
+/* Bounce animation when button becomes enabled */
+@keyframes buttonBounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -8px, 0);
+  }
+  70% {
+    transform: translate3d(0, -4px, 0);
+  }
+  90% {
+    transform: translate3d(0, -2px, 0);
+  }
+}
+
+/* Apply bounce when button becomes enabled */
+.composer .composer-send-btn:not(:disabled) {
+  animation: buttonPulse 2s ease-in-out infinite, buttonBounce 0.6s ease-out !important;
+}
+
+/* Ripple effect on click */
+.composer .composer-send-btn::before {
+  content: '' !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: translate(-50%, -50%) !important;
+  transition: width 0.6s, height 0.6s !important;
+}
+
+.composer .composer-send-btn:active::before {
+  width: 300px !important;
+  height: 300px !important;
+}
+
+/* Focus state for accessibility */
+.composer .composer-send-btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Enhanced glow effect on hover */
+.composer .composer-send-btn:hover:not(:disabled)::after {
+  content: '' !important;
+  position: absolute !important;
+  top: -2px !important;
+  left: -2px !important;
+  right: -2px !important;
+  bottom: -2px !important;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed, #6d28d9) !important;
+  border-radius: 14px !important;
+  z-index: -1 !important;
+  opacity: 0.3 !important;
+  filter: blur(8px) !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.composer .composer-send-btn:hover:not(:disabled)::after {
+  opacity: 0.6 !important;
+}
+
+/* Compact version enhancements */
+.composer.composer-compact .composer-send-btn {
+  padding: 12px 16px !important;
+  min-width: 48px !important;
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-size: 16px !important;
+}
+
+/* Button text styling */
+.composer .composer-send-btn .button-text {
+  margin-left: 8px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+/* Adjust button width when text is present */
+.composer .composer-send-btn:has(.button-text) {
+  min-width: auto !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
 }
 
 @keyframes spin {

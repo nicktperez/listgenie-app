@@ -62,7 +62,19 @@ const Composer = forwardRef<ComposerRef, ComposerProps>(({
           disabled={!input.trim() || loading || disabled}
           className="composer-send-btn"
         >
-          {loading ? <FiLoader className="loading-icon" /> : <FiSend />}
+          {loading ? (
+            <>
+              <FiLoader className="loading-icon" />
+              <span className="button-text">Generating...</span>
+            </>
+          ) : (
+            <>
+              <FiSend />
+              <span className="button-text">
+                {input.trim() ? 'Generate Listing' : 'Send'}
+              </span>
+            </>
+          )}
         </button>
       </div>
     </form>
