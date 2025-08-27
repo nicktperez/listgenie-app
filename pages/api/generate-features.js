@@ -6,9 +6,9 @@ export default async function handler(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, generationType } = req.body;
 
-    // If this is a Gemini image generation request
-    if (generationType === 'gemini-image') {
-      return await generateGeminiImage(req, res);
+    // If this is a Midjourney image generation request
+    if (generationType === 'midjourney-image') {
+      return await generateMidjourneyImage(req, res);
     }
 
     // Use OpenRouter to generate unique features
@@ -116,48 +116,42 @@ Please provide exactly 4 features in this exact JSON format:
   }
 }
 
-// Gemini Pro 2.5 Image Generation
-async function generateGeminiImage(req, res) {
+// Midjourney Image Generation (OpenRouter compatible)
+async function generateMidjourneyImage(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, style, flyerType } = req.body;
 
-    // Create a detailed prompt for Gemini Pro 2.5
-    const imagePrompt = `Create a professional real estate flyer for a ${propertyType} property with the following details:
+    // Create a detailed prompt for Midjourney
+    const imagePrompt = `Create a professional real estate marketing flyer for a ${propertyType} property. 
 
-Property Details:
+The flyer should feature:
+- Professional real estate marketing design
+- Modern, clean layout with excellent typography
+- Property details prominently displayed: ${bedrooms} bedrooms, ${bathrooms} bathrooms, ${sqft} sq ft
 - Address: ${address}
 - Price: ${price}
-- Bedrooms: ${bedrooms}
-- Bathrooms: ${bathrooms}
-- Square Feet: ${sqft}
-- Features: ${features}
 - Style: ${style}
 - Type: ${flyerType === 'openhouse' ? 'Open House' : 'For Sale'}
-
-Design Requirements:
-- Professional real estate marketing flyer
-- Modern, clean design with excellent typography
-- Include all property details prominently
-- Use professional color scheme appropriate for ${style} style
-- Include space for agent contact information
+- Professional color scheme appropriate for luxury real estate
+- Space for agent contact information
 - High-quality, marketing professional appearance
 - Suitable for both digital and print use
-- Include visual elements that represent luxury real estate
+- Visual elements representing luxury real estate
 - Professional layout with clear hierarchy
 
-The flyer should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing and professional.`;
+The design should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing, professional, and ready for marketing use.`;
 
-    // Call Gemini Pro 2.5 through OpenRouter
+    // Call Midjourney through OpenRouter
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/images/generations', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie Gemini Flyer Generator'
+        'X-Title': 'ListGenie AI Flyer Generator'
       },
       body: JSON.stringify({
-        model: 'google/gemini-pro-2.5',
+        model: 'midjourney/diffusion',
         prompt: imagePrompt,
         n: 1,
         size: '1024x1024',
@@ -168,28 +162,28 @@ The flyer should look like it was created by a professional marketing agency spe
 
     if (!openRouterResponse.ok) {
       const errorText = await openRouterResponse.text();
-      console.error('Gemini API error:', errorText);
-      throw new Error(`Gemini API error: ${openRouterResponse.status} - ${errorText}`);
+      console.error('Midjourney API error:', errorText);
+      throw new Error(`Midjourney API error: ${openRouterResponse.status} - ${errorText}`);
     }
 
-    const geminiData = await openRouterResponse.json();
+    const midjourneyData = await openRouterResponse.json();
     
-    if (!geminiData.data || !geminiData.data[0] || !geminiData.data[0].url) {
-      throw new Error('No image URL returned from Gemini');
+    if (!midjourneyData.data || !midjourneyData.data[0] || !midjourneyData.data[0].url) {
+      throw new Error('No image URL returned from Midjourney');
     }
 
     return res.status(200).json({
       success: true,
-      imageUrl: geminiData.data[0].url,
+      imageUrl: midjourneyData.data[0].url,
       prompt: imagePrompt,
-      model: 'google/gemini-pro-2.5'
+      model: 'midjourney/diffusion'
     });
 
   } catch (error) {
-    console.error('Error in Gemini image generation:', error);
+    console.error('Error in Midjourney image generation:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Gemini image generation failed'
+      error: error.message || 'Midjourney image generation failed'
     });
   }
 }

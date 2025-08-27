@@ -220,7 +220,7 @@ export default function ListingDisplayPage() {
       
       // Check which generation method to use
       if (flyerData.generationMethod === 'gemini') {
-        await handleGeminiFlyerGeneration();
+        await handleMidjourneyFlyerGeneration();
       } else {
         await handleProgrammaticFlyerGeneration();
       }
@@ -235,16 +235,16 @@ export default function ListingDisplayPage() {
     }
   };
 
-  // Handle Gemini Pro 2.5 AI image generation
-  const handleGeminiFlyerGeneration = async () => {
+  // Handle Midjourney AI image generation
+  const handleMidjourneyFlyerGeneration = async () => {
     try {
-      console.log('🎨 Using Gemini Pro 2.5 for AI image generation...');
+      console.log('🎨 Using Midjourney for AI image generation...');
       
       // Handle both flyer types if selected
       const flyerTypes = flyerType === 'both' ? ['listing', 'openhouse'] : [flyerType];
       
       for (const currentFlyerType of flyerTypes) {
-        console.log(`🎨 Generating ${currentFlyerType} flyer with Gemini...`);
+        console.log(`🎨 Generating ${currentFlyerType} flyer with Midjourney...`);
         
         const response = await fetch('/api/generate-features', {
           method: 'POST',
@@ -252,7 +252,7 @@ export default function ListingDisplayPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            generationType: 'gemini-image',
+            generationType: 'midjourney-image',
             propertyType: flyerData.propertyType || 'Residential Property',
             address: flyerData.address,
             price: flyerData.price || 'Contact for pricing',
@@ -270,7 +270,7 @@ export default function ListingDisplayPage() {
         }
 
         const result = await response.json();
-        console.log('🎨 Gemini flyer generation result:', result);
+        console.log('🎨 Midjourney flyer generation result:', result);
         
         if (result.success) {
           // Create a download link for the AI-generated image
@@ -291,7 +291,7 @@ export default function ListingDisplayPage() {
       alert(`${flyerType === 'both' ? 'Both AI flyers' : flyerType === 'listing' ? 'Property listing' : 'Open house'} AI flyer generated successfully! Downloading now...`);
       
     } catch (error) {
-      console.error('❌ Error in Gemini flyer generation:', error);
+      console.error('❌ Error in Midjourney flyer generation:', error);
       throw error;
     }
   };
@@ -800,9 +800,9 @@ export default function ListingDisplayPage() {
                     gap: '8px'
                   }}
                 >
-                  <img src="/star-icon.svg" alt="Gemini" style={{ width: '18px', height: '18px' }} />
-                  Gemini Pro 2.5 AI
-                  <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>AI-Generated Images</small>
+                  <img src="/star-icon.svg" alt="Midjourney" style={{ width: '18px', height: '18px' }} />
+                  Midjourney AI
+                  <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>Premium AI-Generated Images</small>
                 </button>
               </div>
             </div>
@@ -1391,7 +1391,7 @@ export default function ListingDisplayPage() {
                 ) : (
                   <>
                     <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '24px', height: '24px' }} />
-                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} with {flyerData.generationMethod === 'gemini' ? 'Gemini AI' : 'Programmatic Engine'}
+                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} with {flyerData.generationMethod === 'gemini' ? 'Midjourney AI' : 'Programmatic Engine'}
                   </>
                 )}
               </button>
