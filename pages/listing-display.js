@@ -1470,15 +1470,15 @@ export default function ListingDisplayPage() {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Testing Gemini 2.0 Flash model...');
+                console.log('🧪 Testing Gemini 2.5 Flash Image Preview model...');
                 const response = await fetch('/api/generate-features', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ test: 'gemini' })
                 });
                 const result = await response.json();
-                console.log('🧪 Gemini 2.0 Flash test result:', result);
-                alert(`Gemini 2.0 Flash test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+                console.log('🧪 Gemini 2.5 Flash Image Preview test result:', result);
+                alert(`Gemini 2.5 Flash Image Preview test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
               } catch (error) {
                 console.error('🧪 Test error:', error);
                 alert(`Test error: ${error.message}`);
@@ -1494,7 +1494,7 @@ export default function ListingDisplayPage() {
               fontSize: '12px'
             }}
           >
-            Test Gemini 2.0 Flash
+            Test Gemini 2.5 Flash Image Preview
           </button>
         </div>
         
@@ -1576,7 +1576,7 @@ export default function ListingDisplayPage() {
         <div style={{ fontSize: '12px', opacity: 0.8 }}>
           <div>🔑 API Key: {process.env.NODE_ENV === 'development' ? 'Checking...' : 'Hidden'}</div>
           <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
-          <div>🔧 Model: Gemini 2.0 Flash</div>
+          <div>🔧 Model: Gemini 2.5 Flash Image Preview</div>
           <div>📡 Endpoint: /api/generate-features</div>
         </div>
       </div>
