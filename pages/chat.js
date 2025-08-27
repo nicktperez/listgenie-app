@@ -437,17 +437,7 @@ async function copyToClipboard(text) {
             <Composer ref={composerRef} onSend={handleSend} loading={loading} />
             </div>
             
-            {loading && (
-              <div className="generating-animation">
-                <div className="generating-spinner">
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                  <div className="spinner-ring"></div>
-                </div>
-                <div className="generating-text">AI is crafting your listing...</div>
-                <div className="generating-subtext">This may take a few moments</div>
-              </div>
-            )}
+
           </div>
 
           {/* Messages Container */}

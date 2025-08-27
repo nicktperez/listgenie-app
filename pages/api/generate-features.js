@@ -148,6 +148,21 @@ async function generateMidjourneyImage(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, style, flyerType } = req.body;
 
+    console.log('🎨 AI Image Generation Request Details:', {
+      propertyType,
+      address,
+      price,
+      bedrooms,
+      bathrooms,
+      sqft,
+      features,
+      style,
+      flyerType,
+      openRouterKey: !!process.env.OPENROUTER_API_KEY,
+      appUrl: process.env.NEXT_PUBLIC_APP_URL,
+      timestamp: new Date().toISOString()
+    });
+
     // Create a detailed prompt for AI image generation
     const imagePrompt = `Create a professional real estate marketing flyer image for a ${propertyType} property. 
 
@@ -171,7 +186,9 @@ The design should look like it was created by a professional marketing agency sp
 
     console.log('🎨 Attempting AI image generation with prompt:', imagePrompt);
     console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
+    console.log('🔑 OpenRouter API Key length:', process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.length : 0);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
+    console.log('🌐 Site URL:', process.env.NEXT_PUBLIC_SITE_URL);
 
     // Try multiple approaches for image generation
     const approaches = [
@@ -252,6 +269,12 @@ The design should look like it was created by a professional marketing agency sp
     for (const approach of approaches) {
       try {
         console.log(`🎨 Trying approach: ${approach.name}`);
+        console.log(`🔍 Request details for ${approach.name}:`, {
+          url: approach.url,
+          method: approach.method,
+          headers: approach.headers,
+          body: approach.body
+        });
         
         const response = await fetch(approach.url, {
           method: approach.method,
@@ -260,6 +283,7 @@ The design should look like it was created by a professional marketing agency sp
         });
 
         console.log(`📡 ${approach.name} response status:`, response.status);
+        console.log(`📡 ${approach.name} response statusText:`, response.statusText);
         console.log(`📡 ${approach.name} response headers:`, Object.fromEntries(response.headers.entries()));
 
         if (response.ok) {
@@ -268,6 +292,7 @@ The design should look like it was created by a professional marketing agency sp
           
           if (responseData.data && responseData.data[0] && responseData.data[0].url) {
             console.log(`🎉 AI image generation successful with ${approach.name}`);
+            console.log(`🖼️ Image URL:`, responseData.data[0].url);
             return res.status(200).json({
               success: true,
               imageUrl: responseData.data[0].url,
@@ -277,6 +302,12 @@ The design should look like it was created by a professional marketing agency sp
             });
           } else {
             console.error(`❌ ${approach.name} no image data:`, responseData);
+            console.error(`❌ ${approach.name} response structure:`, {
+              hasData: !!responseData.data,
+              dataLength: responseData.data ? responseData.data.length : 0,
+              firstItem: responseData.data ? responseData.data[0] : null,
+              hasUrl: responseData.data && responseData.data[0] ? !!responseData.data[0].url : false
+            });
             lastError = `No image data from ${approach.name}`;
           }
         } else {
@@ -291,7 +322,9 @@ The design should look like it was created by a professional marketing agency sp
               headers: Object.fromEntries(response.headers.entries()),
               errorText,
               requestBody: approach.body,
-              requestHeaders: approach.headers
+              requestHeaders: approach.headers,
+              openRouterKey: !!process.env.OPENROUTER_API_KEY,
+              openRouterKeyLength: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.length : 0
             });
             
             // Try to parse error response for more details
@@ -307,6 +340,7 @@ The design should look like it was created by a professional marketing agency sp
         }
       } catch (approachError) {
         console.error(`❌ ${approach.name} error:`, approachError);
+        console.error(`❌ ${approach.name} error stack:`, approachError.stack);
         lastError = `${approach.name} error: ${approachError.message}`;
       }
     }

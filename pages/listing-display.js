@@ -1420,6 +1420,89 @@ export default function ListingDisplayPage() {
         </div>
       )}
 
+      {/* Debug Section - Remove in production */}
+      <div style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.8)',
+        padding: '20px',
+        borderRadius: '12px',
+        color: 'white',
+        fontSize: '14px',
+        zIndex: 1000
+      }}>
+        <h4 style={{ margin: '0 0 16px 0', color: '#667eea' }}>🔧 Debug Tools</h4>
+        
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            onClick={async () => {
+              try {
+                console.log('🧪 Testing OpenRouter connectivity...');
+                const response = await fetch('/api/generate-features', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test: 'openrouter' })
+                });
+                const result = await response.json();
+                console.log('🧪 OpenRouter test result:', result);
+                alert(`OpenRouter test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+              } catch (error) {
+                console.error('🧪 Test error:', error);
+                alert(`Test error: ${error.message}`);
+              }
+            }}
+            style={{
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              marginRight: '8px'
+            }}
+          >
+            Test OpenRouter
+          </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                console.log('🧪 Testing Gemini model...');
+                const response = await fetch('/api/generate-features', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ test: 'gemini' })
+                });
+                const result = await response.json();
+                console.log('🧪 Gemini test result:', result);
+                alert(`Gemini test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+              } catch (error) {
+                console.error('🧪 Test error:', error);
+                alert(`Test error: ${error.message}`);
+              }
+            }}
+            style={{
+              background: '#10b981',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Test Gemini
+          </button>
+        </div>
+        
+        <div style={{ fontSize: '12px', opacity: 0.8 }}>
+          <div>🔑 API Key: {process.env.NODE_ENV === 'development' ? 'Checking...' : 'Hidden'}</div>
+          <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
+        </div>
+      </div>
+
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
         <EnhancedFlyerModal
