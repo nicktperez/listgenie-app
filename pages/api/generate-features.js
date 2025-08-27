@@ -204,24 +204,24 @@ The design should look like it was created by a professional marketing agency sp
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
-          model: 'google/gemini-2.5-flash-image-preview:free',
+          model: 'google/gemini-2.0-flash-exp',
           prompt: imagePrompt,
           n: 1,
           size: '1024x1024'
         }
       },
       {
-        name: 'OpenRouter DALL-E 3',
+        name: 'OpenAI DALL-E 3 (HD Quality)',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
@@ -234,13 +234,13 @@ The design should look like it was created by a professional marketing agency sp
         }
       },
       {
-        name: 'OpenRouter DALL-E 2',
+        name: 'OpenAI DALL-E 2',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
@@ -251,13 +251,13 @@ The design should look like it was created by a professional marketing agency sp
         }
       },
       {
-        name: 'OpenRouter Stable Diffusion',
+        name: 'Stable Diffusion XL',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
@@ -490,7 +490,7 @@ async function testOpenRouter(req, res) {
 // Test Gemini 2.0 Flash image generation through OpenRouter
 async function testGeminiModel(req, res) {
   try {
-    console.log('🧪 Testing Gemini 2.5 Flash Image Preview image generation through OpenRouter...');
+    console.log('🧪 Testing Gemini 2.0 Flash image generation through OpenRouter...');
     console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
@@ -506,7 +506,7 @@ async function testGeminiModel(req, res) {
         'X-Title': 'ListGenie Gemini Image Test'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview:free',
+        model: 'google/gemini-2.0-flash-exp',
         prompt: 'Create a simple test image of a house',
         n: 1,
         size: '1024x1024'
@@ -518,16 +518,16 @@ async function testGeminiModel(req, res) {
 
     if (response.ok) {
       const data = await response.json();
-              console.log('✅ Gemini 2.5 Flash Image Preview model test successful:', data);
+              console.log('✅ Gemini 2.0 Flash model test successful:', data);
         return res.status(200).json({
           success: true,
-          message: 'Gemini 2.5 Flash Image Preview image generation is working correctly through OpenRouter.',
+          message: 'Gemini 2.0 Flash image generation is working correctly through OpenRouter.',
           response: data,
-          model: 'google/gemini-2.5-flash-image-preview:free'
+          model: 'google/gemini-2.0-flash-exp'
         });
     } else {
       const errorText = await response.text();
-              console.error('❌ Gemini 2.5 Flash Image Preview model test failed:', response.status, errorText);
+              console.error('❌ Gemini 2.0 Flash model test failed:', response.status, errorText);
       
       // Try to parse error response
       try {
@@ -539,20 +539,20 @@ async function testGeminiModel(req, res) {
       
               return res.status(500).json({
           success: false,
-          message: `Gemini 2.5 Flash Image Preview image generation test failed: ${response.status} - ${errorText}`,
+          message: `Gemini 2.0 Flash image generation test failed: ${response.status} - ${errorText}`,
           status: response.status,
           error: errorText,
-          model: 'google/gemini-2.5-flash-image-preview:free'
+          model: 'google/gemini-2.0-flash-exp'
         });
     }
   } catch (error) {
-          console.error('❌ Critical error during Gemini 2.5 Flash Image Preview model test:', error);
+          console.error('❌ Critical error during Gemini 2.0 Flash model test:', error);
       return res.status(500).json({
         success: false,
-        message: `Gemini 2.5 Flash Image Preview image generation test encountered an error: ${error.message}`,
+        message: `Gemini 2.0 Flash image generation test encountered an error: ${error.message}`,
         error: error.message,
         stack: error.stack,
-        model: 'google/gemini-2.5-flash-image-preview:free'
+        model: 'google/gemini-2.0-flash-exp'
       });
   }
 }
