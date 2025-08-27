@@ -1,0 +1,18 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Classic building structure -->
+  <rect x="4" y="8" width="16" height="14" fill="#8b5cf6" stroke="#ffffff" stroke-width="1"/>
+  
+  <!-- Columns -->
+  <rect x="6" y="10" width="2" height="12" fill="#ffffff" opacity="0.8"/>
+  <rect x="16" y="10" width="2" height="12" fill="#ffffff" opacity="0.8"/>
+  
+  <!-- Roof details -->
+  <path d="M2 8L12 2L22 8H2Z" fill="#a855f7" stroke="#ffffff" stroke-width="1"/>
+  
+  <!-- Windows -->
+  <rect x="8" y="12" width="3" height="3" fill="#ffffff" opacity="0.9"/>
+  <rect x="13" y="12" width="3" height="3" fill="#ffffff" opacity="0.9"/>
+  
+  <!-- Door -->
+  <rect x="10" y="16" width="4" height="6" fill="#ffffff" opacity="0.8"/>
+</svg>

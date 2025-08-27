@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Real Estate Flyer - Preview</title>
+    <style>
+        /* Ultra Modern Professional Real Estate Flyer - Modern Contemporary */
+        
+        /* Import Google Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300,400,500,600,700,800,900&family=Montserrat:wght@400,500,600,700,800&family=Poppins:wght@400,500,600,700,800&display=swap');
+        
+        /* CSS Custom Properties */
+        :root {
+            --color-primary: #1e40af;
+            --color-secondary: #ffffff;
+            --color-accent: #3b82f6;
+            --color-background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --color-text: #1e293b;
+            --color-highlight: #1e40af;
+            --color-gold: #fbbf24;
+            --color-gold-light: #fcd34d;
+            --color-gold-dark: #f59e0b;
+            
+            --font-primary: 'Inter', sans-serif;
+            --font-secondary: 'Montserrat', sans-serif;
+            --font-accent: 'Poppins', sans-serif;
+            
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            --shadow-md: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+            --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+            --shadow-xl: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+            --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
+            
+            --border-radius: 16px;
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-primary);
+            line-height: 1.6;
+            color: var(--color-text);
+            background: var(--color-background);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .modern-flyer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+            background: var(--color-background);
+        }
+        
+        /* Hero Section with Stunning Gradients */
+        .hero-section {
+            position: relative;
+            min-height: 60vh;
+            background: linear-gradient(135deg, 
+                #667eea 0%, 
+                #764ba2 25%, 
+                #f093fb 50%, 
+                #f5576c 75%, 
+                #4facfe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 8s ease infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            overflow: hidden;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.6) 100%);
+            z-index: 1;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            padding: 2rem;
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
+            color: var(--color-accent-dark);
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: var(--shadow-lg);
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+        
+        .status-badge.open-house {
+            background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            color: white;
+        }
+        
+        .status-badge.for-sale {
+            background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-light) 100%);
+            color: var(--color-accent-dark);
+        }
+        
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .badge-icon {
+            width: 20px;
+            height: 20px;
+            color: currentColor;
+        }
+        
+        .property-address {
+            font-family: var(--font-accent);
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 800;
+            margin-bottom: 2rem;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .property-highlights {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        
+        .highlight-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            min-width: 120px;
+            transition: all var(--transition);
+        }
+        
+        .highlight-item:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: var(--shadow-xl);
+        }
+        
+        .highlight-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .highlight-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .property-description {
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+        
+        /* Details Section - Filled with Professional Gradients */
+        .details-section {
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .details-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.03)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.03)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.02)"/><circle cx="10" cy="60" r="0.5" fill="rgba(255,255,255,0.02)"/><circle cx="90" cy="40" r="0.5" fill="rgba(255,255,255,0.02)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.6;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Enhanced Detail Cards with Full Color Schemes */
+        .detail-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .detail-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+        }
+        
+        .detail-card:nth-child(2)::before {
+            background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+        }
+        
+        .detail-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-2xl), var(--shadow-glow);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .card-icon {
+            width: 32px;
+            height: 32px;
+            color: #fbbf24;
+            flex-shrink: 0;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        
+        .card-title {
+            font-family: var(--font-secondary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Detail List with Enhanced Colors */
+        .detail-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 12px;
+            transition: all var(--transition-fast);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .detail-item:hover {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1e293b;
+            transform: translateX(8px);
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+        }
+        
+        .detail-label {
+            font-family: var(--font-primary);
+            font-weight: 500;
+            color: inherit;
+        }
+        
+        .detail-value {
+            font-family: var(--font-secondary);
+            font-weight: 600;
+            color: inherit;
+        }
+        
+        /* Photo Grid with Full Color Coverage */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            transition: all var(--transition);
+            border: 2px dashed rgba(251, 191, 36, 0.5);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .photo-placeholder::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+        
+        .photo-placeholder:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .photo-placeholder:hover {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1e293b;
+            transform: scale(1.05);
+            border-color: #fbbf24;
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.4);
+        }
+        
+        .photo-icon {
+            width: 48px;
+            height: 48px;
+            color: #fbbf24;
+            margin-bottom: 1rem;
+            transition: all var(--transition);
+        }
+        
+        .photo-placeholder:hover .photo-icon {
+            color: #1e293b;
+            transform: scale(1.1);
+        }
+        
+        /* Agent Section with Enhanced Gradients */
+        .agent-section {
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #475569 75%, #64748b 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .agent-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="10" cy="10" r="1" fill="rgba(251,191,36,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23dots)"/></svg>');
+            opacity: 0.4;
+        }
+        
+        .agent-card {
+            max-width: 600px;
+            margin: 0 auto;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow-xl);
+            position: relative;
+            z-index: 2;
+        }
+        
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            justify-content: center;
+        }
+        
+        .agent-icon {
+            width: 32px;
+            height: 32px;
+            color: var(--color-gold);
+        }
+        
+        .agent-title {
+            font-family: var(--font-secondary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin: 0;
+        }
+        
+        .agent-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .agent-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
+            border-radius: 12px;
+            transition: all var(--transition-fast);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .agent-item:hover {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.3) 0%, rgba(245, 158, 11, 0.2) 100%);
+            transform: translateX(8px);
+            border-color: rgba(251, 191, 36, 0.5);
+        }
+        
+        .contact-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--color-gold);
+            flex-shrink: 0;
+        }
+        
+        /* Additional Content Sections to Fill Space */
+        .features-section {
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #475569 0%, #64748b 50%, #94a3b8 100%);
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .features-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="hexagons" width="30" height="30" patternUnits="userSpaceOnUse"><polygon points="15,5 25,10 25,20 15,25 5,20 5,10" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23hexagons)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all var(--transition);
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border-color: rgba(251, 191, 36, 0.5);
+        }
+        
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            color: #fbbf24;
+            margin: 0 auto 1rem;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+        
+        .feature-title {
+            font-family: var(--font-secondary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: white;
+        }
+        
+        .feature-description {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            line-height: 1.5;
+        }
+        
+        /* Footer Section */
+        .footer-section {
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .footer-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="stars" width="50" height="50" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="0.5" fill="rgba(251,191,36,0.3)"/><circle cx="10" cy="10" r="0.3" fill="rgba(251,191,36,0.2)"/><circle cx="40" cy="40" r="0.4" fill="rgba(251,191,36,0.25)"/></pattern></defs><rect width="100" height="100" fill="url(%23stars)"/></svg>');
+            opacity: 0.4;
+        }
+        
+        .footer-content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .footer-title {
+            font-family: var(--font-accent);
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .footer-description {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .footer-cta {
+            display: inline-block;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: #1e293b;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all var(--transition);
+            box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+        }
+        
+        .footer-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.5);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .hero-section {
+                min-height: 50vh;
+                padding: 2rem 1rem;
+            }
+            
+            .property-address {
+                font-size: clamp(2rem, 5vw, 3rem);
+            }
+            
+            .property-highlights {
+                gap: 1rem;
+            }
+            
+            .highlight-item {
+                min-width: 100px;
+                padding: 1rem;
+            }
+            
+            .details-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .details-section,
+            .agent-section,
+            .features-section,
+            .footer-section {
+                padding: 2rem 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="modern-flyer-container">
+        <!-- Hero Section with Stunning Gradient Background -->
+        <div class="hero-section">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <div class="status-badge for-sale">
+                    <svg class="badge-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z" fill="currentColor"/>
+                    </svg>
+                    FOR SALE
+                </div>
+                <h1 class="property-address">123 Luxury Lane, Beverly Hills, CA 90210</h1>
+                <div class="property-highlights">
+                    <div class="highlight-item">
+                        <span class="highlight-value">5</span>
+                        <span class="highlight-label">Bedrooms</span>
+                    </div>
+                    <div class="highlight-item">
+                        <span class="highlight-value">6</span>
+                        <span class="highlight-label">Bathrooms</span>
+                    </div>
+                    <div class="highlight-item">
+                        <span class="highlight-value">8,500</span>
+                        <span class="highlight-label">Square Feet</span>
+                    </div>
+                </div>
+                <p class="property-description">
+                    A stunning Luxury Villa that combines comfort, style, and functionality in a prime location.
+                </p>
+            </div>
+        </div>
+        
+        <!-- Property Details Section with Enhanced Cards -->
+        <div class="details-section">
+            <div class="details-grid">
+                <div class="detail-card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M3 2C2.44772 2 2 2.44772 2 3V17C2 17.5523 2 17 3 17H17C17.5523 17 18 17.5523 18 17V3C18 2.44772 17.5523 2 17 2H3Z" fill="currentColor"/>
+                        </svg>
+                        <h3 class="card-title">Property Details</h3>
+                    </div>
+                    <div class="detail-list">
+                        <div class="detail-item">
+                            <span class="detail-label">Property Type:</span>
+                            <span class="detail-value">Luxury Villa</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Address:</span>
+                            <span class="detail-value">123 Luxury Lane, Beverly Hills, CA 90210</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Bedrooms:</span>
+                            <span class="detail-value">5</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Bathrooms:</span>
+                            <span class="detail-value">6</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Square Feet:</span>
+                            <span class="detail-value">8,500</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-card">
+                    <div class="card-header">
+                        <svg class="card-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z" fill="currentColor"/>
+                        </svg>
+                        <h3 class="card-title">Property Photos</h3>
+                    </div>
+                    <div class="photo-grid">
+                        <div class="photo-placeholder">
+                            <svg class="photo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <p>Property Photo 1</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Agent Information with Enhanced Design -->
+        <div class="agent-section">
+            <div class="agent-card">
+                <div class="agent-header">
+                    <svg class="agent-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3 class="agent-title">Contact Information</h3>
+                </div>
+                <div class="agent-details">
+                    <div class="agent-item">
+                        <strong>John Smith</strong>
+                    </div>
+                    <div class="agent-item">
+                        Premier Real Estate
+                    </div>
+                    <div class="agent-item">
+                        <svg class="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M22 16.92V19.92C22.0011 20.1985 21.9441 20.4742 21.8325 20.7294C21.7209 20.9846 21.5573 21.2136 21.3521 21.4019C21.1469 21.5902 20.9046 21.7335 20.6407 21.8227C20.3768 21.9119 20.0973 21.9454 19.82 21.92C16.7428 21.5856 13.787 20.5341 11.19 18.85C8.77382 17.3146 6.72533 15.2661 5.18999 12.85C3.49997 10.2412 2.44824 7.27099 2.11999 4.18C2.0946 3.90347 2.12787 3.62462 2.21649 3.36139C2.30512 3.09816 2.44706 2.85626 2.63421 2.65162C2.82136 2.44698 3.04956 2.28351 3.30351 2.17174C3.55746 2.05997 3.83166 2.00205 4.10999 2.00001H7.10999C7.59522 1.99522 8.06577 2.16708 8.43371 2.48353C8.80166 2.79999 9.04201 3.23945 9.10999 3.72001C9.23662 4.68007 9.47144 5.62273 9.80999 6.53001C9.94454 6.88792 9.97348 7.27675 9.89382 7.64918C9.81416 8.02161 9.62925 8.36026 9.35999 8.63001L8.08999 9.90001C9.51367 12.3636 11.6364 14.4863 14.1 15.91L15.37 14.64C15.6397 14.3707 15.9784 14.1858 16.3508 14.1062C16.7232 14.0265 17.1121 14.0555 17.47 14.19C18.3773 14.5286 19.3199 14.7634 20.28 14.89C20.7658 14.9585 21.2094 15.2032 21.5265 15.5765C21.8437 15.9498 22.0122 16.4256 22 16.92Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        (555) 123-4567
+                    </div>
+                    <div class="agent-item">
+                        <svg class="contact-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M22 6L12 13L2 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        john.smith@premiere.com
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Features Section - Dynamic AI-Generated Content -->
+        <div class="features-section">
+            <div class="features-grid">
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z" fill="currentColor"/>
+                    </svg>
+                    <h3 class="feature-title">AI-Generated Feature 1</h3>
+                    <p class="feature-description">This feature is dynamically generated using OpenRouter AI based on your specific property details, ensuring each flyer is unique and relevant.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 2C2.44772 2 2 2.44772 2 3V17C2 17.5523 2 17 3 17H17C17.5523 17 18 17.5523 18 17V3C18 2.44772 17.5523 2 17 2H3Z" fill="currentColor"/>
+                    </svg>
+                    <h3 class="feature-title">AI-Generated Feature 2</h3>
+                    <p class="feature-description">Every flyer gets unique, compelling features that highlight what makes your specific property special and desirable to potential buyers.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3 class="feature-title">AI-Generated Feature 3</h3>
+                    <p class="feature-description">The AI analyzes your property type, location, price, and features to create marketing content that resonates with your target audience.</p>
+                </div>
+                
+                <div class="feature-card">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L14 8L20 10L14 12L12 18L10 12L4 10L10 8L12 2Z" fill="currentColor"/>
+                    </svg>
+                    <h3 class="feature-title">AI-Generated Feature 4</h3>
+                    <p class="feature-description">No more generic flyers! Each feature card is tailored to your specific listing, making your marketing materials stand out from the competition.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer Section - Call to Action -->
+        <div class="footer-section">
+            <div class="footer-content">
+                <h2 class="footer-title">Ready to Make This Your Home?</h2>
+                <p class="footer-description">
+                    Don't miss this exceptional opportunity to own a piece of luxury real estate. 
+                    Contact us today to schedule a private viewing and experience the lifestyle this property offers.
+                </p>
+                <a href="#" class="footer-cta">Schedule Viewing Now</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

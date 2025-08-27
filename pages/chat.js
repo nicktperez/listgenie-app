@@ -439,12 +439,13 @@ async function copyToClipboard(text) {
             
             {loading && (
               <div className="generating-animation">
-                <div className="generating-dots">
-                  <span className="dot"></span>
-                  <span className="dot"></span>
-                  <span className="dot"></span>
+                <div className="generating-spinner">
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
+                  <div className="spinner-ring"></div>
                 </div>
-                <div className="generating-text">Generating...</div>
+                <div className="generating-text">AI is crafting your listing...</div>
+                <div className="generating-subtext">This may take a few moments</div>
               </div>
             )}
           </div>

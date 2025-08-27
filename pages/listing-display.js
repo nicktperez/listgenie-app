@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useUser } from '@clerk/nextjs';
 import useUserPlan from '../hooks/useUserPlan';
 import EnhancedFlyerModal from '../components/chat/EnhancedFlyerModal';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function ListingDisplayPage() {
   const router = useRouter();
@@ -97,10 +99,127 @@ export default function ListingDisplayPage() {
     setSimpleFlyerModal(true);
   };
 
+  // Load agent info from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setFlyerData(prev => ({
+        ...prev,
+        agentName: localStorage.getItem('agentName') || '',
+        agency: localStorage.getItem('agency') || '',
+        agentPhone: localStorage.getItem('agentPhone') || '',
+        agentEmail: localStorage.getItem('agentEmail') || ''
+      }));
+    }
+  }, []);
+
+  // Generate dynamic features using OpenRouter AI
+  const generateDynamicFeatures = async (listingData) => {
+    try {
+      const response = await fetch('/api/generate-features', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          propertyType: listingData.propertyType,
+          address: listingData.address,
+          price: listingData.price,
+          bedrooms: listingData.bedrooms,
+          bathrooms: listingData.bathrooms,
+          sqft: listingData.sqft,
+          features: listingData.features
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.features;
+      }
+    } catch (error) {
+      console.error('Error generating features:', error);
+    }
+    
+    // Fallback to default features if AI generation fails
+    return [
+      { title: 'Premium Location', description: 'Situated in a highly desirable neighborhood with excellent amenities and accessibility.' },
+      { title: 'Modern Design', description: 'Contemporary architecture with premium finishes and thoughtful design elements throughout.' },
+      { title: 'Family Friendly', description: 'Perfect for families with spacious rooms, outdoor areas, and a safe neighborhood environment.' },
+      { title: 'Investment Value', description: 'Strong potential for appreciation in this rapidly developing area with excellent market fundamentals.' }
+    ];
+  };
+
+  // Download flyer as PDF
+  const downloadFlyerAsPDF = async (flyerContent) => {
+    try {
+      // Create a temporary container for the flyer
+      const tempContainer = document.createElement('div');
+      tempContainer.innerHTML = flyerContent;
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '0';
+      tempContainer.style.width = '1200px'; // Fixed width for consistent PDF
+      tempContainer.style.backgroundColor = 'white';
+      document.body.appendChild(tempContainer);
+
+      // Convert to canvas
+      const canvas = await html2canvas(tempContainer, {
+        width: 1200,
+        height: tempContainer.scrollHeight,
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Remove temporary container
+      document.body.removeChild(tempContainer);
+
+      // Create PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if needed
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Download PDF
+      const fileName = `flyer-${flyerData.address.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.pdf`;
+      pdf.save(fileName);
+
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
+  };
+
+  // Save agent info to localStorage when it changes
+  const saveAgentInfo = (field, value) => {
+    localStorage.setItem(field, value);
+  };
+
   const handleFlyerGeneration = async () => {
     try {
       setFlyerGenerating(true);
       console.log('🎨 Generating comprehensive flyer with user data:', flyerData);
+      
+      // Generate dynamic features for this listing
+      const dynamicFeatures = await generateDynamicFeatures(flyerData);
+      console.log('🎨 Generated dynamic features:', dynamicFeatures);
       
       // Handle both flyer types if selected
       const flyerTypes = flyerType === 'both' ? ['listing', 'openhouse'] : [flyerType];
@@ -129,7 +248,8 @@ export default function ListingDisplayPage() {
             phone: flyerData.agentPhone || 'Contact for details',
             email: flyerData.agentEmail || 'agent@premiere.com'
           },
-          photos: flyerData.photos || []
+          photos: flyerData.photos || [],
+          dynamicFeatures: dynamicFeatures
         };
 
               console.log('🎨 Sending flyer request:', flyerRequestData);
@@ -151,7 +271,7 @@ export default function ListingDisplayPage() {
         console.log('🎨 Flyer generation result:', result);
         
         if (result.success) {
-          // Create and download the flyer
+          // Create and download the flyer as PDF
           const flyerHTML = result.flyer.html;
           const flyerCSS = result.flyer.css;
           
@@ -166,25 +286,15 @@ export default function ListingDisplayPage() {
               <style>${flyerCSS}</style>
             </head>
             <body>
-              ${flyerHTML}
+              ${fullHTML}
             </body>
             </html>
           `;
           
-          // Create blob and download
-          const blob = new Blob([fullHTML], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          const timestamp = new Date().toISOString().split('T')[0];
-          const fileName = `${currentFlyerType}-flyer-${flyerData.address.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.html`;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
+          // Download as PDF
+          await downloadFlyerAsPDF(fullHTML);
           
-          console.log(`✅ ${currentFlyerType} flyer generated successfully!`);
+          console.log(`✅ ${currentFlyerType} flyer generated and downloaded as PDF!`);
         } else {
           throw new Error(result.error || `Failed to generate ${currentFlyerType} flyer`);
         }
@@ -830,69 +940,128 @@ export default function ListingDisplayPage() {
 
             {/* Agent Information */}
             <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ color: '#333', marginBottom: '15px' }}>👤 Agent Information</h3>
+              <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/copy-icon.svg" alt="Agent" style={{ width: '20px', height: '20px' }} />
+                Agent Information
+              </h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Agent Name</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Agent Name</label>
                   <input
                     type="text"
                     placeholder="John Smith"
                     value={flyerData.agentName || ''}
-                    onChange={(e) => setFlyerData({...flyerData, agentName: e.target.value})}
+                    onChange={(e) => {
+                      setFlyerData({...flyerData, agentName: e.target.value});
+                      saveAgentInfo('agentName', e.target.value);
+                    }}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Agency</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Agency</label>
                   <input
                     type="text"
                     placeholder="Smith Real Estate"
                     value={flyerData.agency || ''}
-                    onChange={(e) => setFlyerData({...flyerData, agency: e.target.value})}
+                    onChange={(e) => {
+                      setFlyerData({...flyerData, agency: e.target.value});
+                      saveAgentInfo('agency', e.target.value);
+                    }}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Phone</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Phone</label>
                   <input
                     type="tel"
                     placeholder="(555) 123-4567"
                     value={flyerData.agentPhone || ''}
-                    onChange={(e) => setFlyerData({...flyerData, agentPhone: e.target.value})}
+                    onChange={(e) => {
+                      setFlyerData({...flyerData, agentPhone: e.target.value});
+                      saveAgentInfo('agentPhone', e.target.value);
+                    }}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Email</label>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', color: 'white' }}>Email</label>
                   <input
                     type="email"
                     placeholder="john@smithrealestate.com"
                     value={flyerData.agentEmail || ''}
-                    onChange={(e) => setFlyerData({...flyerData, agentEmail: e.target.value})}
+                    onChange={(e) => {
+                      setFlyerData({...flyerData, agentEmail: e.target.value});
+                      saveAgentInfo('agentEmail', e.target.value);
+                    }}
                     style={{
                       width: '100%',
                       padding: '12px',
-                      border: '2px solid #ddd',
+                      border: '2px solid rgba(255, 255, 255, 0.3)',
                       borderRadius: '8px',
-                      fontSize: '16px'
+                      fontSize: '16px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #667eea';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+                      e.target.style.background = 'rgba(255, 255, 255, 0.1)';
                     }}
                   />
                 </div>
@@ -901,16 +1070,36 @@ export default function ListingDisplayPage() {
 
             {/* Photo Upload */}
             <div style={{ marginBottom: '30px' }}>
-              <h3 style={{ color: '#333', marginBottom: '15px' }}>📸 Property Photos</h3>
+              <h3 style={{ color: 'white', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/star-icon.svg" alt="Photos" style={{ width: '20px', height: '20px' }} />
+                Property Photos
+              </h3>
               <div style={{
-                border: '2px dashed #ddd',
+                border: '2px dashed rgba(255, 255, 255, 0.3)',
                 borderRadius: '12px',
                 padding: '30px',
                 textAlign: 'center',
-                backgroundColor: '#f8f9fa'
+                background: 'rgba(255, 255, 255, 0.05)',
+                transition: 'all 0.3s ease'
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.style.border = '2px dashed #667eea';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.border = '2px dashed rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                setFlyerData({...flyerData, photos: files});
+                e.currentTarget.style.border = '2px dashed rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
               }}>
-                <div style={{ fontSize: '48px', marginBottom: '15px' }}>📷</div>
-                <p style={{ margin: '0 0 15px 0', color: '#666' }}>
+                <img src="/house-icon.svg" alt="Photos" style={{ width: '48px', height: '48px', marginBottom: '15px', opacity: '0.7' }} />
+                <p style={{ margin: '0 0 15px 0', color: 'white' }}>
                   {flyerData.photos && flyerData.photos.length > 0 
                     ? `${flyerData.photos.length} photo(s) selected`
                     : 'Drag & drop photos here or click to browse'
@@ -930,14 +1119,24 @@ export default function ListingDisplayPage() {
                 <label
                   htmlFor="photo-upload"
                   style={{
-                    background: '#667eea',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     color: 'white',
                     padding: '12px 24px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     fontSize: '16px',
                     fontWeight: '600',
-                    display: 'inline-block'
+                    display: 'inline-block',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.transform = 'translateY(-2px)';
+                    e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.transform = 'translateY(0)';
+                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
                   }}
                 >
                   Choose Photos
@@ -952,9 +1151,9 @@ export default function ListingDisplayPage() {
                 <button
                   onClick={() => setFlyerData({...flyerData, style: 'luxury-real-estate'})}
                   style={{
-                    background: flyerData.style === 'luxury-real-estate' ? '#667eea' : '#f8f9fa',
-                    color: flyerData.style === 'luxury-real-estate' ? 'white' : '#333',
-                    border: `2px solid ${flyerData.style === 'luxury-real-estate' ? '#667eea' : '#ddd'}`,
+                    background: flyerData.style === 'luxury-real-estate' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerData.style === 'luxury-real-estate' ? 'white' : 'white',
+                    border: `2px solid ${flyerData.style === 'luxury-real-estate' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '20px',
                     borderRadius: '12px',
                     cursor: 'pointer',
@@ -963,16 +1162,16 @@ export default function ListingDisplayPage() {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>👑</div>
+                  <img src="/crown-icon.svg" alt="Luxury" style={{ width: '24px', height: '24px', marginBottom: '8px' }} />
                   <strong>Luxury</strong><br/>
                   <small>Premium & Sophisticated</small>
                 </button>
                 <button
                   onClick={() => setFlyerData({...flyerData, style: 'modern-contemporary'})}
                   style={{
-                    background: flyerData.style === 'modern-contemporary' ? '#667eea' : '#f8f9fa',
-                    color: flyerData.style === 'modern-contemporary' ? 'white' : '#333',
-                    border: `2px solid ${flyerData.style === 'modern-contemporary' ? '#667eea' : '#ddd'}`,
+                    background: flyerData.style === 'modern-contemporary' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerData.style === 'modern-contemporary' ? 'white' : 'white',
+                    border: `2px solid ${flyerData.style === 'modern-contemporary' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '20px',
                     borderRadius: '12px',
                     cursor: 'pointer',
@@ -981,16 +1180,16 @@ export default function ListingDisplayPage() {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>✨</div>
+                  <img src="/sparkle-icon.svg" alt="Modern" style={{ width: '24px', height: '24px', marginBottom: '8px' }} />
                   <strong>Modern</strong><br/>
                   <small>Clean & Contemporary</small>
                 </button>
                 <button
                   onClick={() => setFlyerData({...flyerData, style: 'classic-elegant'})}
                   style={{
-                    background: flyerData.style === 'classic-elegant' ? '#667eea' : '#f8f9fa',
-                    color: flyerData.style === 'classic-elegant' ? 'white' : '#333',
-                    border: `2px solid ${flyerData.style === 'classic-elegant' ? '#667eea' : '#ddd'}`,
+                    background: flyerData.style === 'classic-elegant' ? '#667eea' : 'rgba(255, 255, 255, 0.1)',
+                    color: flyerData.style === 'classic-elegant' ? 'white' : 'white',
+                    border: `2px solid ${flyerData.style === 'classic-elegant' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '20px',
                     borderRadius: '12px',
                     cursor: 'pointer',
@@ -999,7 +1198,7 @@ export default function ListingDisplayPage() {
                     transition: 'all 0.3s ease'
                   }}
                 >
-                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>🏛️</div>
+                  <img src="/classic-icon.svg" alt="Classic" style={{ width: '24px', height: '24px', marginBottom: '8px' }} />
                   <strong>Classic</strong><br/>
                   <small>Timeless & Elegant</small>
                 </button>
@@ -1052,6 +1251,20 @@ export default function ListingDisplayPage() {
                   </>
                 )}
               </button>
+              
+              {/* PDF Download Indicator */}
+              <div style={{ 
+                marginTop: '16px',
+                background: 'rgba(251, 191, 36, 0.1)', 
+                padding: '8px 16px', 
+                borderRadius: '20px',
+                fontSize: '14px',
+                color: '#fbbf24',
+                border: '1px solid rgba(251, 191, 36, 0.3)',
+                display: 'inline-block'
+              }}>
+                📄 Downloads as High-Quality PDF
+              </div>
             </div>
           </div>
         </div>
