@@ -32,7 +32,8 @@ export default function ListingDisplayPage() {
     agentPhone: '',
     agentEmail: '',
     photos: [],
-    style: 'luxury-real-estate' // Default style
+    style: 'luxury-real-estate', // Default style
+    generationMethod: 'programmatic' // Default to programmatic engine
   });
 
   useEffect(() => {
@@ -217,6 +218,89 @@ export default function ListingDisplayPage() {
       setFlyerGenerating(true);
       console.log('🎨 Generating comprehensive flyer with user data:', flyerData);
       
+      // Check which generation method to use
+      if (flyerData.generationMethod === 'gemini') {
+        await handleGeminiFlyerGeneration();
+      } else {
+        await handleProgrammaticFlyerGeneration();
+      }
+      
+      // Close the modal after successful generation
+      setSimpleFlyerModal(false);
+    } catch (error) {
+      console.error('❌ Error generating flyer:', error);
+      alert(`Error generating flyer: ${error.message}`);
+    } finally {
+      setFlyerGenerating(false);
+    }
+  };
+
+  // Handle Gemini Pro 2.5 AI image generation
+  const handleGeminiFlyerGeneration = async () => {
+    try {
+      console.log('🎨 Using Gemini Pro 2.5 for AI image generation...');
+      
+      // Handle both flyer types if selected
+      const flyerTypes = flyerType === 'both' ? ['listing', 'openhouse'] : [flyerType];
+      
+      for (const currentFlyerType of flyerTypes) {
+        console.log(`🎨 Generating ${currentFlyerType} flyer with Gemini...`);
+        
+        const response = await fetch('/api/generate-features', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            generationType: 'gemini-image',
+            propertyType: flyerData.propertyType || 'Residential Property',
+            address: flyerData.address,
+            price: flyerData.price || 'Contact for pricing',
+            bedrooms: flyerData.bedrooms || 'Contact for details',
+            bathrooms: flyerData.bathrooms || 'Contact for details',
+            sqft: flyerData.sqft || 'Contact for details',
+            features: flyerData.features || '',
+            style: flyerData.style,
+            flyerType: currentFlyerType
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('🎨 Gemini flyer generation result:', result);
+        
+        if (result.success) {
+          // Create a download link for the AI-generated image
+          const link = document.createElement('a');
+          link.href = result.imageUrl;
+          link.download = `${currentFlyerType}-flyer-${Date.now()}.png`;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
+        } else {
+          throw new Error(result.error || `Failed to generate ${currentFlyerType} AI flyer`);
+        }
+      }
+      
+      alert(`${flyerType === 'both' ? 'Both AI flyers' : flyerType === 'listing' ? 'Property listing' : 'Open house'} AI flyer generated successfully! Downloading now...`);
+      
+    } catch (error) {
+      console.error('❌ Error in Gemini flyer generation:', error);
+      throw error;
+    }
+  };
+
+  // Handle programmatic flyer generation
+  const handleProgrammaticFlyerGeneration = async () => {
+    try {
+      console.log('🎨 Using programmatic flyer engine...');
+      
       // Generate dynamic features for this listing
       const dynamicFeatures = await generateDynamicFeatures(flyerData);
       console.log('🎨 Generated dynamic features:', dynamicFeatures);
@@ -252,7 +336,7 @@ export default function ListingDisplayPage() {
           dynamicFeatures: dynamicFeatures
         };
 
-              console.log('🎨 Sending flyer request:', flyerRequestData);
+        console.log('🎨 Sending flyer request:', flyerRequestData);
         
         // Call the actual flyer engine
         const response = await fetch('/api/flyer', {
@@ -286,7 +370,7 @@ export default function ListingDisplayPage() {
               <style>${flyerCSS}</style>
             </head>
             <body>
-              ${fullHTML}
+              ${flyerHTML}
             </body>
             </html>
           `;
@@ -302,15 +386,11 @@ export default function ListingDisplayPage() {
       
       alert(`${flyerType === 'both' ? 'Both flyers' : flyerType === 'listing' ? 'Property listing' : 'Open house'} generated successfully! Downloading now...`);
       
-             // Close the modal after successful generation
-       setSimpleFlyerModal(false);
-     } catch (error) {
-       console.error('❌ Error generating flyer:', error);
-       alert(`Error generating flyer: ${error.message}`);
-     } finally {
-       setFlyerGenerating(false);
-     }
-   };
+    } catch (error) {
+      console.error('❌ Error in programmatic flyer generation:', error);
+      throw error;
+    }
+  };
 
   const handleEnhancedFlyerGeneration = async (flyerData) => {
     try {
@@ -659,6 +739,70 @@ export default function ListingDisplayPage() {
                 >
                   <img src="/star-icon.svg" alt="Star" style={{ width: '20px', height: '20px' }} />
                   Both Flyers
+                </button>
+              </div>
+            </div>
+
+            {/* Flyer Generation Method Selection */}
+            <div style={{ marginBottom: '30px' }}>
+              <h3 style={{ 
+                color: 'white', 
+                marginBottom: '20px', 
+                fontSize: '18px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <img src="/palette-icon.svg" alt="Method" style={{ width: '20px', height: '20px' }} />
+                Flyer Generation Method
+              </h3>
+              <div style={{ 
+                display: 'flex', 
+                gap: '15px',
+                flexWrap: 'wrap'
+              }}>
+                <button
+                  onClick={() => setFlyerData({...flyerData, generationMethod: 'programmatic'})}
+                  style={{
+                    background: flyerData.generationMethod === 'programmatic' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    border: `2px solid ${flyerData.generationMethod === 'programmatic' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
+                    padding: '15px 20px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <img src="/flyer-icon.svg" alt="Programmatic" style={{ width: '18px', height: '18px' }} />
+                  Programmatic Engine
+                  <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>Custom Design System</small>
+                </button>
+                <button
+                  onClick={() => setFlyerData({...flyerData, generationMethod: 'gemini'})}
+                  style={{
+                    background: flyerData.generationMethod === 'gemini' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    border: `2px solid ${flyerData.generationMethod === 'gemini' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
+                    padding: '15px 20px',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <img src="/star-icon.svg" alt="Gemini" style={{ width: '18px', height: '18px' }} />
+                  Gemini Pro 2.5 AI
+                  <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>AI-Generated Images</small>
                 </button>
               </div>
             </div>
@@ -1247,12 +1391,12 @@ export default function ListingDisplayPage() {
                 ) : (
                   <>
                     <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '24px', height: '24px' }} />
-                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'}
+                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} with {flyerData.generationMethod === 'gemini' ? 'Gemini AI' : 'Programmatic Engine'}
                   </>
                 )}
               </button>
               
-              {/* PDF Download Indicator */}
+              {/* Download Format Indicator */}
               <div style={{ 
                 marginTop: '16px',
                 background: 'rgba(251, 191, 36, 0.1)', 
@@ -1263,7 +1407,7 @@ export default function ListingDisplayPage() {
                 border: '1px solid rgba(251, 191, 36, 0.3)',
                 display: 'inline-block'
               }}>
-                📄 Downloads as High-Quality PDF
+                {flyerData.generationMethod === 'gemini' ? '🎨 Downloads as AI-Generated Image' : '📄 Downloads as High-Quality PDF'}
               </div>
             </div>
           </div>
