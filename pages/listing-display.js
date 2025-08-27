@@ -1421,7 +1421,7 @@ export default function ListingDisplayPage() {
       )}
 
       {/* Debug Section - Remove in production */}
-      {process.env.NODE_ENV === 'development' && (
+      {(
         <div style={{
           position: 'fixed',
           bottom: '20px',
@@ -1470,15 +1470,15 @@ export default function ListingDisplayPage() {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Testing Gemini model...');
+                console.log('🧪 Testing DALL-E 3 model...');
                 const response = await fetch('/api/generate-features', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ test: 'gemini' })
                 });
                 const result = await response.json();
-                console.log('🧪 Gemini test result:', result);
-                alert(`Gemini test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+                console.log('🧪 DALL-E 3 test result:', result);
+                alert(`DALL-E 3 test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
               } catch (error) {
                 console.error('🧪 Test error:', error);
                 alert(`Test error: ${error.message}`);
@@ -1494,7 +1494,7 @@ export default function ListingDisplayPage() {
               fontSize: '12px'
             }}
           >
-            Test Gemini
+            Test DALL-E 3
           </button>
         </div>
         

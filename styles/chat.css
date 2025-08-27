@@ -1059,7 +1059,8 @@
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  min-height: 60vh !important; /* Take up most of the viewport height */
+  min-height: 70vh !important; /* Increased height for better centering */
+  gap: 24px !important; /* Add consistent spacing between elements */
 }
 
 .ai-listing-title {
@@ -1077,7 +1078,7 @@
   font-size: 18px !important;
   line-height: 1.4 !important;
   opacity: 0.8 !important;
-  margin-bottom: 32px !important;
+  margin-bottom: 24px !important; /* Reduced margin */
   max-width: 600px !important;
   margin-left: auto !important;
   margin-right: auto !important;

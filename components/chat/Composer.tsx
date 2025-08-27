@@ -65,7 +65,6 @@ const Composer = forwardRef<ComposerRef, ComposerProps>(({
           {loading ? (
             <>
               <FiLoader className="loading-icon" />
-              <span className="button-text">Generating...</span>
             </>
           ) : (
             <>

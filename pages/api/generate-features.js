@@ -193,7 +193,7 @@ The design should look like it was created by a professional marketing agency sp
     // Try multiple approaches for image generation
     const approaches = [
       {
-        name: 'Google Gemini 2.0 Flash (Image Generation)',
+        name: 'OpenAI DALL-E 3 (HD Quality)',
         url: 'https://openrouter.ai/api/v1/images/generations',
         method: 'POST',
         headers: {
@@ -203,10 +203,12 @@ The design should look like it was created by a professional marketing agency sp
           'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
-          model: 'google/gemini-2.0-flash-exp',
+          model: 'openai/dall-e-3',
           prompt: imagePrompt,
           n: 1,
-          size: '1024x1024'
+          size: '1024x1024',
+          quality: 'hd',
+          style: 'natural'
         }
       },
       {
@@ -482,10 +484,10 @@ async function testOpenRouter(req, res) {
   }
 }
 
-// Test Gemini image generation through OpenRouter
+// Test DALL-E 3 image generation through OpenRouter
 async function testGeminiModel(req, res) {
   try {
-    console.log('🧪 Testing Gemini image generation through OpenRouter...');
+    console.log('🧪 Testing DALL-E 3 image generation through OpenRouter...');
     console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
@@ -498,14 +500,16 @@ async function testGeminiModel(req, res) {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie Gemini Test'
+        'X-Title': 'ListGenie DALL-E 3 Test'
       },
-              body: JSON.stringify({
-          model: 'google/gemini-2.0-flash-exp',
-          prompt: 'Create a simple test image of a house',
-          n: 1,
-          size: '1024x1024'
-        })
+      body: JSON.stringify({
+        model: 'openai/dall-e-3',
+        prompt: 'Create a simple test image of a house',
+        n: 1,
+        size: '1024x1024',
+        quality: 'hd',
+        style: 'natural'
+      })
     });
 
     console.log('📡 OpenRouter response status:', response.status);
@@ -513,16 +517,16 @@ async function testGeminiModel(req, res) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ Gemini model test successful:', data);
+      console.log('✅ DALL-E 3 model test successful:', data);
       return res.status(200).json({
         success: true,
-        message: 'Gemini image generation is working correctly through OpenRouter.',
+        message: 'DALL-E 3 image generation is working correctly through OpenRouter.',
         response: data,
-        model: 'google/gemini-2.0-flash-exp'
+        model: 'openai/dall-e-3'
       });
     } else {
       const errorText = await response.text();
-      console.error('❌ Gemini model test failed:', response.status, errorText);
+      console.error('❌ DALL-E 3 model test failed:', response.status, errorText);
       
       // Try to parse error response
       try {
@@ -534,20 +538,20 @@ async function testGeminiModel(req, res) {
       
       return res.status(500).json({
         success: false,
-        message: `Gemini image generation test failed: ${response.status} - ${errorText}`,
+        message: `DALL-E 3 image generation test failed: ${response.status} - ${errorText}`,
         status: response.status,
         error: errorText,
-        model: 'google/gemini-2.0-flash-exp'
+        model: 'openai/dall-e-3'
       });
     }
   } catch (error) {
-    console.error('❌ Critical error during Gemini model test:', error);
+    console.error('❌ Critical error during DALL-E 3 model test:', error);
     return res.status(500).json({
       success: false,
-              message: `Gemini image generation test encountered an error: ${error.message}`,
-        error: error.message,
-        stack: error.stack,
-        model: 'google/gemini-2.0-flash-exp'
+      message: `DALL-E 3 image generation test encountered an error: ${error.message}`,
+      error: error.message,
+      stack: error.stack,
+      model: 'openai/dall-e-3'
     });
   }
 }
