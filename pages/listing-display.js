@@ -284,6 +284,16 @@ export default function ListingDisplayPage() {
           
           console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
         } else {
+          // Check if we should fallback to programmatic engine
+          if (result.fallback === 'programmatic') {
+            console.log('🔄 AI failed, falling back to programmatic engine...');
+            alert('AI generation failed. Automatically switching to programmatic engine for you.');
+            // Switch to programmatic engine
+            setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
+            // Generate with programmatic engine
+            await handleProgrammaticFlyerGeneration();
+            return;
+          }
           throw new Error(result.error || `Failed to generate ${currentFlyerType} AI flyer`);
         }
       }

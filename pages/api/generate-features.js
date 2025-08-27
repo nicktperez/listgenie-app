@@ -6,31 +6,34 @@ export default async function handler(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, generationType } = req.body;
 
-    // If this is a Midjourney image generation request
+    // If this is an AI image generation request
     if (generationType === 'midjourney-image') {
       return await generateMidjourneyImage(req, res);
     }
 
-    // Use OpenRouter to generate unique features
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie Flyer Generator'
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a professional real estate marketing expert. Generate 4 unique, compelling property features that would appeal to potential buyers. Each feature should be specific to the property details provided and include both a catchy title and a compelling description. Focus on what makes this property special and desirable.`
-          },
-          {
-            role: 'user',
-            content: `Generate 4 unique property features for this listing:
-            
+    // Use OpenRouter to generate unique features with fallback
+    let parsedFeatures;
+    
+    try {
+      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'ListGenie Flyer Generator'
+        },
+        body: JSON.stringify({
+          model: 'anthropic/claude-3.5-sonnet',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a professional real estate marketing expert. Generate 4 unique, compelling property features that would appeal to potential buyers. Each feature should be specific to the property details provided and include both a catchy title and a compelling description. Focus on what makes this property special and desirable.`
+            },
+            {
+              role: 'user',
+              content: `Generate 4 unique property features for this listing:
+              
 Property Type: ${propertyType}
 Address: ${address}
 Price: ${price}
@@ -48,33 +51,36 @@ Please provide exactly 4 features in this exact JSON format:
     }
   ]
 }`
+            }
+          ],
+          max_tokens: 500,
+          temperature: 0.7
+        })
+      });
+
+      if (openRouterResponse.ok) {
+        const openRouterData = await openRouterResponse.json();
+        const aiResponse = openRouterData.choices[0]?.message?.content;
+
+        // Parse the AI response to extract features
+        try {
+          // Try to extract JSON from the response
+          const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            parsedFeatures = JSON.parse(jsonMatch[0]);
+          } else {
+            throw new Error('No JSON found in response');
           }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      })
-    });
-
-    if (!openRouterResponse.ok) {
-      throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
-    }
-
-    const openRouterData = await openRouterResponse.json();
-    const aiResponse = openRouterData.choices[0]?.message?.content;
-
-    // Parse the AI response to extract features
-    let parsedFeatures;
-    try {
-      // Try to extract JSON from the response
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsedFeatures = JSON.parse(jsonMatch[0]);
+        } catch (parseError) {
+          console.error('Error parsing AI response:', parseError);
+          throw new Error('Failed to parse AI response');
+        }
       } else {
-        throw new Error('No JSON found in response');
+        throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
       }
-    } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
-      // Fallback to default features
+    } catch (openRouterError) {
+      console.error('OpenRouter failed, using fallback features:', openRouterError);
+      // Use fallback features if OpenRouter fails
       parsedFeatures = {
         features: [
           {
@@ -141,11 +147,10 @@ The flyer should feature:
 
 The design should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing, professional, and ready for marketing use.`;
 
-    // Try multiple models in order of preference
+    // Try multiple models in order of preference - only use working models
     const models = [
       'openai/dall-e-3',
-      'anthropic/claude-3.5-sonnet',
-      'google/gemini-pro-2.5'
+      'openai/dall-e-2'
     ];
 
     let lastError = null;
@@ -196,14 +201,20 @@ The design should look like it was created by a professional marketing agency sp
       }
     }
 
-    // If all models failed, throw the last error
-    throw new Error(`All AI models failed. Last error: ${lastError}`);
+    // If all models failed, return a helpful error
+    console.error('All AI models failed:', lastError);
+    return res.status(500).json({
+      success: false,
+      error: `AI image generation failed. Please try the programmatic engine instead. Technical details: ${lastError}`,
+      fallback: 'programmatic'
+    });
 
   } catch (error) {
     console.error('Error in AI image generation:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'AI image generation failed'
+      error: error.message || 'AI image generation failed',
+      fallback: 'programmatic'
     });
   }
 }

@@ -18,13 +18,27 @@ export default async function handler(req, res) {
       .eq("clerk_id", userId)
       .maybeSingle();
 
-    if (error) return res.status(200).json({ ok: true, plan: "expired" });
+    if (error) {
+      console.error("Database error:", error);
+      return res.status(200).json({ ok: true, plan: "expired" });
+    }
+
+    // Debug logging
+    console.log("User plan data:", { userId, data });
 
     // Normalize: if trial passed, reflect expired
     const now = new Date();
     const trialEnd = data?.trial_end_date ? new Date(data.trial_end_date) : null;
-    let plan = data?.plan || "expired";
-    if (plan === "trial" && trialEnd && now > trialEnd) plan = "expired";
+    let plan = data?.plan || "trial";
+    
+    // Pro users should never be expired
+    if (plan === "pro") {
+      plan = "pro";
+    } else if (plan === "trial" && trialEnd && now > trialEnd) {
+      plan = "expired";
+    }
+
+    console.log("Final plan determination:", { plan, trialEnd, now });
 
     return res.status(200).json({
       ok: true,
