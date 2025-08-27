@@ -6,6 +6,8 @@ export default async function handler(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, generationType } = req.body;
 
+    console.log('🚀 generate-features called with:', { generationType, propertyType, address });
+
     // If this is an AI image generation request
     if (generationType === 'midjourney-image') {
       return await generateMidjourneyImage(req, res);
@@ -15,6 +17,8 @@ export default async function handler(req, res) {
     let parsedFeatures;
     
     try {
+      console.log('🔄 Attempting to generate features with OpenRouter...');
+      
       const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -62,24 +66,29 @@ Please provide exactly 4 features in this exact JSON format:
         const openRouterData = await openRouterResponse.json();
         const aiResponse = openRouterData.choices[0]?.message?.content;
 
+        console.log('✅ OpenRouter response received:', aiResponse);
+
         // Parse the AI response to extract features
         try {
           // Try to extract JSON from the response
           const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
           if (jsonMatch) {
             parsedFeatures = JSON.parse(jsonMatch[0]);
+            console.log('✅ Features parsed successfully:', parsedFeatures);
           } else {
             throw new Error('No JSON found in response');
           }
         } catch (parseError) {
-          console.error('Error parsing AI response:', parseError);
+          console.error('❌ Error parsing AI response:', parseError);
           throw new Error('Failed to parse AI response');
         }
       } else {
+        const errorText = await openRouterResponse.text();
+        console.error('❌ OpenRouter API error:', openRouterResponse.status, errorText);
         throw new Error(`OpenRouter API error: ${openRouterResponse.status}`);
       }
     } catch (openRouterError) {
-      console.error('OpenRouter failed, using fallback features:', openRouterError);
+      console.error('❌ OpenRouter failed, using fallback features:', openRouterError);
       // Use fallback features if OpenRouter fails
       parsedFeatures = {
         features: [
@@ -105,16 +114,18 @@ Please provide exactly 4 features in this exact JSON format:
 
     // Ensure we have exactly 4 features
     if (!parsedFeatures.features || parsedFeatures.features.length !== 4) {
+      console.error('❌ Invalid feature count:', parsedFeatures);
       throw new Error('Invalid feature count from AI');
     }
 
+    console.log('✅ Returning features successfully');
     return res.status(200).json({
       success: true,
       features: parsedFeatures.features
     });
 
   } catch (error) {
-    console.error('Error in generate-features:', error);
+    console.error('❌ Error in generate-features:', error);
     return res.status(500).json({
       success: false,
       error: error.message || 'Internal server error'
@@ -147,74 +158,72 @@ The flyer should feature:
 
 The design should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing, professional, and ready for marketing use.`;
 
-    // Try multiple models in order of preference - only use working models
-    const models = [
-      'openai/dall-e-3',
-      'openai/dall-e-2'
-    ];
+    console.log('🎨 Attempting AI image generation with prompt:', imagePrompt);
 
-    let lastError = null;
-    
-    for (const model of models) {
-      try {
-        console.log(`🎨 Trying model: ${model}`);
+    // Try to generate image using OpenRouter's image generation
+    try {
+      const openRouterResponse = await fetch('https://openrouter.ai/api/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          'X-Title': 'ListGenie AI Flyer Generator'
+        },
+        body: JSON.stringify({
+          model: 'openai/dall-e-3',
+          prompt: imagePrompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'hd',
+          style: 'natural'
+        })
+      });
+
+      if (openRouterResponse.ok) {
+        const aiData = await openRouterResponse.json();
+        console.log('🎨 OpenRouter response:', aiData);
         
-        // Call AI through OpenRouter
-        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-            'Content-Type': 'application/json',
-            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-            'X-Title': 'ListGenie AI Flyer Generator'
-          },
-          body: JSON.stringify({
-            model: model,
+        if (aiData.data && aiData.data[0] && aiData.data[0].url) {
+          console.log('✅ AI image generation successful');
+          return res.status(200).json({
+            success: true,
+            imageUrl: aiData.data[0].url,
             prompt: imagePrompt,
-            n: 1,
-            size: '1024x1024',
-            quality: 'hd',
-            style: 'natural'
-          })
-        });
-
-        if (openRouterResponse.ok) {
-          const aiData = await openRouterResponse.json();
-          
-          if (aiData.data && aiData.data[0] && aiData.data[0].url) {
-            console.log(`✅ Success with model: ${model}`);
-            return res.status(200).json({
-              success: true,
-              imageUrl: aiData.data[0].url,
-              prompt: imagePrompt,
-              model: model
-            });
-          }
+            model: 'openai/dall-e-3'
+          });
         } else {
-          const errorText = await openRouterResponse.text();
-          console.error(`${model} API error:`, errorText);
-          lastError = `${model} API error: ${openRouterResponse.status} - ${errorText}`;
+          console.error('❌ No image data in response:', aiData);
+          throw new Error('No image data received from AI service');
         }
-      } catch (modelError) {
-        console.error(`Error with ${model}:`, modelError);
-        lastError = `Error with ${model}: ${modelError.message}`;
+      } else {
+        const errorText = await openRouterResponse.text();
+        console.error('❌ OpenRouter API error:', openRouterResponse.status, errorText);
+        throw new Error(`AI service error: ${openRouterResponse.status}`);
       }
+    } catch (aiError) {
+      console.error('❌ AI image generation failed:', aiError);
+      
+      // Instead of failing completely, return a success response with fallback info
+      return res.status(200).json({
+        success: true,
+        fallback: true,
+        message: 'AI image generation unavailable. Using programmatic engine instead.',
+        prompt: imagePrompt,
+        recommendation: 'programmatic'
+      });
     }
 
-    // If all models failed, return a helpful error
-    console.error('All AI models failed:', lastError);
-    return res.status(500).json({
-      success: false,
-      error: `AI image generation failed. Please try the programmatic engine instead. Technical details: ${lastError}`,
-      fallback: 'programmatic'
-    });
-
   } catch (error) {
-    console.error('Error in AI image generation:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || 'AI image generation failed',
-      fallback: 'programmatic'
+    console.error('❌ Error in AI image generation:', error);
+    
+    // Return a graceful fallback response
+    return res.status(200).json({
+      success: true,
+      fallback: true,
+      message: 'AI image generation failed. Using programmatic engine instead.',
+      error: error.message,
+      recommendation: 'programmatic'
     });
   }
 }

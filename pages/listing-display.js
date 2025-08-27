@@ -273,6 +273,17 @@ export default function ListingDisplayPage() {
         console.log('🎨 Midjourney flyer generation result:', result);
         
         if (result.success) {
+          // Check if this is a fallback response
+          if (result.fallback) {
+            console.log('🔄 AI generation unavailable, switching to programmatic engine...');
+            alert('AI image generation is currently unavailable. Automatically switching to the programmatic engine for you.');
+            // Switch to programmatic engine
+            setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
+            // Generate with programmatic engine
+            await handleProgrammaticFlyerGeneration();
+            return;
+          }
+          
           // Create a download link for the AI-generated image
           const link = document.createElement('a');
           link.href = result.imageUrl;
@@ -284,17 +295,14 @@ export default function ListingDisplayPage() {
           
           console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
         } else {
-          // Check if we should fallback to programmatic engine
-          if (result.fallback === 'programmatic') {
-            console.log('🔄 AI failed, falling back to programmatic engine...');
-            alert('AI generation failed. Automatically switching to programmatic engine for you.');
-            // Switch to programmatic engine
-            setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
-            // Generate with programmatic engine
-            await handleProgrammaticFlyerGeneration();
-            return;
-          }
-          throw new Error(result.error || `Failed to generate ${currentFlyerType} AI flyer`);
+          // If AI fails completely, fallback to programmatic engine
+          console.log('🔄 AI failed, falling back to programmatic engine...');
+          alert('AI generation failed. Automatically switching to programmatic engine for you.');
+          // Switch to programmatic engine
+          setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
+          // Generate with programmatic engine
+          await handleProgrammaticFlyerGeneration();
+          return;
         }
       }
       
