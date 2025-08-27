@@ -284,8 +284,18 @@ The design should look like it was created by a professional marketing agency sp
               status: response.status,
               statusText: response.statusText,
               headers: Object.fromEntries(response.headers.entries()),
-              errorText
+              errorText,
+              requestBody: approach.body,
+              requestHeaders: approach.headers
             });
+            
+            // Try to parse error response for more details
+            try {
+              const errorJson = JSON.parse(errorText);
+              console.error(`🔍 Gemini error JSON:`, errorJson);
+            } catch (e) {
+              console.error(`🔍 Gemini error is not JSON:`, errorText);
+            }
           }
           
           lastError = `${approach.name} failed: ${response.status} - ${errorText}`;
@@ -343,19 +353,19 @@ The design should look like it was created by a professional marketing agency sp
       console.error('❌ Alternative approach also failed:', altError);
     }
 
-    // If everything failed, return a graceful fallback
+    // If everything failed, return a detailed error instead of fallback
     console.error('❌ All AI approaches failed. Last error:', lastError);
     
-    return res.status(200).json({
-      success: true,
-      fallback: true,
-      message: 'AI image generation is currently unavailable. Using programmatic engine instead.',
-      prompt: imagePrompt,
-      recommendation: 'programmatic',
+    return res.status(500).json({
+      success: false,
+      error: `All AI image generation approaches failed. Last error: ${lastError}`,
       debug: {
         lastError,
         approaches: approaches.map(a => a.name),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        prompt: imagePrompt,
+        openRouterKey: !!process.env.OPENROUTER_API_KEY,
+        appUrl: process.env.NEXT_PUBLIC_APP_URL
       }
     });
 

@@ -274,12 +274,9 @@ export default function ListingDisplayPage() {
       if (result.success) {
         // Check if this is a fallback response
         if (result.fallback) {
-          console.log('🔄 AI generation unavailable, switching to programmatic engine...');
-          alert('AI image generation is currently unavailable. Automatically switching to the programmatic engine for you.');
-          // Switch to programmatic engine
-          setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
-          // Generate with programmatic engine
-          await handleProgrammaticFlyerGeneration();
+          console.log('🔄 AI generation unavailable, but not switching to programmatic engine...');
+          console.log('🔍 Fallback details:', result);
+          alert('AI image generation is currently unavailable. Please check the console for details. We are focusing on getting Gemini AI working.');
           return;
         }
         
@@ -294,13 +291,9 @@ export default function ListingDisplayPage() {
         
         console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
       } else {
-        // If AI fails completely, fallback to programmatic engine
-        console.log('🔄 AI failed, falling back to programmatic engine...');
-        alert('AI generation failed. Automatically switching to programmatic engine for you.');
-        // Switch to programmatic engine
-        setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
-        // Generate with programmatic engine
-        await handleProgrammaticFlyerGeneration();
+        // If AI fails completely, show detailed error instead of falling back
+        console.log('❌ AI generation failed completely:', result);
+        alert(`AI generation failed: ${result.error || 'Unknown error'}. Please check the console for details. We are focusing on getting Gemini AI working.`);
         return;
       }
     } catch (error) {
