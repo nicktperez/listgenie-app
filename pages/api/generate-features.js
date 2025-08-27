@@ -116,12 +116,12 @@ Please provide exactly 4 features in this exact JSON format:
   }
 }
 
-// Midjourney Image Generation (OpenRouter compatible)
+// AI Image Generation (OpenRouter compatible)
 async function generateMidjourneyImage(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, style, flyerType } = req.body;
 
-    // Create a detailed prompt for Midjourney
+    // Create a detailed prompt for AI image generation
     const imagePrompt = `Create a professional real estate marketing flyer for a ${propertyType} property. 
 
 The flyer should feature:
@@ -141,49 +141,69 @@ The flyer should feature:
 
 The design should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing, professional, and ready for marketing use.`;
 
-    // Call Midjourney through OpenRouter
-    const openRouterResponse = await fetch('https://openrouter.ai/api/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie AI Flyer Generator'
-      },
-      body: JSON.stringify({
-        model: 'midjourney/diffusion',
-        prompt: imagePrompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'hd',
-        style: 'natural'
-      })
-    });
+    // Try multiple models in order of preference
+    const models = [
+      'openai/dall-e-3',
+      'anthropic/claude-3.5-sonnet',
+      'google/gemini-pro-2.5'
+    ];
 
-    if (!openRouterResponse.ok) {
-      const errorText = await openRouterResponse.text();
-      console.error('Midjourney API error:', errorText);
-      throw new Error(`Midjourney API error: ${openRouterResponse.status} - ${errorText}`);
-    }
-
-    const midjourneyData = await openRouterResponse.json();
+    let lastError = null;
     
-    if (!midjourneyData.data || !midjourneyData.data[0] || !midjourneyData.data[0].url) {
-      throw new Error('No image URL returned from Midjourney');
+    for (const model of models) {
+      try {
+        console.log(`🎨 Trying model: ${model}`);
+        
+        // Call AI through OpenRouter
+        const openRouterResponse = await fetch('https://openrouter.ai/api/v1/images/generations', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+            'X-Title': 'ListGenie AI Flyer Generator'
+          },
+          body: JSON.stringify({
+            model: model,
+            prompt: imagePrompt,
+            n: 1,
+            size: '1024x1024',
+            quality: 'hd',
+            style: 'natural'
+          })
+        });
+
+        if (openRouterResponse.ok) {
+          const aiData = await openRouterResponse.json();
+          
+          if (aiData.data && aiData.data[0] && aiData.data[0].url) {
+            console.log(`✅ Success with model: ${model}`);
+            return res.status(200).json({
+              success: true,
+              imageUrl: aiData.data[0].url,
+              prompt: imagePrompt,
+              model: model
+            });
+          }
+        } else {
+          const errorText = await openRouterResponse.text();
+          console.error(`${model} API error:`, errorText);
+          lastError = `${model} API error: ${openRouterResponse.status} - ${errorText}`;
+        }
+      } catch (modelError) {
+        console.error(`Error with ${model}:`, modelError);
+        lastError = `Error with ${model}: ${modelError.message}`;
+      }
     }
 
-    return res.status(200).json({
-      success: true,
-      imageUrl: midjourneyData.data[0].url,
-      prompt: imagePrompt,
-      model: 'midjourney/diffusion'
-    });
+    // If all models failed, throw the last error
+    throw new Error(`All AI models failed. Last error: ${lastError}`);
 
   } catch (error) {
-    console.error('Error in Midjourney image generation:', error);
+    console.error('Error in AI image generation:', error);
     return res.status(500).json({
       success: false,
-      error: error.message || 'Midjourney image generation failed'
+      error: error.message || 'AI image generation failed'
     });
   }
 }

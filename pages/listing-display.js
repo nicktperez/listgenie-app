@@ -800,8 +800,8 @@ export default function ListingDisplayPage() {
                     gap: '8px'
                   }}
                 >
-                  <img src="/star-icon.svg" alt="Midjourney" style={{ width: '18px', height: '18px' }} />
-                  Midjourney AI
+                  <img src="/star-icon.svg" alt="AI" style={{ width: '18px', height: '18px' }} />
+                  AI Image Generation
                   <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>Premium AI-Generated Images</small>
                 </button>
               </div>
