@@ -1,7 +1,7 @@
 // Professional Flyer Generation API
 // Generates marketing professional quality flyers using our custom engine
 
-const ProfessionalFlyerEngine = require('../../lib/professionalFlyerEngine.js');
+import ProfessionalFlyerEngine from '../../lib/professionalFlyerEngine.js';
 
 export default async function handler(req, res) {
   console.log('🚀 API /api/flyer: Request received');
