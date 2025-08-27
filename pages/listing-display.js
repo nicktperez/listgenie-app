@@ -219,9 +219,11 @@ export default function ListingDisplayPage() {
       console.log('🎨 Generating comprehensive flyer with user data:', flyerData);
       
       // Check which generation method to use
-      if (flyerData.generationMethod === 'gemini') {
-        await handleMidjourneyFlyerGeneration();
+      if (flyerData.generationMethod === 'ai') {
+        console.log('🌍 Using Gemini AI for image generation...');
+        await handleGeminiFlyerGeneration();
       } else {
+        console.log('🌍 Using programmatic flyer engine...');
         await handleProgrammaticFlyerGeneration();
       }
       
@@ -235,81 +237,74 @@ export default function ListingDisplayPage() {
     }
   };
 
-  // Handle Midjourney AI image generation
-  const handleMidjourneyFlyerGeneration = async () => {
+  // Handle Gemini AI image generation
+  const handleGeminiFlyerGeneration = async () => {
     try {
-      console.log('🎨 Using Midjourney for AI image generation...');
+      console.log('🎨 Using Gemini AI for image generation...');
       
-      // Handle both flyer types if selected
-      const flyerTypes = flyerType === 'both' ? ['listing', 'openhouse'] : [flyerType];
+      const currentFlyerType = flyerType === 'both' ? 'listing' : flyerType;
+      console.log(`🎨 Generating ${currentFlyerType} flyer with Gemini AI...`);
+
+      const response = await fetch('/api/generate-features', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          generationType: 'midjourney-image',
+          propertyType: flyerData.propertyType || 'Residential Property',
+          address: flyerData.address || '123 Main Street',
+          price: flyerData.price || '$500,000',
+          bedrooms: flyerData.bedrooms || 3,
+          bathrooms: flyerData.bathrooms || 2,
+          sqft: flyerData.sqft || 1500,
+          features: flyerData.features || 'Modern kitchen, spacious backyard',
+          style: flyerData.style || 'Modern',
+          flyerType: currentFlyerType
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('🎨 Gemini AI flyer generation result:', result);
       
-      for (const currentFlyerType of flyerTypes) {
-        console.log(`🎨 Generating ${currentFlyerType} flyer with Midjourney...`);
-        
-        const response = await fetch('/api/generate-features', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            generationType: 'midjourney-image',
-            propertyType: flyerData.propertyType || 'Residential Property',
-            address: flyerData.address,
-            price: flyerData.price || 'Contact for pricing',
-            bedrooms: flyerData.bedrooms || 'Contact for details',
-            bathrooms: flyerData.bathrooms || 'Contact for details',
-            sqft: flyerData.sqft || 'Contact for details',
-            features: flyerData.features || '',
-            style: flyerData.style,
-            flyerType: currentFlyerType
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('🎨 Midjourney flyer generation result:', result);
-        
-        if (result.success) {
-          // Check if this is a fallback response
-          if (result.fallback) {
-            console.log('🔄 AI generation unavailable, switching to programmatic engine...');
-            alert('AI image generation is currently unavailable. Automatically switching to the programmatic engine for you.');
-            // Switch to programmatic engine
-            setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
-            // Generate with programmatic engine
-            await handleProgrammaticFlyerGeneration();
-            return;
-          }
-          
-          // Create a download link for the AI-generated image
-          const link = document.createElement('a');
-          link.href = result.imageUrl;
-          link.download = `${currentFlyerType}-flyer-${Date.now()}.png`;
-          link.target = '_blank';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
-        } else {
-          // If AI fails completely, fallback to programmatic engine
-          console.log('🔄 AI failed, falling back to programmatic engine...');
-          alert('AI generation failed. Automatically switching to programmatic engine for you.');
+      if (result.success) {
+        // Check if this is a fallback response
+        if (result.fallback) {
+          console.log('🔄 AI generation unavailable, switching to programmatic engine...');
+          alert('AI image generation is currently unavailable. Automatically switching to the programmatic engine for you.');
           // Switch to programmatic engine
           setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
           // Generate with programmatic engine
           await handleProgrammaticFlyerGeneration();
           return;
         }
+        
+        // Create a download link for the AI-generated image
+        const link = document.createElement('a');
+        link.href = result.imageUrl;
+        link.download = `${currentFlyerType}-flyer-${Date.now()}.png`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        console.log(`✅ ${currentFlyerType} AI flyer generated and downloaded!`);
+      } else {
+        // If AI fails completely, fallback to programmatic engine
+        console.log('🔄 AI failed, falling back to programmatic engine...');
+        alert('AI generation failed. Automatically switching to programmatic engine for you.');
+        // Switch to programmatic engine
+        setFlyerData(prev => ({ ...prev, generationMethod: 'programmatic' }));
+        // Generate with programmatic engine
+        await handleProgrammaticFlyerGeneration();
+        return;
       }
-      
-      alert(`${flyerType === 'both' ? 'Both AI flyers' : flyerType === 'listing' ? 'Property listing' : 'Open house'} AI flyer generated successfully! Downloading now...`);
-      
     } catch (error) {
-      console.error('❌ Error in Midjourney flyer generation:', error);
+      console.error('❌ Error in Gemini flyer generation:', error);
       throw error;
     }
   };
@@ -802,11 +797,11 @@ export default function ListingDisplayPage() {
                   <small style={{ display: 'block', fontSize: '12px', opacity: '0.8' }}>Custom Design System</small>
                 </button>
                 <button
-                  onClick={() => setFlyerData({...flyerData, generationMethod: 'gemini'})}
+                  onClick={() => setFlyerData({...flyerData, generationMethod: 'ai'})}
                   style={{
-                    background: flyerData.generationMethod === 'gemini' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)',
+                    background: flyerData.generationMethod === 'ai' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'rgba(255, 255, 255, 0.1)',
                     color: 'white',
-                    border: `2px solid ${flyerData.generationMethod === 'gemini' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
+                    border: `2px solid ${flyerData.generationMethod === 'ai' ? '#667eea' : 'rgba(255, 255, 255, 0.3)'}`,
                     padding: '15px 20px',
                     borderRadius: '12px',
                     cursor: 'pointer',
@@ -1409,7 +1404,7 @@ export default function ListingDisplayPage() {
                 ) : (
                   <>
                     <img src="/flyer-icon.svg" alt="Flyer" style={{ width: '24px', height: '24px' }} />
-                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} with {flyerData.generationMethod === 'gemini' ? 'Midjourney AI' : 'Programmatic Engine'}
+                    Generate {flyerType === 'both' ? 'Both Flyers' : flyerType === 'listing' ? 'Property Listing' : 'Open House'} with {flyerData.generationMethod === 'ai' ? 'Gemini AI' : 'Programmatic Engine'}
                   </>
                 )}
               </button>
@@ -1425,7 +1420,7 @@ export default function ListingDisplayPage() {
                 border: '1px solid rgba(251, 191, 36, 0.3)',
                 display: 'inline-block'
               }}>
-                {flyerData.generationMethod === 'gemini' ? '🎨 Downloads as AI-Generated Image' : '📄 Downloads as High-Quality PDF'}
+                {flyerData.generationMethod === 'ai' ? '🎨 Downloads as AI-Generated Image' : '📄 Downloads as High-Quality PDF'}
               </div>
             </div>
           </div>
