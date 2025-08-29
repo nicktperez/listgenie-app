@@ -8,14 +8,9 @@ export default async function handler(req, res) {
 
     console.log('🚀 generate-features called with:', { generationType, propertyType, address, test });
 
-    // If this is a test request, test OpenRouter connectivity
-    if (test === 'openrouter') {
-      return await testOpenRouter(req, res);
-    }
-
-    // If this is a simple Gemini test, test just the model
+    // If this is a test request, test Google Gemini API connectivity
     if (test === 'gemini') {
-      return await testGeminiModel(req, res);
+      return await testGeminiDirect(req, res);
     }
 
     // If this is an environment test, check all environment variables
@@ -25,7 +20,7 @@ export default async function handler(req, res) {
 
     // If this is an AI image generation request
     if (generationType === 'midjourney-image') {
-      return await generateMidjourneyImage(req, res);
+      return await generateGeminiImage(req, res);
     }
 
     // Use OpenRouter to generate unique features with fallback
@@ -199,72 +194,41 @@ The design should look like it was created by a professional marketing agency sp
     const approaches = [
       {
         name: 'Google Gemini 2.0 Flash (Primary)',
-        url: 'https://openrouter.ai/api/v1/images/generations',
+        url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`,
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
           'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie AI Flyer Generator'
         },
         body: {
-          model: 'google/gemini-2.0-flash-exp',
-          prompt: imagePrompt,
-          n: 1,
-          size: '1024x1024'
-        }
-      },
-      {
-        name: 'OpenAI DALL-E 3 (HD Quality)',
-        url: 'https://openrouter.ai/api/v1/images/generations',
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie AI Flyer Generator'
-        },
-        body: {
-          model: 'openai/dall-e-3',
-          prompt: imagePrompt,
-          n: 1,
-          size: '1024x1024',
-          quality: 'hd',
-          style: 'natural'
-        }
-      },
-      {
-        name: 'OpenAI DALL-E 2',
-        url: 'https://openrouter.ai/api/v1/images/generations',
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie AI Flyer Generator'
-        },
-        body: {
-          model: 'openai/dall-e-2',
-          prompt: imagePrompt,
-          n: 1,
-          size: '1024x1024'
-        }
-      },
-      {
-        name: 'Stable Diffusion XL',
-        url: 'https://openrouter.ai/api/v1/images/generations',
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie AI Flyer Generator'
-        },
-        body: {
-          model: 'stability-ai/stable-diffusion-xl-base-1.0',
-          prompt: imagePrompt,
-          n: 1,
-          size: '1024x1024'
+          contents: [{
+            parts: [{
+              text: `Generate a professional real estate flyer image based on this description: ${imagePrompt}. The image should be high quality, professional, and suitable for real estate marketing.`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 1024,
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            }
+          ]
         }
       }
     ];
@@ -487,47 +451,51 @@ async function testOpenRouter(req, res) {
   }
 }
 
-// Test Gemini 2.0 Flash image generation through OpenRouter
-async function testGeminiModel(req, res) {
+// Test Gemini 2.0 Flash image generation through Google's direct API
+async function testGeminiDirect(req, res) {
   try {
-    console.log('🧪 Testing Gemini 2.0 Flash image generation through OpenRouter...');
-    console.log('🔑 OpenRouter API Key present:', !!process.env.OPENROUTER_API_KEY);
+    console.log('🧪 Testing Gemini 2.0 Flash image generation through Google API...');
+    console.log('🔑 Google API Key present:', !!process.env.GOOGLE_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
-    // Test 1: Check if we can reach OpenRouter for image generation
-    console.log('📡 Testing OpenRouter image generation...');
+    // Test 1: Check if we can reach Google's Gemini API
+    console.log('📡 Testing Google Gemini API...');
     
-    const response = await fetch('https://openrouter.ai/api/v1/images/generations', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie Gemini Image Test'
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-exp',
-        prompt: 'Create a simple test image of a house',
-        n: 1,
-        size: '1024x1024'
+        contents: [{
+          parts: [{
+            text: 'Generate a simple test image of a house for real estate marketing.'
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024,
+        }
       })
     });
 
-    console.log('📡 OpenRouter response status:', response.status);
-    console.log('📡 OpenRouter response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('📡 Google API response status:', response.status);
+    console.log('📡 Google API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (response.ok) {
       const data = await response.json();
-              console.log('✅ Gemini 2.0 Flash model test successful:', data);
-        return res.status(200).json({
-          success: true,
-          message: 'Gemini 2.0 Flash image generation is working correctly through OpenRouter.',
-          response: data,
-          model: 'google/gemini-2.0-flash-exp'
-        });
+      console.log('✅ Gemini 2.0 Flash model test successful:', data);
+      return res.status(200).json({
+        success: true,
+        message: 'Gemini 2.0 Flash image generation is working correctly through Google API.',
+        response: data,
+        model: 'gemini-2.0-flash-exp'
+      });
     } else {
       const errorText = await response.text();
-              console.error('❌ Gemini 2.0 Flash model test failed:', response.status, errorText);
+      console.error('❌ Gemini 2.0 Flash model test failed:', response.status, errorText);
       
       // Try to parse error response
       try {
@@ -537,23 +505,23 @@ async function testGeminiModel(req, res) {
         console.error('🔍 Error response is not JSON:', errorText);
       }
       
-              return res.status(500).json({
-          success: false,
-          message: `Gemini 2.0 Flash image generation test failed: ${response.status} - ${errorText}`,
-          status: response.status,
-          error: errorText,
-          model: 'google/gemini-2.0-flash-exp'
-        });
-    }
-  } catch (error) {
-          console.error('❌ Critical error during Gemini 2.0 Flash model test:', error);
       return res.status(500).json({
         success: false,
-        message: `Gemini 2.0 Flash image generation test encountered an error: ${error.message}`,
-        error: error.message,
-        stack: error.stack,
-        model: 'google/gemini-2.0-flash-exp'
+        message: `Gemini 2.0 Flash image generation test failed: ${response.status} - ${errorText}`,
+        status: response.status,
+        error: errorText,
+        model: 'gemini-2.0-flash-exp'
       });
+    }
+  } catch (error) {
+    console.error('❌ Critical error during Gemini 2.0 Flash model test:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Gemini 2.0 Flash image generation test encountered an error: ${error.message}`,
+      error: error.message,
+      stack: error.stack,
+      model: 'gemini-2.0-flash-exp'
+    });
   }
 }
 
@@ -563,10 +531,10 @@ async function testEnvironment(req, res) {
     console.log('🔍 Testing environment configuration...');
     
     const envCheck = {
-      openRouterApiKey: {
-        present: !!process.env.OPENROUTER_API_KEY,
-        length: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.length : 0,
-        startsWith: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.substring(0, 8) + '...' : 'N/A'
+      googleApiKey: {
+        present: !!process.env.GOOGLE_API_KEY,
+        length: process.env.GOOGLE_API_KEY ? process.env.GOOGLE_API_KEY.length : 0,
+        startsWith: process.env.GOOGLE_API_KEY ? process.env.GOOGLE_API_KEY.substring(0, 8) + '...' : 'N/A'
       },
       appUrl: {
         present: !!process.env.NEXT_PUBLIC_APP_URL,
@@ -583,38 +551,36 @@ async function testEnvironment(req, res) {
 
     console.log('🔍 Environment check results:', envCheck);
 
-    // Check if we can make a basic request to OpenRouter
-    let openRouterTest = 'Not tested';
+    // Check if we can make a basic request to Google Gemini API
+    let googleApiTest = 'Not tested';
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/models', {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GOOGLE_API_KEY}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie Environment Test'
+          'Content-Type': 'application/json'
         }
       });
       
       if (response.ok) {
-        openRouterTest = 'SUCCESS';
+        googleApiTest = 'SUCCESS';
       } else {
-        openRouterTest = `FAILED: ${response.status}`;
+        googleApiTest = `FAILED: ${response.status}`;
       }
     } catch (error) {
-      openRouterTest = `ERROR: ${error.message}`;
+      googleApiTest = `ERROR: ${error.message}`;
     }
 
     return res.status(200).json({
       success: true,
       message: 'Environment configuration test completed.',
       environment: envCheck,
-      openRouterTest,
-      recommendations: [
-        envCheck.openRouterApiKey.present ? '✅ OpenRouter API key is present' : '❌ OpenRouter API key is missing',
-        envCheck.appUrl.present ? '✅ App URL is set' : '❌ App URL is missing',
-        envCheck.appUrl.isLocalhost ? '⚠️ App URL is localhost (may cause issues with OpenRouter)' : '✅ App URL is not localhost',
-        envCheck.siteUrl.present ? '✅ Site URL is set' : '⚠️ Site URL is not set (fallback to App URL)'
-      ]
+              googleApiTest,
+        recommendations: [
+          envCheck.googleApiKey.present ? '✅ Google API key is present' : '❌ Google API key is missing',
+          envCheck.appUrl.present ? '✅ App URL is set' : '❌ App URL is missing',
+          envCheck.appUrl.isLocalhost ? '✅ App URL can be localhost (no issues with Google API)' : '✅ App URL is not localhost',
+          envCheck.siteUrl.present ? '✅ Site URL is set' : '⚠️ Site URL is not set (fallback to App URL)'
+        ]
     });
   } catch (error) {
     console.error('❌ Critical error during environment test:', error);

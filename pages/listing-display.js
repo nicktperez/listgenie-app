@@ -1439,22 +1439,22 @@ export default function ListingDisplayPage() {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Testing OpenRouter connectivity...');
+                console.log('🧪 Testing Google Gemini API connectivity...');
                 const response = await fetch('/api/generate-features', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ test: 'openrouter' })
+                  body: JSON.stringify({ test: 'gemini' })
                 });
                 const result = await response.json();
-                console.log('🧪 OpenRouter test result:', result);
-                alert(`OpenRouter test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+                console.log('🧪 Google Gemini API test result:', result);
+                alert(`Google Gemini API test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
               } catch (error) {
                 console.error('🧪 Test error:', error);
                 alert(`Test error: ${error.message}`);
               }
             }}
             style={{
-              background: '#667eea',
+              background: '#4285f4',
               color: 'white',
               border: 'none',
               padding: '8px 16px',
@@ -1464,7 +1464,7 @@ export default function ListingDisplayPage() {
               marginRight: '8px'
             }}
           >
-            Test OpenRouter
+            Test Google Gemini API
           </button>
           
           <button
@@ -1577,7 +1577,8 @@ export default function ListingDisplayPage() {
           <div>🔑 API Key: {process.env.NODE_ENV === 'development' ? 'Checking...' : 'Hidden'}</div>
           <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
           <div>🔧 Model: Gemini 2.0 Flash</div>
-          <div>📡 Endpoint: /api/generate-features</div>
+          <div>📡 API: Google Direct (Not OpenRouter)</div>
+          <div>🌍 Endpoint: /api/generate-features</div>
         </div>
       </div>
         )}
