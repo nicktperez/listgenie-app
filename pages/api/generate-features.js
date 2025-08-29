@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { propertyType, address, price, bedrooms, bathrooms, sqft, features, generationType, test } = req.body;
+    const { propertyType, address, price, bedrooms, bathrooms, sqft, features, generationType, test, agentName, agency, agentPhone, agentEmail } = req.body;
 
     console.log('🚀 generate-features called with:', { generationType, propertyType, address, test });
 
@@ -166,21 +166,35 @@ async function generateGeminiImage(req, res) {
     // Create a detailed prompt for AI image generation
     const imagePrompt = `Create a professional real estate marketing flyer image for a ${propertyType} property. 
 
-The image should show:
-- A beautiful, modern real estate marketing flyer design
-- Clean, professional layout with excellent typography and spacing
-- Property details prominently displayed: ${bedrooms} bedrooms, ${bathrooms} bathrooms, ${sqft} sq ft
+PROPERTY DETAILS:
+- Property Type: ${propertyType}
 - Address: ${address}
 - Price: ${price}
-- Design style: ${style}
-- Flyer type: ${flyerType === 'openhouse' ? 'Open House' : 'For Sale'}
-- Professional color scheme appropriate for luxury real estate (blues, golds, whites)
+- Bedrooms: ${bedrooms}
+- Bathrooms: ${bathrooms}
+- Square Footage: ${sqft} sq ft
+- Design Style: ${style}
+- Flyer Type: ${flyerType === 'openhouse' ? 'Open House' : 'For Sale'}
+
+AGENCY INFORMATION:
+- Agent Name: ${agentName || 'Professional Agent'}
+- Agency: ${agency || 'Premier Real Estate'}
+- Phone: ${agentPhone || 'Contact for details'}
+- Email: ${agentEmail || 'agent@premiere.com'}
+
+DESIGN REQUIREMENTS:
+- A beautiful, modern real estate marketing flyer design
+- Clean, professional layout with excellent typography and spacing
+- Property details prominently displayed with clear visual hierarchy
+- Professional color scheme appropriate for luxury real estate (blues, golds, whites, deep grays)
 - Space for agent contact information and branding
 - High-quality, marketing professional appearance
 - Suitable for both digital and print use
 - Visual elements representing luxury real estate (modern fonts, clean lines, professional layout)
 - Professional layout with clear visual hierarchy
 - No text overlays or watermarks that would make it unusable
+- Include premium design elements that convey exclusivity and luxury
+- Ensure the agency branding and contact information are prominently displayed
 
 The design should look like it was created by a professional marketing agency specializing in luxury real estate. Make it visually appealing, professional, and ready for immediate marketing use. The image should be a complete, finished flyer design that could be printed or shared digitally.`;
 
@@ -203,14 +217,32 @@ The design should look like it was created by a professional marketing agency sp
         body: {
           contents: [{
             parts: [{
-              text: `Create a professional real estate marketing flyer image: ${imagePrompt}`
+              text: `You are an expert real estate marketing designer with 20+ years of experience creating luxury property marketing materials for high-end real estate agencies. 
+
+Create a professional, luxury real estate marketing flyer image that showcases this property with expert-level design principles:
+
+PROPERTY DETAILS:
+${imagePrompt}
+
+DESIGN REQUIREMENTS:
+- Use sophisticated, luxury real estate design principles
+- Implement advanced typography hierarchy and spacing
+- Apply professional color theory (luxury blues, golds, whites, deep grays)
+- Create visual balance and flow that guides the eye naturally
+- Include premium visual elements that convey exclusivity
+- Use modern, clean layouts that stand out from amateur designs
+- Ensure the design looks like it was created by a top-tier marketing agency
+- Make it suitable for both digital and high-end print marketing
+- Include subtle design elements that suggest premium quality and attention to detail
+
+The final image should look like it was created by a senior creative director at a luxury real estate marketing firm, not by someone using basic online tools.`
             }]
           }],
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.8,
             topK: 40,
             topP: 0.95,
-            maxOutputTokens: 1024,
+            maxOutputTokens: 2048,
           }
         }
       },

@@ -96,6 +96,20 @@ export default function ListingDisplayPage() {
       return;
     }
 
+    // Parse the listing data to extract property details
+    const parsedData = parseListingData(listing);
+    
+    // Update flyer data with parsed listing information
+    setFlyerData(prev => ({
+      ...prev,
+      ...parsedData,
+      // Ensure agency info is loaded from localStorage
+      agentName: localStorage.getItem('agentName') || prev.agentName || '',
+      agency: localStorage.getItem('agency') || prev.agency || '',
+      agentPhone: localStorage.getItem('agentPhone') || prev.agentPhone || '',
+      agentEmail: localStorage.getItem('agentEmail') || prev.agentEmail || ''
+    }));
+
     // Open the modal to collect flyer data
     setSimpleFlyerModal(true);
   };
@@ -112,6 +126,55 @@ export default function ListingDisplayPage() {
       }));
     }
   }, []);
+
+  // Parse AI-generated listing to extract property details
+  const parseListingData = (listingText) => {
+    if (!listingText) return {};
+    
+    const text = typeof listingText === 'string' ? listingText : listingText.content || '';
+    
+    // Extract property details using regex patterns
+    const patterns = {
+      address: /(?:address|location|situated at|located at)[:\s]*([^,\n]+)/i,
+      bedrooms: /(\d+)\s*(?:bedroom|bed|BR)/i,
+      bathrooms: /(\d+)\s*(?:bathroom|bath|BA)/i,
+      sqft: /(\d+(?:,\d+)?)\s*(?:sq\s*ft|square\s*feet|SF)/i,
+      price: /\$?(\d+(?:,\d+)?(?:,\d+)?)/i,
+      propertyType: /(?:beautiful|stunning|gorgeous|luxurious)\s+([^,\n]+?)(?:\s+in|\s+at|\s+with|$)/i
+    };
+    
+    const extracted = {};
+    
+    // Extract each property
+    Object.entries(patterns).forEach(([key, pattern]) => {
+      const match = text.match(pattern);
+      if (match) {
+        extracted[key] = match[1]?.trim();
+      }
+    });
+    
+    // Clean up and format the data
+    if (extracted.price && !extracted.price.startsWith('$')) {
+      extracted.price = `$${extracted.price}`;
+    }
+    
+    if (extracted.sqft) {
+      extracted.sqft = extracted.sqft.replace(/,/g, '');
+    }
+    
+    // Extract features (lines that start with bullet points or dashes)
+    const featureLines = text.split('\n')
+      .filter(line => line.trim().match(/^[•\-\*]\s+/))
+      .map(line => line.replace(/^[•\-\*]\s+/, '').trim())
+      .filter(line => line.length > 0);
+    
+    if (featureLines.length > 0) {
+      extracted.features = featureLines.join('\n');
+    }
+    
+    console.log('🔍 Parsed listing data:', extracted);
+    return extracted;
+  };
 
   // Generate dynamic features using OpenRouter AI
   const generateDynamicFeatures = async (listingData) => {
@@ -260,7 +323,12 @@ export default function ListingDisplayPage() {
           sqft: flyerData.sqft || 1500,
           features: flyerData.features || 'Modern kitchen, spacious backyard',
           style: flyerData.style || 'Modern',
-          flyerType: currentFlyerType
+          flyerType: currentFlyerType,
+          // Include agency information for better flyer generation
+          agentName: flyerData.agentName || '',
+          agency: flyerData.agency || '',
+          agentPhone: flyerData.agentPhone || '',
+          agentEmail: flyerData.agentEmail || ''
         }),
       });
 
