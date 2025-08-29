@@ -193,7 +193,20 @@ The design should look like it was created by a professional marketing agency sp
     // Try multiple approaches for image generation
     const approaches = [
       {
-        name: 'Google Gemini 2.0 Flash (Text Generation)',
+        name: 'Google Imagen (Image Generation)',
+        url: `https://generativelanguage.googleapis.com/v1beta/models/imagen-3:generateImage?key=${process.env.GOOGLE_API_KEY}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: {
+          prompt: `Create a professional real estate marketing flyer image: ${imagePrompt}`,
+          sampleImageSize: "1024x1024",
+          sampleCount: 1
+        }
+      },
+      {
+        name: 'Google Gemini 2.0 Flash (Text Description)',
         url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`,
         method: 'POST',
         headers: {
@@ -252,11 +265,32 @@ Make it detailed enough that a designer could create the actual flyer from your 
           const responseData = await response.json();
           console.log(`✅ ${approach.name} success response:`, responseData);
           
-          // Handle Gemini text generation response
-          if (approach.name.includes('Gemini')) {
+          // Handle Google Imagen image generation response
+          if (approach.name.includes('Imagen')) {
+            if (responseData.images && responseData.images[0] && responseData.images[0].bytesBase64Encoded) {
+              console.log(`🎉 Google Imagen image generation successful`);
+              console.log(`🖼️ Generated image data present`);
+              
+              // Convert base64 to data URL for immediate use
+              const imageDataUrl = `data:image/png;base64,${responseData.images[0].bytesBase64Encoded}`;
+              
+              return res.status(200).json({
+                success: true,
+                imageUrl: imageDataUrl,
+                prompt: imagePrompt,
+                model: approach.name,
+                approach: approach.name,
+                type: 'imagen-image'
+              });
+            } else {
+              console.error(`❌ Imagen no image data:`, responseData);
+              lastError = `No image data from Imagen`;
+            }
+          } else if (approach.name.includes('Gemini')) {
+            // Handle Gemini text generation response (fallback)
             if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
               const generatedText = responseData.candidates[0].content.parts[0].text;
-              console.log(`🎉 Gemini text generation successful`);
+              console.log(`🎉 Gemini text generation successful (fallback)`);
               console.log(`📝 Generated text:`, generatedText);
               
               // Return the generated text description
@@ -275,7 +309,7 @@ Make it detailed enough that a designer could create the actual flyer from your 
               lastError = `No text data from Gemini`;
             }
           } else if (responseData.data && responseData.data[0] && responseData.data[0].url) {
-            // Handle traditional image generation responses
+            // Handle other image generation responses
             console.log(`🎉 AI image generation successful with ${approach.name}`);
             console.log(`🖼️ Image URL:`, responseData.data[0].url);
             return res.status(200).json({
@@ -363,33 +397,25 @@ Make it detailed enough that a designer could create the actual flyer from your 
 
 
 
-// Test Gemini 2.0 Flash image generation through Google's direct API
+// Test Google Imagen image generation through Google's direct API
 async function testGeminiDirect(req, res) {
   try {
-    console.log('🧪 Testing Gemini 2.0 Flash image generation through Google API...');
+    console.log('🧪 Testing Google Imagen image generation through Google API...');
     console.log('🔑 Google API Key present:', !!process.env.GOOGLE_API_KEY);
     console.log('🌐 App URL:', process.env.NEXT_PUBLIC_APP_URL);
 
-    // Test 1: Check if we can reach Google's Gemini API
-    console.log('📡 Testing Google Gemini API...');
+    // Test 1: Check if we can reach Google's Imagen API
+    console.log('📡 Testing Google Imagen API...');
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/imagen-3:generateImage?key=${process.env.GOOGLE_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: 'Generate a simple test image of a house for real estate marketing.'
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        }
+        prompt: 'Create a simple test image of a house for real estate marketing.',
+        sampleImageSize: "1024x1024",
+        sampleCount: 1
       })
     });
 
@@ -398,16 +424,16 @@ async function testGeminiDirect(req, res) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('✅ Gemini 2.0 Flash model test successful:', data);
+      console.log('✅ Google Imagen model test successful:', data);
       return res.status(200).json({
         success: true,
-        message: 'Gemini 2.0 Flash image generation is working correctly through Google API.',
+        message: 'Google Imagen image generation is working correctly through Google API.',
         response: data,
-        model: 'gemini-2.0-flash-exp'
+        model: 'imagen-3'
       });
     } else {
       const errorText = await response.text();
-      console.error('❌ Gemini 2.0 Flash model test failed:', response.status, errorText);
+      console.error('❌ Google Imagen model test failed:', response.status, errorText);
       
       // Try to parse error response
       try {
@@ -419,14 +445,14 @@ async function testGeminiDirect(req, res) {
       
       return res.status(500).json({
         success: false,
-        message: `Gemini 2.0 Flash image generation test failed: ${response.status} - ${errorText}`,
+        message: `Google Imagen image generation test failed: ${response.status} - ${errorText}`,
         status: response.status,
         error: errorText,
-        model: 'gemini-2.0-flash-exp'
+        model: 'imagen-3'
       });
     }
   } catch (error) {
-    console.error('❌ Critical error during Gemini 2.0 Flash model test:', error);
+          console.error('❌ Critical error during Google Imagen model test:', error);
     return res.status(500).json({
       success: false,
       message: `Gemini 2.0 Flash image generation test encountered an error: ${error.message}`,

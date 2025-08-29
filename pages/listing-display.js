@@ -274,9 +274,12 @@ export default function ListingDisplayPage() {
       if (result.success) {
         // Check if this is a fallback response
         if (result.fallback) {
-          console.log('🔄 AI generation unavailable, but not switching to programmatic engine...');
+          console.log('🔄 AI generation returned fallback, switching to programmatic engine...');
           console.log('🔍 Fallback details:', result);
-          alert('AI image generation is currently unavailable. Please check the console for details. We are focusing on getting Gemini AI working.');
+          
+          // Instead of blocking, allow the fallback to programmatic engine
+          console.log('🔄 Proceeding with programmatic flyer generation...');
+          await handleProgrammaticFlyerGeneration();
           return;
         }
         
@@ -1439,15 +1442,15 @@ export default function ListingDisplayPage() {
           <button
             onClick={async () => {
               try {
-                console.log('🧪 Testing Google Gemini API connectivity...');
+                console.log('🧪 Testing Google Imagen API connectivity...');
                 const response = await fetch('/api/generate-features', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ test: 'gemini' })
                 });
                 const result = await response.json();
-                console.log('🧪 Google Gemini API test result:', result);
-                alert(`Google Gemini API test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
+                console.log('🧪 Google Imagen API test result:', result);
+                alert(`Google Imagen API test: ${result.success ? 'SUCCESS' : 'FAILED'}\nCheck console for details.`);
               } catch (error) {
                 console.error('🧪 Test error:', error);
                 alert(`Test error: ${error.message}`);
@@ -1464,7 +1467,7 @@ export default function ListingDisplayPage() {
               marginRight: '8px'
             }}
           >
-            Test Google Gemini API
+            Test Google Imagen API
           </button>
           
           <button
@@ -1576,8 +1579,8 @@ export default function ListingDisplayPage() {
         <div style={{ fontSize: '12px', opacity: 0.8 }}>
           <div>🔑 API Key: {process.env.NODE_ENV === 'development' ? 'Checking...' : 'Hidden'}</div>
           <div>🌐 App URL: {process.env.NEXT_PUBLIC_APP_URL || 'Not set'}</div>
-          <div>🔧 Model: Gemini 2.0 Flash</div>
-          <div>📡 API: Google Direct (Not OpenRouter)</div>
+          <div>🔧 Model: Google Imagen 3</div>
+          <div>📡 API: Google Direct (Image Generation)</div>
           <div>🌍 Endpoint: /api/generate-features</div>
         </div>
       </div>
