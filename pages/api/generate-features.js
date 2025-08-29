@@ -340,11 +340,10 @@ Make it detailed enough that a designer could create the actual flyer from your 
               return res.status(200).json({
                 success: true,
                 fallback: true,
-                message: 'Gemini 2.5 Flash Image Preview generated a response. Using programmatic engine for the actual flyer.',
+                message: 'Gemini 2.5 Flash Image Preview generated a response but couldn\'t create an image.',
                 description: generatedText,
                 prompt: imagePrompt,
                 model: approach.name,
-                recommendation: 'programmatic',
                 type: 'gemini-description'
               });
             } else {
@@ -362,11 +361,10 @@ Make it detailed enough that a designer could create the actual flyer from your 
               return res.status(200).json({
                 success: true,
                 fallback: true,
-                message: 'Gemini AI generated a detailed flyer description. Using programmatic engine for the actual flyer.',
+                message: 'Gemini AI generated a detailed flyer description but couldn\'t create an image.',
                 description: generatedText,
                 prompt: imagePrompt,
                 model: approach.name,
-                recommendation: 'programmatic',
                 type: 'gemini-description'
               });
             } else {
@@ -423,10 +421,7 @@ Make it detailed enough that a designer could create the actual flyer from your 
       }
     }
 
-    // If all approaches failed, provide a helpful fallback message
-    console.log('🔄 All AI approaches failed, providing fallback...');
-
-    // If everything failed, return a detailed error instead of fallback
+    // If all approaches failed, return a detailed error
     console.error('❌ All AI approaches failed. Last error:', lastError);
     
     return res.status(500).json({
