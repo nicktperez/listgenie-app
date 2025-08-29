@@ -143,8 +143,8 @@ Please provide exactly 4 features in this exact JSON format:
   }
 }
 
-// AI Image Generation (OpenRouter compatible)
-async function generateMidjourneyImage(req, res) {
+// AI Image Generation (Google Gemini + Fallback)
+async function generateGeminiImage(req, res) {
   try {
     const { propertyType, address, price, bedrooms, bathrooms, sqft, features, style, flyerType } = req.body;
 
@@ -193,7 +193,7 @@ The design should look like it was created by a professional marketing agency sp
     // Try multiple approaches for image generation
     const approaches = [
       {
-        name: 'Google Gemini 2.0 Flash (Primary)',
+        name: 'Google Gemini 2.0 Flash (Text Generation)',
         url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GOOGLE_API_KEY}`,
         method: 'POST',
         headers: {
@@ -202,7 +202,18 @@ The design should look like it was created by a professional marketing agency sp
         body: {
           contents: [{
             parts: [{
-              text: `Generate a professional real estate flyer image based on this description: ${imagePrompt}. The image should be high quality, professional, and suitable for real estate marketing.`
+              text: `You are an expert real estate marketing designer. Create a detailed, professional description of a real estate marketing flyer that could be used to generate an image. 
+
+Based on this property: ${imagePrompt}
+
+Provide a detailed visual description that includes:
+- Layout structure and positioning
+- Color scheme and typography
+- Visual elements and graphics
+- Professional design elements
+- Marketing appeal factors
+
+Make it detailed enough that a designer could create the actual flyer from your description.`
             }]
           }],
           generationConfig: {
@@ -210,25 +221,7 @@ The design should look like it was created by a professional marketing agency sp
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 1024,
-          },
-          safetySettings: [
-            {
-              category: "HARM_CATEGORY_HARASSMENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_HATE_SPEECH",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            },
-            {
-              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-              threshold: "BLOCK_MEDIUM_AND_ABOVE"
-            }
-          ]
+          }
         }
       }
     ];
@@ -259,7 +252,30 @@ The design should look like it was created by a professional marketing agency sp
           const responseData = await response.json();
           console.log(`✅ ${approach.name} success response:`, responseData);
           
-          if (responseData.data && responseData.data[0] && responseData.data[0].url) {
+          // Handle Gemini text generation response
+          if (approach.name.includes('Gemini')) {
+            if (responseData.candidates && responseData.candidates[0] && responseData.candidates[0].content) {
+              const generatedText = responseData.candidates[0].content.parts[0].text;
+              console.log(`🎉 Gemini text generation successful`);
+              console.log(`📝 Generated text:`, generatedText);
+              
+              // Return the generated text description
+              return res.status(200).json({
+                success: true,
+                fallback: true,
+                message: 'Gemini AI generated a detailed flyer description. Using programmatic engine for the actual flyer.',
+                description: generatedText,
+                prompt: imagePrompt,
+                model: approach.name,
+                recommendation: 'programmatic',
+                type: 'gemini-description'
+              });
+            } else {
+              console.error(`❌ Gemini no text data:`, responseData);
+              lastError = `No text data from Gemini`;
+            }
+          } else if (responseData.data && responseData.data[0] && responseData.data[0].url) {
+            // Handle traditional image generation responses
             console.log(`🎉 AI image generation successful with ${approach.name}`);
             console.log(`🖼️ Image URL:`, responseData.data[0].url);
             return res.status(200).json({
@@ -270,14 +286,8 @@ The design should look like it was created by a professional marketing agency sp
               approach: approach.name
             });
           } else {
-            console.error(`❌ ${approach.name} no image data:`, responseData);
-            console.error(`❌ ${approach.name} response structure:`, {
-              hasData: !!responseData.data,
-              dataLength: responseData.data ? responseData.data.length : 0,
-              firstItem: responseData.data ? responseData.data[0] : null,
-              hasUrl: responseData.data && responseData.data[0] ? !!responseData.data[0].url : false
-            });
-            lastError = `No image data from ${approach.name}`;
+            console.error(`❌ ${approach.name} no valid data:`, responseData);
+            lastError = `No valid data from ${approach.name}`;
           }
         } else {
           const errorText = await response.text();
@@ -292,8 +302,8 @@ The design should look like it was created by a professional marketing agency sp
               errorText,
               requestBody: approach.body,
               requestHeaders: approach.headers,
-              openRouterKey: !!process.env.OPENROUTER_API_KEY,
-              openRouterKeyLength: process.env.OPENROUTER_API_KEY ? process.env.OPENROUTER_API_KEY.length : 0
+              googleApiKey: !!process.env.GOOGLE_API_KEY,
+              googleApiKeyLength: process.env.GOOGLE_API_KEY ? process.env.GOOGLE_API_KEY.length : 0
             });
             
             // Try to parse error response for more details
@@ -314,52 +324,8 @@ The design should look like it was created by a professional marketing agency sp
       }
     }
 
-    // If all approaches failed, try a different strategy - use text-to-image through chat completion
-    console.log('🔄 All direct image generation failed, trying alternative approach...');
-    
-    try {
-      const alternativeResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-          'X-Title': 'ListGenie AI Flyer Generator'
-        },
-        body: JSON.stringify({
-          model: 'anthropic/claude-3.5-sonnet',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert at creating detailed, professional real estate marketing flyer descriptions that can be used to generate images.'
-            },
-            {
-              role: 'user',
-              content: `Create a detailed visual description for a real estate marketing flyer image. The image should show: ${imagePrompt}`
-            }
-          ],
-          max_tokens: 500
-        })
-      });
-
-      if (alternativeResponse.ok) {
-        const altData = await alternativeResponse.json();
-        console.log('✅ Alternative approach successful:', altData);
-        
-        // Return the description as a fallback
-        return res.status(200).json({
-          success: true,
-          fallback: true,
-          message: 'AI image generation unavailable, but here is a detailed description for manual creation.',
-          description: altData.choices[0]?.message?.content || 'Professional real estate flyer description',
-          prompt: imagePrompt,
-          recommendation: 'programmatic',
-          type: 'description'
-        });
-      }
-    } catch (altError) {
-      console.error('❌ Alternative approach also failed:', altError);
-    }
+    // If all approaches failed, provide a helpful fallback message
+    console.log('🔄 All AI approaches failed, providing fallback...');
 
     // If everything failed, return a detailed error instead of fallback
     console.error('❌ All AI approaches failed. Last error:', lastError);
@@ -372,7 +338,7 @@ The design should look like it was created by a professional marketing agency sp
         approaches: approaches.map(a => a.name),
         timestamp: new Date().toISOString(),
         prompt: imagePrompt,
-        openRouterKey: !!process.env.OPENROUTER_API_KEY,
+        googleApiKey: !!process.env.GOOGLE_API_KEY,
         appUrl: process.env.NEXT_PUBLIC_APP_URL
       }
     });
@@ -395,61 +361,7 @@ The design should look like it was created by a professional marketing agency sp
   }
 }
 
-// Test OpenRouter connectivity
-async function testOpenRouter(req, res) {
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-        'X-Title': 'ListGenie Test Endpoint'
-      },
-      body: JSON.stringify({
-        model: 'anthropic/claude-3.5-sonnet',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful assistant.'
-          },
-          {
-            role: 'user',
-            content: 'Hello, OpenRouter!'
-          }
-        ],
-        max_tokens: 50
-      })
-    });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ OpenRouter test successful:', data);
-      return res.status(200).json({
-        success: true,
-        message: 'OpenRouter API is working correctly.',
-        response: data
-      });
-    } else {
-      const errorText = await response.text();
-      console.error('❌ OpenRouter test failed:', response.status, errorText);
-      return res.status(500).json({
-        success: false,
-        message: `OpenRouter API test failed: ${response.status} - ${errorText}`,
-        status: response.status,
-        error: errorText
-      });
-    }
-  } catch (error) {
-    console.error('❌ Critical error during OpenRouter test:', error);
-    return res.status(500).json({
-      success: false,
-      message: `OpenRouter API test encountered an error: ${error.message}`,
-      error: error.message,
-      stack: error.stack
-    });
-  }
-}
 
 // Test Gemini 2.0 Flash image generation through Google's direct API
 async function testGeminiDirect(req, res) {
