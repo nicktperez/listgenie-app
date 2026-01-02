@@ -15,7 +15,6 @@ export default authMiddleware({
     "/api/listings/(.*)",
     "/api/stripe/(.*)",
     "/api/admin/(.*)",  // server checks X-Admin-Token
-    "/api/flyer",       // flyer generation endpoint
   ],
   // Webhooks or binary endpoints that must not be wrapped by Clerk
   ignoredRoutes: ["/api/stripe/webhook"],

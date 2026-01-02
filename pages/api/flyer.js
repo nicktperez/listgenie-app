@@ -3,11 +3,22 @@
 
 import ProfessionalFlyerEngine from '../../lib/professionalFlyerEngine.js';
 
+import { getAuth } from '@clerk/nextjs/server';
+
 export default async function handler(req, res) {
+  const { userId } = getAuth(req);
+
   console.log('🚀 API /api/flyer: Request received');
+  console.log('🚀 API /api/flyer: User ID:', userId);
+
+  if (!userId) {
+    console.log('❌ API /api/flyer: Unauthorized access attempt');
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   console.log('🚀 API /api/flyer: Method:', req.method);
   console.log('🚀 API /api/flyer: Headers:', req.headers);
-  
+
   try {
     if (req.method !== 'POST') {
       console.log('❌ API /api/flyer: Invalid method, returning 405');
@@ -63,11 +74,11 @@ async function generateProfessionalFlyer(flyerData) {
     console.log('🔧 generateProfessionalFlyer: Creating ProfessionalFlyerEngine instance...');
     const generator = new ProfessionalFlyerEngine();
     console.log('🔧 generateProfessionalFlyer: ProfessionalFlyerEngine instance created successfully');
-    
+
     console.log('🔧 generateProfessionalFlyer: Calling generator.generateProfessionalFlyer...');
     const result = await generator.generateProfessionalFlyer(flyerData);
     console.log('🔧 generateProfessionalFlyer: Result received:', result);
-    
+
     return result;
   } catch (error) {
     console.error('❌ generateProfessionalFlyer: Error occurred:', error);
