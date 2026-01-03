@@ -5,57 +5,58 @@ import { PROFESSIONAL_FLYER_STYLES } from '../../lib/professionalFlyerStyles';
 const Icons = {
   Generate: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 
   Camera: () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2"/>
+      <path d="M23 19C23 19.5304 22.7893 20.0391 22.4142 20.4142C22.0391 20.7893 21.5304 21 21 21H3C2.46957 21 1.96086 20.7893 1.58579 20.4142C1.21071 20.0391 1 19.5304 1 19V8C1 7.46957 1.21071 6.96086 1.58579 6.58579C1.96086 6.21071 2.46957 6 3 6H7L9 3H15L17 6H21C21.5304 6 22.0391 6.21071 22.4142 6.58579C22.7893 6.96086 23 7.46957 23 8V19Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 17C14.2091 17 16 15.2091 16 13C16 10.7909 14.2091 9 12 9C9.79086 9 8 10.7909 8 13C8 15.2091 9.79086 17 12 17Z" stroke="currentColor" strokeWidth="2" />
     </svg>
   ),
   Modern: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2"/>
-      <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="2"/>
-      <line x1="9" y1="12" x2="15" y2="12" stroke="currentColor" strokeWidth="2"/>
-      <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="2"/>
+      <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+      <line x1="9" y1="9" x2="15" y2="9" stroke="currentColor" strokeWidth="2" />
+      <line x1="9" y1="12" x2="15" y2="12" stroke="currentColor" strokeWidth="2" />
+      <line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" strokeWidth="2" />
     </svg>
   ),
   Classic: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 17L12 22L22 17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Premium: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M12 2L15.09 8.26L22 9L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Contemporary: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
-      <path d="M8 14L12 10L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 14L12 10L16 14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
   Close: () => (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 };
 
-export default function EnhancedFlyerModal({ 
-  isOpen, 
-  onClose, 
-  onGenerate, 
-  listing, 
+export default function EnhancedFlyerModal({
+  isOpen,
+  onClose,
+  onGenerate,
+  listing,
+  parsedListing, // Receive the parsed data
   loading = false,
   onPreview
 }) {
@@ -77,6 +78,25 @@ export default function EnhancedFlyerModal({
     price: '',
     features: []
   });
+
+  // Auto-fill form from parsed listing data
+  useEffect(() => {
+    if (parsedListing) {
+      console.log('📝 EnhancedFlyerModal: Auto-filling form with parsed data:', parsedListing);
+      setPropertyInfo(prev => ({
+        ...prev,
+        address: parsedListing.address || prev.address,
+        bedrooms: parsedListing.bedrooms || prev.bedrooms,
+        bathrooms: parsedListing.bathrooms || prev.bathrooms,
+        sqft: parsedListing.sqft || prev.sqft,
+        price: parsedListing.price || prev.price,
+        // If features is a string, split it, otherwise use as array
+        features: Array.isArray(parsedListing.features)
+          ? parsedListing.features
+          : (parsedListing.features || '').split(',').map(f => f.trim()).filter(Boolean)
+      }));
+    }
+  }, [parsedListing]);
   const [uploadedPhotos, setUploadedPhotos] = useState([]);
   const [photoFiles, setPhotoFiles] = useState([]);
 
@@ -112,7 +132,7 @@ export default function EnhancedFlyerModal({
 
   const removePhoto = (photoId) => {
     setUploadedPhotos(prev => prev.filter(p => p.id !== photoId));
-    setPhotoFiles(prev => prev.filter((_, index) => 
+    setPhotoFiles(prev => prev.filter((_, index) =>
       uploadedPhotos.find(p => p.id === photoId)?.id !== Date.now() + index
     ));
   };
@@ -128,7 +148,7 @@ export default function EnhancedFlyerModal({
       photos: photoFiles,
       style: style
     });
-    
+
     if (currentStep < 4) {
       console.log('📝 EnhancedFlyerModal: Not on final step, moving to next step');
       setCurrentStep(currentStep + 1);
@@ -136,7 +156,7 @@ export default function EnhancedFlyerModal({
     }
 
     console.log('📝 EnhancedFlyerModal: On final step, preparing flyer data...');
-    
+
     // Validate required fields
     if (!agentInfo.name || !agentInfo.agency) {
       console.log('❌ EnhancedFlyerModal: Missing agent info');
@@ -151,17 +171,17 @@ export default function EnhancedFlyerModal({
     }
 
     console.log('📝 EnhancedFlyerModal: Validation passed, creating flyer data object...');
-    
+
     const flyerData = {
       agentInfo,
       propertyInfo,
       photos: photoFiles,
       style: style
     };
-    
+
     console.log('📝 EnhancedFlyerModal: Flyer data object created:', flyerData);
     console.log('📝 EnhancedFlyerModal: Calling onGenerate with flyer data...');
-    
+
     try {
       await onGenerate(flyerData);
       console.log('✅ EnhancedFlyerModal: onGenerate completed successfully');
@@ -202,7 +222,7 @@ export default function EnhancedFlyerModal({
 
   // Render modal directly in the DOM
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -219,7 +239,7 @@ export default function EnhancedFlyerModal({
         height: '100vh'
       }}
     >
-      <div 
+      <div
         style={{
           background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
           borderRadius: '20px',
@@ -234,7 +254,7 @@ export default function EnhancedFlyerModal({
         }}
       >
         {/* Modal Header */}
-        <div 
+        <div
           style={{
             background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
             color: 'white',
@@ -245,11 +265,11 @@ export default function EnhancedFlyerModal({
             borderBottom: '1px solid #475569'
           }}
         >
-                          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Icons.Generate />
-                  Generate Flyer
-                </h2>
-          <button 
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Icons.Generate />
+            Generate Flyer
+          </h2>
+          <button
             onClick={onClose}
             style={{
               background: 'rgba(255, 255, 255, 0.1)',
@@ -271,10 +291,10 @@ export default function EnhancedFlyerModal({
         </div>
 
         {/* Modal Content */}
-                  <div style={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
+        <div style={{ padding: '24px', maxHeight: '70vh', overflowY: 'auto' }}>
           {/* Service Status Indicator */}
-                            
-          
+
+
           {currentStep === 1 && (
             <div>
               <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 600, color: '#f8fafc' }}>
@@ -283,7 +303,7 @@ export default function EnhancedFlyerModal({
               <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: '14px' }}>
                 Let's personalize your flyer with your branding
               </p>
-              
+
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#e2e8f0', fontSize: '14px' }}>
                   Your Name *
@@ -411,7 +431,7 @@ export default function EnhancedFlyerModal({
                 />
               </div>
 
-              <button 
+              <button
                 onClick={() => setCurrentStep(2)}
                 disabled={!agentInfo.name || !agentInfo.agency}
                 style={{
@@ -444,7 +464,7 @@ export default function EnhancedFlyerModal({
               <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: '14px' }}>
                 Provide property details to help AI create a personalized flyer
               </p>
-              
+
               <div style={{ marginBottom: '20px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500, color: '#e2e8f0', fontSize: '14px' }}>
                   Property Address
@@ -602,7 +622,7 @@ export default function EnhancedFlyerModal({
               </div>
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                <button 
+                <button
                   onClick={() => setCurrentStep(1)}
                   style={{
                     background: '#475569',
@@ -621,7 +641,7 @@ export default function EnhancedFlyerModal({
                 >
                   Back
                 </button>
-                <button 
+                <button
                   onClick={() => setCurrentStep(3)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -652,12 +672,12 @@ export default function EnhancedFlyerModal({
               <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: '14px' }}>
                 Upload photos of the property to include in your flyer
               </p>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', 
-                gap: '16px', 
-                marginBottom: '24px' 
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '16px',
+                marginBottom: '24px'
               }}>
                 {flyerStyles.map((style) => {
                   return (
@@ -687,9 +707,9 @@ export default function EnhancedFlyerModal({
                         }
                       }}
                     >
-                      <div style={{ 
-                        fontSize: '32px', 
-                        marginBottom: '12px', 
+                      <div style={{
+                        fontSize: '32px',
+                        marginBottom: '12px',
                         color: style === style.id ? '#3b82f6' : '#94a3b8',
                         display: 'flex',
                         justifyContent: 'center'
@@ -708,7 +728,7 @@ export default function EnhancedFlyerModal({
               </div>
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                <button 
+                <button
                   onClick={() => setCurrentStep(1)}
                   style={{
                     background: '#475569',
@@ -727,7 +747,7 @@ export default function EnhancedFlyerModal({
                 >
                   Back
                 </button>
-                <button 
+                <button
                   onClick={() => setCurrentStep(3)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -775,7 +795,7 @@ export default function EnhancedFlyerModal({
                 <p style={{ margin: '0 0 16px 0', color: '#cbd5e1', fontSize: '13px' }}>
                   Upload photos of the property (optional)
                 </p>
-                
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -784,8 +804,8 @@ export default function EnhancedFlyerModal({
                   onChange={handlePhotoUpload}
                   style={{ display: 'none' }}
                 />
-                
-                <button 
+
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   style={{
                     background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
@@ -810,7 +830,7 @@ export default function EnhancedFlyerModal({
                   <Icons.Camera />
                   Upload Photos
                 </button>
-                
+
                 <p style={{ color: '#94a3b8', fontSize: '12px', margin: 0 }}>
                   Recommended: 3-5 high-quality photos. We'll automatically crop and position them perfectly.
                 </p>
@@ -821,15 +841,15 @@ export default function EnhancedFlyerModal({
                   <h4 style={{ margin: '0 0 16px 0', fontSize: '16px', fontWeight: 600, color: '#f8fafc' }}>
                     Uploaded Photos ({uploadedPhotos.length})
                   </h4>
-                  <div style={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', 
-                    gap: '12px' 
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                    gap: '12px'
                   }}>
                     {uploadedPhotos.map((photo) => (
-                                             <div key={photo.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '4/3', border: '2px solid #475569' }}>
+                      <div key={photo.id} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', aspectRatio: '4/3', border: '2px solid #475569' }}>
                         <img src={photo.url} alt={photo.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <button 
+                        <button
                           onClick={() => removePhoto(photo.id)}
                           style={{
                             position: 'absolute',
@@ -857,7 +877,7 @@ export default function EnhancedFlyerModal({
               )}
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                <button 
+                <button
                   onClick={() => setCurrentStep(2)}
                   style={{
                     background: '#475569',
@@ -876,7 +896,7 @@ export default function EnhancedFlyerModal({
                 >
                   Back
                 </button>
-                <button 
+                <button
                   onClick={() => setCurrentStep(4)}
                   style={{
                     background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
@@ -907,12 +927,12 @@ export default function EnhancedFlyerModal({
               <p style={{ margin: '0 0 24px 0', color: '#cbd5e1', fontSize: '14px' }}>
                 Choose the design style that matches your brand
               </p>
-              
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', 
-                gap: '16px', 
-                marginBottom: '24px' 
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '16px',
+                marginBottom: '24px'
               }}>
                 {flyerStyles.map((style) => {
                   return (
@@ -942,9 +962,9 @@ export default function EnhancedFlyerModal({
                         }
                       }}
                     >
-                      <div style={{ 
-                        fontSize: '32px', 
-                        marginBottom: '12px', 
+                      <div style={{
+                        fontSize: '32px',
+                        marginBottom: '12px',
                         color: style === style.id ? '#3b82f6' : '#94a3b8',
                         display: 'flex',
                         justifyContent: 'center'
@@ -963,7 +983,7 @@ export default function EnhancedFlyerModal({
               </div>
 
               <div style={{ display: 'flex', gap: '16px', marginTop: '24px' }}>
-                <button 
+                <button
                   onClick={() => setCurrentStep(3)}
                   style={{
                     background: '#475569',
@@ -1053,7 +1073,7 @@ export default function EnhancedFlyerModal({
           borderTop: '1px solid #475569',
           textAlign: 'center'
         }}>
-          <button 
+          <button
             onClick={() => { resetForm(); onClose(); }}
             style={{
               background: '#475569',

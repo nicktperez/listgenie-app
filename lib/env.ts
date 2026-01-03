@@ -18,6 +18,9 @@ const envSchema = z.object({
   // OpenRouter
   OPENROUTER_API_KEY: z.string().min(1).optional(),
 
+  // Google AI
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+
   // App
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 });

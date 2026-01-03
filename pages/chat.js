@@ -61,6 +61,7 @@ export default function ChatPage() {
   const [currentListing, setCurrentListing] = useState('');
   const [hasListing, setHasListing] = useState(false);
   const [originalInput, setOriginalInput] = useState('');
+  const [parsedListing, setParsedListing] = useState(null);
 
   // Refs
   const composerRef = useRef(null);
@@ -322,21 +323,21 @@ export default function ChatPage() {
         // Include the original request and any previous Q&A
         ...(allQuestionsAndAnswers.length > 0
           ? [
-              { role: 'user', content: `Original request: ${baseInput}` },
-              {
-                role: 'user',
-                content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}`,
-              },
-            ]
+            { role: 'user', content: `Original request: ${baseInput}` },
+            {
+              role: 'user',
+              content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}`,
+            },
+          ]
           : []),
         // If modifying a listing, include the current listing content
         ...(isModifyingListing
           ? [
-              {
-                role: 'assistant',
-                content: `Current listing: ${currentListing}`,
-              },
-            ]
+            {
+              role: 'assistant',
+              content: `Current listing: ${currentListing}`,
+            },
+          ]
           : []),
         // Current message
         { role: 'user', content: trimmed },
@@ -439,6 +440,8 @@ export default function ChatPage() {
 
           // Save listing to Supabase for Dashboard
           const parsed = parseListingData(content);
+          setParsedListing(parsed); // Store parsed data for flyer modal
+
           const listingData = {
             user_id: user.id,
             title: parsed.address || 'Untitled Property',
@@ -621,6 +624,7 @@ export default function ChatPage() {
             }}
             onGenerate={handleEnhancedFlyerGeneration}
             listing={currentListing}
+            parsedListing={parsedListing}
             loading={flyerGenerating}
             onPreview={handleFlyerPreview}
           />
