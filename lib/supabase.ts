@@ -45,8 +45,8 @@ export interface Generation {
 
 // Create Supabase client
 export const supabase = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key',
   {
     auth: {
       autoRefreshToken: true,
@@ -202,9 +202,9 @@ export const getUserUsage = async (userId: string): Promise<{ count: number; tot
       .eq('user_id', userId);
 
     if (error) throw error;
-    
+
     const totalCost = data?.reduce((sum, gen) => sum + (gen.cost || 0), 0) || 0;
-    
+
     return {
       count: data?.length || 0,
       total_cost: totalCost,
