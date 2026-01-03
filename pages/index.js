@@ -34,7 +34,9 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🏠</span>
+              <span className="text-2xl flex items-center">
+                <img src="/logo_icon.png" alt="ListGenie" className="w-8 h-8 object-contain" />
+              </span>
               <span className="font-bold text-xl bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">
                 ListGenie.ai
               </span>
@@ -147,7 +149,7 @@ export default function LandingPage() {
               <div key={i} className="p-6 rounded-2xl bg-[#1e293b]/50 border border-white/5 text-left">
                 <div className="flex gap-1 mb-4">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                    <img key={s} src="/star_rating.png" alt="star" className="w-5 h-5 object-contain" />
                   ))}
                 </div>
                 <p className="text-gray-300 mb-6 italic">
@@ -193,7 +195,9 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-2xl">🏠</span>
+                <span className="text-2xl flex items-center">
+                  <img src="/logo_icon.png" alt="ListGenie" className="w-8 h-8 object-contain" />
+                </span>
                 <span className="font-bold text-xl">ListGenie.ai</span>
               </div>
               <p className="text-gray-400 max-w-sm">

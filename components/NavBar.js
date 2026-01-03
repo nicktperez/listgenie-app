@@ -1,5 +1,5 @@
-// components/NavBar.js
 import React from "react";
+import Link from 'next/link';
 import { SignedIn, SignedOut, SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import useUserPlan from "@/hooks/useUserPlan";
 
@@ -14,9 +14,9 @@ export default function NavBar() {
         position: "sticky",
         top: 0,
         zIndex: 20,
-        background: "rgba(14,17,22,.85)",
+        background: "rgba(14, 11, 22, 0.85)",
         backdropFilter: "blur(8px)",
-        borderBottom: "1px solid rgba(255,255,255,.08)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
       }}
     >
       <div
@@ -31,7 +31,7 @@ export default function NavBar() {
         }}
       >
         {/* Left: brand */}
-        <a href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none", color: "inherit" }}>
           <div
             style={{
               width: 34,
@@ -39,20 +39,21 @@ export default function NavBar() {
               borderRadius: 10,
               display: "grid",
               placeItems: "center",
-              background: "rgba(255,255,255,.08)",
-              border: "1px solid rgba(255,255,255,.12)",
+              background: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              padding: '6px'
             }}
           >
-            🏠
+            <img src="/logo_icon.png" alt="ListGenie" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <strong>ListGenie.ai</strong>
-        </a>
+        </Link>
 
         {/* Left: primary nav */}
         <div style={{ display: "flex", gap: 10, marginLeft: 12 }}>
-          <a href="/chat" className="link">Chat</a>
+          <Link href="/chat" className="link">Chat</Link>
           <SignedIn>
-            <a href="/listings" className="link">Listings</a>
+            <Link href="/dashboard" className="link">Dashboard</Link>
           </SignedIn>
         </div>
 

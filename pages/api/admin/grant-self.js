@@ -15,16 +15,20 @@ export default async function handler(req, res) {
     if (!userId) return res.status(401).json({ ok: false, error: "Unauthenticated" });
 
     // Make current user admin; do not touch plan unless you want to:
+    // IMPORTANT: 'role' column is not in standard schema I just wrote. 
+    // This file implies it exists. We should add it to DATABASE_SETUP.md or just execute the update if it works.
+
+    // NOTE: This call might fail if 'role' column doesn't exist.
     const { error: updErr } = await supabaseAdmin
       .from("users")
       .update({ role: "admin" })
-      .eq("clerk_id", userId);
+      .eq("id", userId);
     if (updErr) throw updErr;
 
     const { data: user, error: selErr } = await supabaseAdmin
       .from("users")
-      .select("id, clerk_id, email, name, role, plan, trial_end_date, created_at")
-      .eq("clerk_id", userId)
+      .select("id, email, plan, trial_end_date, created_at")
+      .eq("id", userId)
       .maybeSingle();
     if (selErr) throw selErr;
 

@@ -3,55 +3,62 @@
 ## Required Database Tables and Columns
 
 ### 1. Users Table
-Make sure your `users` table has these columns:
 
 ```sql
--- Add these columns to your existing users table
-ALTER TABLE users 
-ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'trial',
-ADD COLUMN IF NOT EXISTS trial_end_date TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT,
-ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+create table if not exists users (
+  id text primary key, -- This will store the Clerk User ID
+  email text,
+  role text default 'user', -- 'admin' or 'user'
+  plan text default 'trial',
+  trial_end_date timestamp with time zone,
+  stripe_customer_id text,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
 
--- Create index for better performance
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
-CREATE INDEX IF NOT EXISTS idx_users_plan ON users(plan);
+-- Create index
+create index if not exists idx_users_email on users(email);
 ```
 
-**Note**: We removed `usage_count` and `last_usage` columns since we no longer track usage limits.
-
-### 2. Generations Table (for analytics)
-Create this new table:
+### 2. Listings Table
 
 ```sql
-CREATE TABLE IF NOT EXISTS generations (
-  id SERIAL PRIMARY KEY,
-  clerk_id TEXT NOT NULL,
-  prompt TEXT,
-  response TEXT,
-  model TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table if not exists listings (
+  id uuid default gen_random_uuid() primary key,
+  user_id text references users(id) on delete cascade not null,
+  title text,
+  description text,
+  address text,
+  bedrooms numeric,
+  bathrooms numeric,
+  sqft numeric,
+  style text,
+  features text,
+  generated_content jsonb,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
 );
 
 -- Create indexes
-CREATE INDEX IF NOT EXISTS idx_generations_clerk_id ON generations(clerk_id);
-CREATE INDEX IF NOT EXISTS idx_generations_created_at ON generations(created_at);
+create index if not exists idx_listings_user_id on listings(user_id);
+create index if not exists idx_listings_created_at on listings(created_at);
 ```
 
-### 3. Listings Table (if you don't have one)
+### 3. Generations Table (Analytics)
+
 ```sql
-CREATE TABLE IF NOT EXISTS listings (
-  id SERIAL PRIMARY KEY,
-  clerk_id TEXT NOT NULL,
-  title TEXT,
-  payload JSONB,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table if not exists generations (
+  id uuid default gen_random_uuid() primary key,
+  user_id text references users(id) on delete cascade not null,
+  input text,
+  output text,
+  model text,
+  tokens_used integer,
+  cost numeric,
+  created_at timestamp with time zone default now()
 );
 
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_listings_clerk_id ON listings(clerk_id);
-CREATE INDEX IF NOT EXISTS idx_listings_created_at ON listings(created_at);
+create index if not exists idx_generations_user_id on generations(user_id);
 ```
 
 ## Environment Variables Required
@@ -81,13 +88,15 @@ NEXT_PUBLIC_SITE_URL=https://yourdomain.com
 ## Plan Model
 
 **New Simplified Model:**
+
 - **Trial Pro**: New users get 14 days of full Pro features
 - **Paid Pro**: $19/month for unlimited access to all features
 - **No Free Tier**: Users must upgrade after trial expires
 
 **Features Available:**
+
 - ✅ Unlimited listing generations
-- ✅ Premium AI models  
+- ✅ Premium AI models
 - ✅ Flyer generation
 - ✅ Batch processing (up to 20 properties)
 - ✅ Advanced templates

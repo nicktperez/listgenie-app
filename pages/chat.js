@@ -6,30 +6,42 @@
 // - Enhanced Professional Flyer Generator with Template System
 // - User photo uploads and agent customization
 
-import { useRef, useState, useEffect } from "react";
-import { useRouter } from "next/router";
-import { useUser } from "@clerk/nextjs";
-import useUserPlan from "@/hooks/useUserPlan";
-import ChatHeader from "@/components/chat/Header";
-import ExamplesRow from "@/components/chat/ExamplesRow";
-import Composer from "@/components/chat/Composer";
-import EnhancedFlyerModal from "@/components/chat/EnhancedFlyerModal";
+import { useRef, useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useUser } from '@clerk/nextjs';
+import useUserPlan from '@/hooks/useUserPlan';
+import ChatHeader from '@/components/chat/Header';
+import ExamplesRow from '@/components/chat/ExamplesRow';
+import Composer from '@/components/chat/Composer';
+import EnhancedFlyerModal from '@/components/chat/EnhancedFlyerModal';
 import ProfessionalFlyerPreview from '../components/chat/ProfessionalFlyerPreview';
+import { useCreateListing } from '@/hooks/useListings';
+import { parseListingData } from '@/utils/listingParser';
 
 export default function ChatPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded, user } = useUser();
-  const { isPro, isTrial, isExpired, daysLeft, refreshPlan, canGenerate, plan, trialEnd } = useUserPlan();
+  const {
+    isPro,
+    isTrial,
+    isExpired,
+    daysLeft,
+    refreshPlan,
+    canGenerate,
+    plan,
+    trialEnd,
+  } = useUserPlan();
+  const createListingMutation = useCreateListing();
 
   // Input
-  const [tone, setTone] = useState("mls");
+  const [tone, setTone] = useState('mls');
 
   // Chat state
   const [messages, setMessages] = useState([
     // { role: 'user'|'assistant', content: string, pretty?: string }
   ]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   // State for flyer generation - SIMPLIFIED
   const [flyerOpen, setFlyerOpen] = useState(false);
@@ -46,9 +58,9 @@ export default function ChatPage() {
 
   // Listing mode
   const [isListingMode, setIsListingMode] = useState(false);
-  const [currentListing, setCurrentListing] = useState("");
+  const [currentListing, setCurrentListing] = useState('');
   const [hasListing, setHasListing] = useState(false);
-  const [originalInput, setOriginalInput] = useState("");
+  const [originalInput, setOriginalInput] = useState('');
 
   // Refs
   const composerRef = useRef(null);
@@ -56,7 +68,7 @@ export default function ChatPage() {
   // Check authentication on mount
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.push("/sign-in");
+      router.push('/sign-in');
     }
   }, [isLoaded, isSignedIn, router]);
 
@@ -69,7 +81,7 @@ export default function ChatPage() {
   const handleEnhancedFlyerGeneration = async (flyerData) => {
     try {
       setFlyerGenerating(true);
-      
+
       const response = await fetch('/api/flyer', {
         method: 'POST',
         headers: {
@@ -77,7 +89,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           ...flyerData,
-          listing: currentListing
+          listing: currentListing,
         }),
       });
 
@@ -86,7 +98,7 @@ export default function ChatPage() {
       }
 
       const result = await response.json();
-      
+
       if (result.success) {
         // Download the generated PDF
         const link = document.createElement('a');
@@ -95,7 +107,7 @@ export default function ChatPage() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         setFlyerOpen(false);
         alert('Flyer generated successfully! Downloading now...');
       } else {
@@ -116,70 +128,92 @@ export default function ChatPage() {
     setShowFlyerPreview(true);
   };
 
-/** ---------------- Utilities ---------------- */
-function stripFences(s = "") {
-  return s
-    .replace(/```json\s*([\s\S]*?)\s*```/gi, "$1")
-    .replace(/```\s*([\s\S]*?)\s*```/gi, "$1")
-    .trim();
-}
-
-// Coerce any LLM output (raw string, fenced JSON, or object) to readable text
-function coerceToReadableText(raw) {
-  if (!raw) return "";
-
-  // If object-like, try common shapes
-  if (typeof raw === "object") {
-    const candidate = raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
-    if (candidate) return stripFences(String(candidate));
-    try { return stripFences(JSON.stringify(raw, null, 2)); } catch { /* noop */ }
+  /** ---------------- Utilities ---------------- */
+  function stripFences(s = '') {
+    return s
+      .replace(/```json\s*([\s\S]*?)\s*```/gi, '$1')
+      .replace(/```\s*([\s\S]*?)\s*```/gi, '$1')
+      .trim();
   }
 
-  const txt = String(raw);
-  // Try to parse JSON
-  try {
-    const j = JSON.parse(stripFences(txt));
-    const candidate = j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
-    if (candidate) return stripFences(String(candidate));
-    return stripFences(JSON.stringify(j, null, 2));
-  } catch {
-    return stripFences(txt);
-  }
-}
+  // Coerce any LLM output (raw string, fenced JSON, or object) to readable text
+  function coerceToReadableText(raw) {
+    if (!raw) return '';
 
-// Detect formatted sections
-function splitVariants(text) {
-  if (!text) return null;
-  const patterns = [
-    { key: "mls",    rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "social", rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "luxury", rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-    { key: "concise", rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i },
-  ];
-  const out = {}; let found = false;
-  for (const { key, rx } of patterns) {
-    const m = text.match(rx);
-    if (m) { out[key] = (m[3] || m[2] || "").trim(); found = true; }
-  }
-  return found ? out : null;
-}
+    // If object-like, try common shapes
+    if (typeof raw === 'object') {
+      const candidate =
+        raw?.mls?.body || raw?.mls || raw?.content || raw?.text || raw?.body;
+      if (candidate) return stripFences(String(candidate));
+      try {
+        return stripFences(JSON.stringify(raw, null, 2));
+      } catch {
+        /* noop */
+      }
+    }
 
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
+    const txt = String(raw);
+    // Try to parse JSON
+    try {
+      const j = JSON.parse(stripFences(txt));
+      const candidate =
+        j?.mls?.body || j?.mls || j?.content || j?.text || j?.body;
+      if (candidate) return stripFences(String(candidate));
+      return stripFences(JSON.stringify(j, null, 2));
+    } catch {
+      return stripFences(txt);
+    }
   }
-}
+
+  // Detect formatted sections
+  function splitVariants(text) {
+    if (!text) return null;
+    const patterns = [
+      {
+        key: 'mls',
+        rx: /(^|\n)\s*#{0,3}\s*(MLS-?Ready|MLS Ready)\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i,
+      },
+      {
+        key: 'social',
+        rx: /(^|\n)\s*#{0,3}\s*Social\s*Caption\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i,
+      },
+      {
+        key: 'luxury',
+        rx: /(^|\n)\s*#{0,3}\s*Luxury\s*Tone\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i,
+      },
+      {
+        key: 'concise',
+        rx: /(^|\n)\s*#{0,3}\s*Concise(?:\s*Version)?\s*\n([\s\S]*?)(?=\n\s*#{0,3}\s*|$)/i,
+      },
+    ];
+    const out = {};
+    let found = false;
+    for (const { key, rx } of patterns) {
+      const m = text.match(rx);
+      if (m) {
+        out[key] = (m[3] || m[2] || '').trim();
+        found = true;
+      }
+    }
+    return found ? out : null;
+  }
+
+  async function copyToClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   /** ---------------- Event Handlers ---------------- */
   function handleNewListing() {
     setIsListingMode(true);
     setMessages([]);
-    setCurrentListing("");
+    setCurrentListing('');
     setHasListing(false);
-    setOriginalInput("");
+    setOriginalInput('');
     setAllQuestionsAndAnswers([]);
     setQuestionAnswers({});
     setCurrentQuestionIndex(0);
@@ -196,7 +230,9 @@ async function copyToClipboard(text) {
     console.log('🌐 generateProfessionalFlyer: flyerData:', flyerData);
 
     try {
-      console.log('🌐 generateProfessionalFlyer: Making API call to /api/flyer...');
+      console.log(
+        '🌐 generateProfessionalFlyer: Making API call to /api/flyer...'
+      );
       const response = await fetch('/api/flyer', {
         method: 'POST',
         headers: {
@@ -206,113 +242,147 @@ async function copyToClipboard(text) {
       });
 
       console.log('🌐 generateProfessionalFlyer: API response received');
-      console.log('🌐 generateProfessionalFlyer: Response status:', response.status);
+      console.log(
+        '🌐 generateProfessionalFlyer: Response status:',
+        response.status
+      );
       console.log('🌐 generateProfessionalFlyer: Response ok:', response.ok);
-      console.log('🌐 generateProfessionalFlyer: Response headers:', response.headers);
+      console.log(
+        '🌐 generateProfessionalFlyer: Response headers:',
+        response.headers
+      );
 
       if (!response.ok) {
-        console.log('❌ generateProfessionalFlyer: Response not ok, getting error text...');
+        console.log(
+          '❌ generateProfessionalFlyer: Response not ok, getting error text...'
+        );
         const errorText = await response.text();
-        console.log('❌ generateProfessionalFlyer: Error response text:', errorText);
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        console.log(
+          '❌ generateProfessionalFlyer: Error response text:',
+          errorText
+        );
+        throw new Error(
+          `HTTP error! status: ${response.status}, message: ${errorText}`
+        );
       }
 
       console.log('🌐 generateProfessionalFlyer: Parsing response JSON...');
       const data = await response.json();
       console.log('🌐 generateProfessionalFlyer: Parsed response data:', data);
       console.log('🌐 generateProfessionalFlyer: Data type:', typeof data);
-      console.log('🌐 generateProfessionalFlyer: Data keys:', Object.keys(data || {}));
+      console.log(
+        '🌐 generateProfessionalFlyer: Data keys:',
+        Object.keys(data || {})
+      );
 
       return data;
     } catch (error) {
       console.error('❌ generateProfessionalFlyer: Error occurred:', error);
       console.error('❌ generateProfessionalFlyer: Error stack:', error.stack);
       console.error('❌ generateProfessionalFlyer: Error name:', error.name);
-      console.error('❌ generateProfessionalFlyer: Error message:', error.message);
+      console.error(
+        '❌ generateProfessionalFlyer: Error message:',
+        error.message
+      );
       throw error;
     }
   };
 
-    async function handleSend(text) {
-      const trimmed = text.trim();
-      if (!trimmed || loading) return;
-    
+  async function handleSend(text) {
+    const trimmed = text.trim();
+    if (!trimmed || loading) return;
+
     // Check authentication first
     if (!isSignedIn) {
-      console.log("User not signed in, redirecting to sign-in page");
-      setError("Please sign in to use the AI Listing Generator");
-      router.push("/sign-in");
+      console.log('User not signed in, redirecting to sign-in page');
+      setError('Please sign in to use the AI Listing Generator');
+      router.push('/sign-in');
       return;
     }
-    
-    console.log("User authentication status:", { isSignedIn, isPro, isTrial }); // Debug log
-    
+
+    console.log('User authentication status:', { isSignedIn, isPro, isTrial }); // Debug log
+
     // Check if we're modifying an existing listing
     const isModifyingListing = hasListing && messages.length > 0;
-    
-      const baseInput = messages.length === 0 ? trimmed : originalInput;
-      if (messages.length === 0) setOriginalInput(trimmed);
 
-      // Add user message to chat
-      setMessages(prev => [...prev, { role: "user", content: trimmed }]);
-      setError(null);
+    const baseInput = messages.length === 0 ? trimmed : originalInput;
+    if (messages.length === 0) setOriginalInput(trimmed);
+
+    // Add user message to chat
+    setMessages((prev) => [...prev, { role: 'user', content: trimmed }]);
+    setError(null);
 
     // Don't scroll - let the page stay where it is
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        // Build conversation context with full history
-        const conversationContext = [
-          // Include the original request and any previous Q&A
-          ...(allQuestionsAndAnswers.length > 0 ? [
-            { role: "user", content: `Original request: ${baseInput}` },
-            { role: "user", content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}` }
-          ] : []),
+      // Build conversation context with full history
+      const conversationContext = [
+        // Include the original request and any previous Q&A
+        ...(allQuestionsAndAnswers.length > 0
+          ? [
+              { role: 'user', content: `Original request: ${baseInput}` },
+              {
+                role: 'user',
+                content: `Previous answers: ${allQuestionsAndAnswers.map((q, i) => `Q: ${q}\nA: ${questionAnswers[i] || 'N/A'}`).join('\n\n')}`,
+              },
+            ]
+          : []),
         // If modifying a listing, include the current listing content
-        ...(isModifyingListing ? [
-          { role: "assistant", content: `Current listing: ${currentListing}` }
-          ] : []),
-          // Current message
-          { role: "user", content: trimmed },
-          // System instruction for edit requests
-        { role: "system", content: isModifyingListing 
-          ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
-          : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`
-        }
-        ];
+        ...(isModifyingListing
+          ? [
+              {
+                role: 'assistant',
+                content: `Current listing: ${currentListing}`,
+              },
+            ]
+          : []),
+        // Current message
+        { role: 'user', content: trimmed },
+        // System instruction for edit requests
+        {
+          role: 'system',
+          content: isModifyingListing
+            ? `You are modifying an existing property listing. The user wants to change: "${trimmed}". Please update the listing with these changes while keeping all the existing property details. Return the complete updated listing.`
+            : `If the user is asking to modify or add details to a previous listing, use the existing information and make the requested changes. Do not ask for information that was already provided. If they want to add "1 bedroom", include that in the listing without asking for it again.`,
+        },
+      ];
 
-      console.log("Sending this context to AI:", conversationContext); // Debug log
+      console.log('Sending this context to AI:', conversationContext); // Debug log
 
-      const resp = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const resp = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: conversationContext,
-          tone
+          tone,
         }),
       });
 
       if (!resp.ok) {
         const errorData = await resp.json().catch(() => ({}));
-        console.log("API error data:", errorData); // Debug log
-        const errorMessage = errorData.error || `Chat API error: ${resp.status}`;
+        console.log('API error data:', errorData); // Debug log
+        const errorMessage =
+          errorData.error || `Chat API error: ${resp.status}`;
         if (resp.status === 401) {
-          console.error("Authentication failed. User appears signed in but API rejected request.");
-          console.error("User state:", { isSignedIn, isPro, isTrial });
-          setError("Authentication failed. Please sign in again.");
-          router.push("/sign-in");
+          console.error(
+            'Authentication failed. User appears signed in but API rejected request.'
+          );
+          console.error('User state:', { isSignedIn, isPro, isTrial });
+          setError('Authentication failed. Please sign in again.');
+          router.push('/sign-in');
           return;
         }
         throw new Error(errorMessage);
       }
 
       const data = await resp.json();
-      console.log("Raw API response:", data); // Debug log
+      console.log('Raw API response:', data); // Debug log
 
       // Check if we need to ask follow-up questions
-      if (data.parsed?.type === "questions") {
-        console.log("Setting questions:", data.parsed.questions); // Debug log
+      if (data.parsed?.type === 'questions') {
+        console.log('Setting questions:', data.parsed.questions); // Debug log
         setQuestions(data.parsed.questions);
         setQuestionAnswers({});
         setCurrentQuestionIndex(0);
@@ -325,63 +395,99 @@ async function copyToClipboard(text) {
       if (data.message?.content) {
         const content = data.message.content;
         const variants = splitVariants(content);
-        
+
         if (variants) {
           // We have structured variants
-          setMessages(prev => {
+          setMessages((prev) => {
             const copy = [...prev];
-            copy[copy.length - 1] = { 
-              role: "assistant", 
+            copy[copy.length - 1] = {
+              role: 'assistant',
               content: content,
               pretty: variants.mls || content,
-              variants: variants
+              variants: variants,
             };
             return copy;
           });
         } else {
           // Single response
-          setMessages(prev => {
+          setMessages((prev) => {
             const copy = [...prev];
-            copy[copy.length - 1] = { role: "assistant", content: content, pretty: content };
+            copy[copy.length - 1] = {
+              role: 'assistant',
+              content: content,
+              pretty: content,
+            };
             return copy;
           });
         }
 
         // Check if this looks like a listing - only set hasListing if we actually get a proper listing
-        if (data.parsed?.type === "listing" ||
-            (content.includes("bedroom") && content.includes("bathroom") && content.includes("sq ft")) ||
-            (content.includes("bedroom") && content.includes("bathroom") && content.includes("square feet"))) {
-          console.log("Listing detected, setting currentListing and hasListing to true");
+        if (
+          data.parsed?.type === 'listing' ||
+          (content.includes('bedroom') &&
+            content.includes('bathroom') &&
+            content.includes('sq ft')) ||
+          (content.includes('bedroom') &&
+            content.includes('bathroom') &&
+            content.includes('square feet'))
+        ) {
+          console.log(
+            'Listing detected, setting currentListing and hasListing to true'
+          );
           setCurrentListing(content);
           setHasListing(true);
-          
-          // Save listing to localStorage and redirect to listing display page
-          try {
-            localStorage.setItem('currentListing', content);
-            sessionStorage.setItem('currentListing', content);
-            router.push('/listing-display');
-          } catch (e) {
-            console.error('Failed to save listing or redirect:', e);
-          }
+
+          // Save listing to Supabase for Dashboard
+          const parsed = parseListingData(content);
+          const listingData = {
+            user_id: user.id,
+            title: parsed.address || 'Untitled Property',
+            description: content,
+            address: parsed.address || '',
+            bedrooms: parsed.bedrooms || 0,
+            bathrooms: parsed.bathrooms || 0,
+            sqft: parsed.sqft || 0,
+            style: tone,
+            features: parsed.features || '',
+            generated_content: {
+              listing: content,
+              email: '',
+              social: '',
+            },
+          };
+
+          createListingMutation.mutate(listingData, {
+            onSuccess: () => {
+              // Also save to sessionStorage for the display page transition
+              sessionStorage.setItem('currentListing', content);
+              router.push('/listing-display');
+            },
+          });
         } else {
-          console.log("No listing detected, keeping hasListing as false");
+          console.log('No listing detected, keeping hasListing as false');
           setHasListing(false);
         }
       } else {
         // Fallback to raw content if parsing fails
-        const text = coerceToReadableText(data.message?.content || data.content || data);
+        const text = coerceToReadableText(
+          data.message?.content || data.content || data
+        );
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: text, pretty: text };
+          copy[copy.length - 1] = {
+            role: 'assistant',
+            content: text,
+            pretty: text,
+          };
           return copy;
         });
-        
+
         // Don't set hasListing to true for fallback content
         setHasListing(false);
       }
     } catch (e) {
-      console.error("Modify listing error:", e);
-      const errorMessage = e?.message || e?.error || "Failed to get response";
+      console.error('Modify listing error:', e);
+      const errorMessage = e?.message || e?.error || 'Failed to get response';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -390,18 +496,18 @@ async function copyToClipboard(text) {
 
   function submitQuestionAnswers() {
     const answers = Object.values(questionAnswers);
-    setAllQuestionsAndAnswers(prev => [...prev, ...answers]);
+    setAllQuestionsAndAnswers((prev) => [...prev, ...answers]);
     setQuestionsOpen(false);
-    
+
     // Send the answers to continue the conversation
     const answerText = answers.join('\n\n');
     console.log('📝 Submitting question answers:', answerText);
 
     // Add the answers to the chat
-    setMessages(prev => [
+    setMessages((prev) => [
       ...prev,
-      { role: "user", content: `Here are my answers:\n\n${answerText}` },
-      { role: "assistant", content: "", pretty: "" }
+      { role: 'user', content: `Here are my answers:\n\n${answerText}` },
+      { role: 'assistant', content: '', pretty: '' },
     ]);
 
     // Send the answers to get the final listing
@@ -422,59 +528,62 @@ async function copyToClipboard(text) {
     <div className="chat-page">
       <div className="chat-container">
         <ChatHeader />
-        
+
         <div className="chat-content">
           {/* Centered AI Listing Generator Section */}
           <div className="ai-listing-generator-section">
             <h1 className="ai-listing-title">AI Listing Generator</h1>
-            <p className="ai-listing-subtitle">Describe your property and let AI create professional listings</p>
-            
-          {!isListingMode && (
-            <ExamplesRow onSelect={(text) => composerRef.current.setInput(text)} />
-          )}
-            
-            <div className="chat-input-section">
-            <Composer ref={composerRef} onSend={handleSend} loading={loading} />
-            </div>
-            
+            <p className="ai-listing-subtitle">
+              Describe your property and let AI create professional listings
+            </p>
 
+            {!isListingMode && (
+              <ExamplesRow
+                onSelect={(text) => composerRef.current.setInput(text)}
+              />
+            )}
+
+            <div className="chat-input-section">
+              <Composer
+                ref={composerRef}
+                onSend={handleSend}
+                loading={loading}
+              />
+            </div>
           </div>
 
           {/* Messages Container */}
           {messages.length > 0 && (
             <div className="messages-container">
-              {messages.map((message, index) => (
-                message.role === 'assistant' && (
-                  <div
-                    key={index}
-                    className="message assistant-message"
-                  >
-                    <div className="message-content">
-                      {message.content.includes('```') ? (
-                        <div className="code-block">
-                          <pre>
-                            <code>{message.content.replace(/```/g, '')}</code>
-                          </pre>
-                        </div>
-                      ) : (
-                        <div className="text-content">{message.content}</div>
-                      )}
+              {messages.map(
+                (message, index) =>
+                  message.role === 'assistant' && (
+                    <div key={index} className="message assistant-message">
+                      <div className="message-content">
+                        {message.content.includes('```') ? (
+                          <div className="code-block">
+                            <pre>
+                              <code>{message.content.replace(/```/g, '')}</code>
+                            </pre>
+                          </div>
+                        ) : (
+                          <div className="text-content">{message.content}</div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )
-              ))}
+                  )
+              )}
             </div>
           )}
-          
+
           {/* Flyer Generation Button - Only show if user stays on this page */}
           {hasListing && (
             <div className="flyer-generation-section">
-              
               <button
                 className="flyer-generation-btn"
                 onClick={() => {
                   if (!isPro) {
-                    alert("Please upgrade to Pro to generate flyers");
+                    alert('Please upgrade to Pro to generate flyers');
                     return;
                   }
                   setFlyerOpen(true);
@@ -484,27 +593,28 @@ async function copyToClipboard(text) {
                 🎨 Generate Flyer {!isPro && '(Upgrade Required)'}
               </button>
               {!isPro && (
-                <p className="flyer-upgrade-note">Upgrade to Pro to generate professional flyers</p>
+                <p className="flyer-upgrade-note">
+                  Upgrade to Pro to generate professional flyers
+                </p>
               )}
             </div>
           )}
-          
         </div>
       </div>
 
-
-
       {/* Enhanced Flyer Modal */}
       {flyerOpen && (
-        <div style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0, 
-          zIndex: 9999,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)'
-        }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          }}
+        >
           <EnhancedFlyerModal
             onClose={() => {
               setFlyerOpen(false);
@@ -529,28 +639,40 @@ async function copyToClipboard(text) {
           <div className="questions-modal">
             <div className="questions-modal-header">
               <h3>Additional Information Needed</h3>
-              <button className="questions-modal-close" onClick={() => setQuestionsOpen(false)}>✕</button>
+              <button
+                className="questions-modal-close"
+                onClick={() => setQuestionsOpen(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className="questions-modal-body">
               <p>{questions[currentQuestionIndex]}</p>
               <textarea
                 placeholder="Type your answer here..."
-                value={questionAnswers[currentQuestionIndex] || ""}
-                onChange={(e) => setQuestionAnswers(prev => ({
-                  ...prev,
-                  [currentQuestionIndex]: e.target.value
-                }))}
+                value={questionAnswers[currentQuestionIndex] || ''}
+                onChange={(e) =>
+                  setQuestionAnswers((prev) => ({
+                    ...prev,
+                    [currentQuestionIndex]: e.target.value,
+                  }))
+                }
                 rows={3}
               />
             </div>
             <div className="questions-modal-actions">
-              <button className="questions-modal-btn cancel" onClick={() => setQuestionsOpen(false)}>
+              <button
+                className="questions-modal-btn cancel"
+                onClick={() => setQuestionsOpen(false)}
+              >
                 Cancel
               </button>
               {currentQuestionIndex > 0 && (
                 <button
                   className="questions-modal-btn secondary"
-                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                  onClick={() =>
+                    setCurrentQuestionIndex((prev) => Math.max(0, prev - 1))
+                  }
                 >
                   Previous
                 </button>
@@ -558,7 +680,7 @@ async function copyToClipboard(text) {
               {currentQuestionIndex < questions.length - 1 ? (
                 <button
                   className="questions-modal-btn primary"
-                  onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
+                  onClick={() => setCurrentQuestionIndex((prev) => prev + 1)}
                   disabled={!questionAnswers[currentQuestionIndex]}
                 >
                   Next
